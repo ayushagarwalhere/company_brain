@@ -8,7 +8,7 @@ load_dotenv()
 
 
 def _get(name: str, default: str = "") -> str:
-    return os.getenv(name, default).strip()
+    return (os.getenv(name) or default).strip()
 
 
 @dataclass(frozen=True)
