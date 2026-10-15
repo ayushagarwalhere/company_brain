@@ -9,7 +9,6 @@ import json
 import sys
 
 from agent.tools import decision_history, drift_for_feature
-from config import settings
 from graph import queries as Q
 from graph.db import get_graph
 
@@ -74,7 +73,8 @@ def _template(ctx: dict) -> str:
 
 def generate_spec(feature: str) -> dict:
     ctx = context(feature)
-    if settings.deepseek_api_key and ctx["drift"]:
+    from pipeline import llm
+    if ctx["drift"] and llm.available():
         from pipeline.llm import chat_text
         md = chat_text(SYSTEM, json.dumps(ctx, default=str, ensure_ascii=False))
         engine = "deepseek"

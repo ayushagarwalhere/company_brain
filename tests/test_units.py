@@ -68,3 +68,31 @@ def test_grader():
     assert grade("Now a year of history plus custom fields", item)["score"] == 1.0
     assert grade("Only a year", item)["score"] == 0.5
     assert grade("a year, custom fields; 30 days is current", item)["score"] == 0.0
+
+
+def test_llm_unavailable_without_key(monkeypatch):
+    """No key -> available() is False with a reason, so callers take the rule-based path."""
+    from pipeline import llm
+    import dataclasses
+    monkeypatch.setattr(llm, "settings", dataclasses.replace(llm.settings, deepseek_api_key=""))
+    llm._status.update(ok=None, reason="", at=0.0)
+    assert llm.available() is False and "not set" in llm.unavailable_reason()
+
+
+def test_llm_failure_is_cached_as_unavailable(monkeypatch):
+    """A key that errors (e.g. 402 insufficient balance) degrades gracefully instead of raising."""
+    from pipeline import llm
+
+    class Boom:
+        class chat:
+            class completions:
+                @staticmethod
+                def create(**_):
+                    raise RuntimeError("Error code: 402 - Insufficient Balance")
+
+    import dataclasses
+    monkeypatch.setattr(llm, "settings", dataclasses.replace(llm.settings, deepseek_api_key="sk-test"))
+    monkeypatch.setattr(llm, "_client", lambda: Boom)
+    llm._status.update(ok=None, reason="", at=0.0)
+    assert llm.available() is False and llm.unavailable_reason() == "insufficient balance"
+    llm._status.update(ok=None, reason="", at=0.0)

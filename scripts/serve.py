@@ -41,7 +41,8 @@ def ensure_graph():
     from pipeline.ingest import ingest
     from pipeline.resolve import resolve
     has_cache = CACHE_DIR.exists() and any(CACHE_DIR.glob("*.json"))
-    extractor = "deepseek" if (settings.deepseek_api_key or has_cache) else "heuristic"
+    from pipeline import llm
+    extractor = "deepseek" if (llm.available() or has_cache) else "heuristic"
     print(f"building graph with {extractor} extraction ...")
     ingest(reset=True)
     resolve(get_graph(), extractor)

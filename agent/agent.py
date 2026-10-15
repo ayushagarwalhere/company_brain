@@ -24,10 +24,13 @@ def _compact(result: dict) -> str:
 
 
 def ask(question: str) -> dict:
-    """LLM agent when DEEPSEEK_API_KEY is set; otherwise the rules-based router over the same graph tools."""
-    if not settings.deepseek_api_key:
+    """LLM agent when DeepSeek is usable; otherwise the rules-based router over the same graph tools."""
+    from pipeline import llm
+    if not llm.available():
         from agent.router import ask as rules_ask
-        return rules_ask(question)
+        out = rules_ask(question)
+        out["fallback_reason"] = llm.unavailable_reason()
+        return out
     client = _client()
     messages = [{"role": "system", "content": SYSTEM}, {"role": "user", "content": question}]
     trace, paths = [], []

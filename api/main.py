@@ -51,7 +51,11 @@ def stats():
     rels = Q.rows(g, "MATCH ()-[r]->() RETURN type(r) AS type, count(*) AS n ORDER BY n DESC")
     build = Q.rows(g, "MATCH (b:Build {id: 'latest'}) RETURN b.extractor AS extractor, b.at AS at")
     nodes = [n for n in nodes if n["label"] != "Build"]
-    return {"nodes": nodes, "relationships": rels, "build": build[0] if build else None}
+    from config import settings
+    from pipeline import llm
+    ok = llm.available()
+    return {"nodes": nodes, "relationships": rels, "build": build[0] if build else None,
+            "llm": {"model": settings.deepseek_model, "available": ok, "reason": "" if ok else llm.unavailable_reason()}}
 
 
 @app.get("/api/features")

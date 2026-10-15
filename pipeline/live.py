@@ -27,8 +27,8 @@ _last_alert: dict[str, float] = {}
 
 
 def _extractor():
-    from config import settings
-    if settings.deepseek_api_key:
+    from pipeline import llm
+    if llm.available():
         from pipeline.extract import DeepSeekExtractor
         return DeepSeekExtractor()
     return HeuristicExtractor()

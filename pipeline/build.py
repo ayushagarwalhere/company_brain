@@ -1,6 +1,6 @@
 """Full build: ingest -> resolve -> report drift.
 
-    python -m pipeline.build                        # DeepSeek extraction
+    python -m pipeline.build                        # DeepSeek if it answers, else heuristic
     python -m pipeline.build --extractor heuristic  # rule-based extraction, no LLM
     python -m pipeline.build --extractor oracle     # answer-key extraction (tests resolution + drift only)
 """
@@ -21,12 +21,18 @@ def mark_build(g, extractor: str) -> None:
 
 def main():
     ap = argparse.ArgumentParser()
-    ap.add_argument("--extractor", default="deepseek", choices=["deepseek", "heuristic", "oracle"])
+    ap.add_argument("--extractor", default="auto", choices=["auto", "deepseek", "heuristic", "oracle"],
+                    help="auto = deepseek if the LLM answers, else heuristic")
     ap.add_argument("--semantic", choices=["llm", "tfidf"])
     ap.add_argument("--live", action="store_true")
     ap.add_argument("--graph")
     a = ap.parse_args()
 
+    if a.extractor == "auto":
+        from pipeline import llm
+        a.extractor = "deepseek" if llm.available() else "heuristic"
+        if a.extractor == "heuristic":
+            print(f"LLM unavailable ({llm.unavailable_reason()}): using the heuristic extractor")
     print(ingest(live=a.live, reset=True, graph_name=a.graph))
     g = get_graph(a.graph)
     resolve(g, a.extractor, a.semantic)

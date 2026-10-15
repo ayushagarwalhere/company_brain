@@ -54,6 +54,9 @@ async function loadStats() {
     ? ({ oracle: `<span class="warn">answer-key oracle (test mode)</span>`, heuristic: "rule-based heuristics · no LLM",
          deepseek: "DeepSeek LLM" }[s.build.extractor] || esc(s.build.extractor))
     : "not recorded";
+  $("#spec-llm").innerHTML = s.llm?.available
+    ? `${esc(s.llm.model)} · online`
+    : `<span class="muted">offline (${esc(s.llm?.reason || "unknown")}) · rules agent + heuristic extractor answering</span>`;
   const log = [
     ["001", `Ingest ${s.nodes.find((n) => n.label === "Message")?.n ?? 0} messages`],
     ["002", `Load ${s.nodes.find((n) => n.label === "Ticket")?.n ?? 0} tickets · ${s.nodes.find((n) => n.label === "PullRequest")?.n ?? 0} PRs`],
@@ -292,7 +295,7 @@ async function ask(q) {
   try {
     const r = await api("/api/ask", { question: q });
     const body = r.answer.split("\n\nEvidence:")[0];
-    $("#answer").innerHTML = `${r.engine === "rules" ? `<div class="notice"><b>Rules agent</b>: no LLM key set, so the question is routed to graph tools directly and the answer is assembled from their rows.</div>` : ""}
+    $("#answer").innerHTML = `${r.engine === "rules" ? `<div class="notice"><b>Rules agent</b>: the LLM is unavailable${r.fallback_reason ? ` (${esc(r.fallback_reason)})` : ""}, so the question is routed to graph tools directly and the answer is assembled from their rows.</div>` : ""}
       <div class="answer">${esc(body)}</div>
       <div class="mono kicker">Tools called</div>
       <div class="chips" style="margin:6px 0 0">${r.tool_calls.map((t) => `<span class="chip mono">${esc(t.tool)} ${esc(Object.values(t.args).join(", "))}</span>`).join("") || "<span class='mono'>none</span>"}</div>

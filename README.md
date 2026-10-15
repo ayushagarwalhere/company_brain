@@ -170,17 +170,20 @@ python -m scripts.check_setup      # PASS/FAIL for FalkorDB, Slack, Discord, Git
 ### Build the graph and open the dashboard
 
 ```bash
-python -m pipeline.build                      # ingest scenario + DeepSeek extraction + resolution, prints drift
+python -m pipeline.build                      # ingest + extraction + resolution, prints drift (extractor: auto)
 python -m benchmark.score_resolution          # precision/recall vs. the answer key
 python -m pytest -q                           # unit + end-to-end graph tests (graph tests skip if FalkorDB is down)
 uvicorn api.main:app --port 8000              # dashboard on http://localhost:8000 (add ?theme=light or ?theme=dark)
 ```
 
+**The LLM is optional.** The code checks whether DeepSeek actually answers (key set *and* a 1-token call succeeds, cached for 5 minutes; see `llm.available()` in [`pipeline/llm.py`](pipeline/llm.py)). If it doesn't, because there's no key, the key is invalid, the balance is zero or the network is down, every feature falls back instead of failing: the build uses the heuristic extractor, Ask uses the rules agent, specs use the template, and the live monitor uses heuristics. The dashboard's spec sheet shows `LLM: online` or `offline (reason)`, and Ask answers say why they came from the rules agent. As soon as the key works, the same commands use DeepSeek.
+
 Three extractors make the language judgments (feature grouping, message classification, which requirement a PR implements, and whether a ticket edit reflects a chat change):
 
 | `--extractor` | What it is |
 |---|---|
-| `deepseek` (default) | LLM calls with JSON output, cached in `data/llm_cache/` |
+| `auto` (default) | `deepseek` if the LLM answers, otherwise `heuristic` |
+| `deepseek` | LLM calls with JSON output, cached in `data/llm_cache/` |
 | `heuristic` | Rules only, with no LLM and no answer key: ticket labels for grouping, sentence-level decision phrasing (questions, rejections and short acks are excluded), number-aware text match for PR→requirement, and the words a ticket edit *added* for "reflects". This is the fallback when there's no key |
 | `oracle` | Reads the answer key. A test harness for the graph logic only, never reported as a result |
 
