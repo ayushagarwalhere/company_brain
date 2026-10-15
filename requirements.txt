@@ -1,0 +1,10 @@
+falkordb>=1.0
+python-dotenv>=1.0
+requests>=2.31
+openai>=1.40
+slack_bolt>=1.18
+slack_sdk>=3.27
+discord.py>=2.4
+fastapi>=0.110
+uvicorn[standard]>=0.29
+pydantic>=2.6
