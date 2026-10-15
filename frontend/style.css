@@ -388,3 +388,43 @@ select.field { width: auto; min-width: 220px; }
 .violation.resolving .diff, .violation.resolving .path { opacity: .35; transition: opacity .6s var(--ease); }
 .resolved-note { margin-top: 14px; color: var(--ok); font-size: 11px; animation: rise .5s var(--ease); overflow-wrap: anywhere; }
 .foot { align-items: center; }
+
+/* ===== search trigger + command palette ===== */
+.search-trigger { background: none; border: 1px solid var(--line); color: var(--muted); border-radius: 999px; padding: 6px 12px; cursor: pointer; font-size: 11px; }
+.search-trigger:hover { color: var(--ink); border-color: var(--ink); }
+kbd { font: 10px var(--mono); border: 1px solid var(--line); border-radius: 4px; padding: 1px 5px; margin-left: 6px; color: var(--note); }
+.palette { position: fixed; inset: 0; z-index: 60; background: color-mix(in srgb, var(--bg) 70%, transparent); backdrop-filter: blur(6px);
+           display: grid; justify-items: center; align-items: start; padding: 12vh 16px 16px; animation: fadeIn .2s ease; }
+.palette__box { width: min(680px, 100%); background: var(--card); border: 1px solid var(--line); border-radius: var(--r-panel);
+                box-shadow: 0 30px 80px -30px rgba(0, 0, 0, .7); overflow: hidden; animation: rise .35s var(--ease); opacity: 0; }
+.palette__input { display: flex; align-items: center; gap: 12px; padding: 16px 18px; border-bottom: 1px solid var(--line); }
+.palette__input span { color: var(--accent); font-size: 16px; }
+.palette__input input { flex: 1; min-width: 0; background: none; border: 0; color: var(--ink); font: 400 19px var(--font); outline: none; }
+.palette__hint { padding: 8px 18px; color: var(--note); font-size: 10px; border-bottom: 1px solid var(--line-2); }
+.palette__list { list-style: none; margin: 0; padding: 6px; max-height: 52vh; overflow: auto; }
+.palette__list li { display: grid; grid-template-columns: 92px 1fr auto; gap: 12px; align-items: center; padding: 10px 12px; border-radius: 8px; cursor: pointer; }
+.palette__list li.on, .palette__list li:hover { background: var(--card-2); }
+.palette__list li .mono { font-size: 10px; }
+.palette__list li .lab { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font-size: 14.5px; }
+.palette__list li .go { color: var(--note); font-size: 10px; }
+.palette__empty { padding: 18px; color: var(--muted); font-size: 14px; }
+@keyframes fadeIn { from { opacity: 0; } }
+
+/* ===== person drawer ===== */
+.drawer { position: fixed; top: 0; right: 0; bottom: 0; width: min(460px, 100%); z-index: 55; background: var(--card); border-left: 1px solid var(--line);
+          overflow: auto; padding: 28px 26px 40px; box-shadow: -30px 0 80px -40px rgba(0, 0, 0, .7); animation: slideIn .45s var(--ease); }
+@keyframes slideIn { from { transform: translateX(40px); opacity: 0; } }
+.drawer__close { position: sticky; top: 0; float: right; background: var(--card); border: 1px solid var(--line); color: var(--muted); border-radius: 999px; padding: 6px 12px; cursor: pointer; font-size: 10.5px; }
+.drawer h3 { margin: 18px 0 2px; font-weight: 500; font-size: 32px; letter-spacing: -.03em; line-height: 1.05; }
+.drawer .role { color: var(--muted); margin-bottom: 18px; }
+.drawer .kicker { margin-top: 22px; }
+.drawer ul { list-style: none; padding: 0; margin: 6px 0 0; }
+.drawer li { padding: 8px 0; border-top: 1px solid var(--line-2); font-size: 14px; color: var(--soft); }
+.drawer li b { color: var(--ink); font-weight: 500; }
+.drawer .fbar { display: grid; grid-template-columns: 1fr 120px 36px; gap: 10px; align-items: center; }
+.drawer .fbar .risk__bar span { width: 100%; }
+.drawer .warnbox { border: 1px solid var(--accent); background: var(--accent-bg); border-radius: var(--r-ctl); padding: 10px 12px; margin-top: 8px; font-size: 13.5px; }
+.person-link { color: inherit; text-decoration: underline dotted; text-underline-offset: 3px; cursor: pointer; background: none; border: 0; font: inherit; padding: 0; }
+.person-link:hover { color: var(--accent-ink); }
+.canvas__hint { position: absolute; right: 14px; top: 12px; color: var(--note); font-size: 10.5px; pointer-events: none; }
+.static .palette, .static .palette__box, .static .drawer { animation: none; opacity: 1; }

@@ -188,6 +188,28 @@ def timeline(feature: str):
         e["superseded"] = e["id"] in superseded
     return events
 
+@app.get("/api/search")
+def search(q: str, limit: int = 12):
+    from graph.explore import search as do_search
+    return do_search(get_graph(), q, limit)
+
+
+@app.get("/api/people/{pid}")
+def person(pid: str):
+    from graph.explore import person as profile
+    out = profile(get_graph(), pid)
+    if not out:
+        raise HTTPException(404, f"unknown person {pid}")
+    for d in out["drift_caused"] + out["stale_work"]:
+        d["path"] = tools.drift_path(d)
+    return out
+
+
+@app.get("/api/nodes/{nid}/neighbors")
+def node_neighbors(nid: str):
+    from graph.explore import neighbors
+    return neighbors(get_graph(), nid)
+
 @app.get("/api/connect")
 def connect(a: str, b: str):
     return tools.how_connected(a, b)

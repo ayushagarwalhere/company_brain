@@ -15,6 +15,7 @@ This project builds a **context graph in FalkorDB** that ties Slack and Discord 
 5. **Coverage and risk.** Finds PRs with no ticket, tickets closed with no code, tickets nobody discussed, and features where one person holds most of the knowledge ("bus factor 1").
 6. **Feature timeline.** Puts ticket versions, chat changes and PRs on one time axis and shades the stretch where the ticket and PRs never caught up.
 7. **Close the loop.** Each drift card has two actions, and both are written to the graph so they stay auditable. **Write to ticket** makes the decided requirement the ticket's next version (`Ticket -STATES-> new version -SUPERSEDES-> chat requirement`). **Keep old scope** records `Person -MADE-> Decision {kind: dismissal} -DISMISSES-> requirement`. Either way the drift query stops flagging it, and the retro shows the outcome.
+8. **Browse the brain.** Press `/` (or Ctrl+K) to search people, tickets, PRs and messages through **FalkorDB full-text indexes** (stemming and prefix match). Person profiles show what someone owns, shipped, decided and knows about, plus any drift they caused or own. Double-click a graph node to expand its neighbours. Deep links: `?person=sofia`, `?q=breach`, `?view=timeline`.
 
 ```
 (Person maya)-[:POSTED]->(Message @ slack#support-escalations, 2026-09-22)
@@ -132,6 +133,7 @@ RETURN f, t, r, m, author, collect({pr: pr.number, implements: old.text}) AS sta
 | `DECISION_IMPACT` | downstream of a decision: requirement → ticket → owner, PRs, related tickets |
 | `ORPHAN_PRS`, `DONE_WITHOUT_PR`, `UNDISCUSSED_TICKETS` | coverage: shipped work with no ticket, closed tickets with no code, tickets no message mentions |
 | `KNOWLEDGE_RISK` | per feature, the share of weighted involvement held by the top person (bus factor) |
+| full-text search | `CALL db.idx.fulltext.createNodeIndex('Message', 'text')` (plus Ticket, PullRequest, Person) and `CALL db.idx.fulltext.queryNodes($label, $q)` in [`graph/explore.py`](graph/explore.py) |
 | `FEATURE_EVENTS` | one `CALL { … UNION … }` subquery that puts ticket versions, chat changes and PRs on a single time axis for the timeline |
 | `CONNECTION` | shortest causal chain between any two ids, e.g. `liam` → `PR-6`. This is a bounded undirected search, because FalkorDB's `shortestPath` is directed-only, and it skips the Feature hub so the chain actually explains something |
 

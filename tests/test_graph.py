@@ -130,3 +130,17 @@ def test_rules_agent_answers_from_graph(g, monkeypatch):
     assert "Dev Patel" in r["answer"]
     r = router.ask("How is liam connected to PR-6?")
     assert r["paths"] and r["paths"][0].startswith("(Person liam)")
+
+
+def test_search_profile_and_neighbors(g):
+    from graph.explore import neighbors, person, search
+    from graph.writer import apply_schema
+    apply_schema(g)
+    hits = search(g, "breach email")
+    assert any(h["id"] == "BD-103" for h in hits) and any(h["id"] == "PR-5" for h in hits)
+    assert search(g, "maya")[0] == {**search(g, "maya")[0], "id": "maya", "type": "Person"}
+    assert search(g, "#7")[0]["id"] == "PR-7"
+    p = person(g, "sofia")
+    assert {t["ticket"] for t in p["owns"]} >= {"BD-101"} and any(x["pr"] == 6 for x in p["prs"])
+    nb = neighbors(g, "BD-101")
+    assert any(n["id"] == "PR-6" for n in nb["nodes"]) and any(e["rel"] == "REFERENCES" for e in nb["edges"])

@@ -29,6 +29,7 @@
       <a href="#simulate">[05] Simulate</a>
       <a href="#coverage">[06] Risk</a>
     </div>
+    <button class="search-trigger mono" id="search-open" aria-label="Search the graph">Search <kbd>/</kbd></button>
     <button class="theme-toggle mono" id="theme-toggle" aria-label="Toggle theme">◐</button>
   </nav>
 
@@ -173,6 +174,19 @@
     <button class="btn btn--ghost" id="reset-demo" title="Rebuild the graph from source data (undoes simulated messages and drift actions)">Reset demo data</button>
     <span class="mono">Graph Hacks · Company Brain</span>
   </footer>
+  <div class="palette" id="palette" hidden>
+    <div class="palette__box" role="dialog" aria-label="Search">
+      <div class="palette__input"><span class="mono">⌕</span><input id="palette-input" placeholder="Search people, tickets, PRs, messages…" autocomplete="off"><kbd class="mono">esc</kbd></div>
+      <div class="palette__hint mono">FalkorDB full-text index · stemming + prefix match</div>
+      <ul class="palette__list" id="palette-list"></ul>
+    </div>
+  </div>
+
+  <aside class="drawer" id="drawer" hidden aria-label="Person profile">
+    <button class="drawer__close mono" id="drawer-close" aria-label="Close">Close ✕</button>
+    <div id="drawer-body"></div>
+  </aside>
+
   <script src="/static/app.js"></script>
 </body>
 </html>

@@ -13,6 +13,21 @@ def apply_schema(g) -> None:
         except Exception as e:  # index already exists
             if "already indexed" not in str(e).lower():
                 raise
+    # Full-text indexes (RediSearch under the hood: stemming, prefix queries) power /api/search
+    for label, props in FULLTEXT.items():
+        try:
+            g.query(f"CALL db.idx.fulltext.createNodeIndex('{label}', {', '.join(repr(p) for p in props)})")
+        except Exception as e:
+            if "already indexed" not in str(e).lower():
+                raise
+
+
+FULLTEXT = {
+    "Message": ("text",),
+    "Ticket": ("title", "description"),
+    "PullRequest": ("title", "body"),
+    "Person": ("name", "role"),
+}
 
 
 def write_people(g, people: list[dict]) -> None:

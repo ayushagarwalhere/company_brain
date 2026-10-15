@@ -96,7 +96,7 @@ async function loadDrift() {
         <span class="mono" style="color:var(--note)">${esc(d.changed_at.slice(0, 10))} · ${esc(d.source)} #${esc(d.channel)}</span>
       </div>
       <h3>${esc(d.feature_name)}</h3>
-      <div class="violation__meta">${esc(d.changed_by)} changed the requirement in ${link(d.message_url, `${d.source} #${d.channel}`)}. ${esc(d.ticket)} was never updated.</div>
+      <div class="violation__meta"><button class="person-link" data-person="${esc(d.changed_by)}">${esc(d.changed_by)}</button> changed the requirement in ${link(d.message_url, `${d.source} #${d.channel}`)}. ${esc(d.ticket)} was never updated.</div>
       <div class="diff">
         <div><span class="mono">${esc(d.ticket)} still says</span><p>${esc(d.ticket_text)}</p></div>
         <div class="now"><span class="mono">Decided in chat</span><p>${esc(d.requirement_text)}</p></div>
@@ -437,3 +437,127 @@ if (new URLSearchParams(location.search).get("view") === "timeline") {
 }
 
 $("#reset-demo")?.addEventListener("click", (e) => resetDemo(e.currentTarget));
+
+
+/* ---------- command palette: FalkorDB full-text search ---------- */
+let palIdx = 0, palRows = [], palTimer;
+function openPalette() {
+  $("#palette").hidden = false;
+  $("#palette-input").value = "";
+  $("#palette-list").innerHTML = `<li class="palette__empty">Try “breach email”, “maya”, “BD-101”, “#7”, “export”…</li>`;
+  setTimeout(() => $("#palette-input").focus(), 10);
+}
+function closePalette() { $("#palette").hidden = true; }
+function renderPalette() {
+  $("#palette-list").innerHTML = palRows.length ? palRows.map((r, i) => `
+    <li class="${i === palIdx ? "on" : ""}" data-pal="${i}">
+      <span class="mono" style="color:${css(TYPES[r.type] || "--muted")}">${esc(r.type)}</span>
+      <span class="lab">${esc(r.type === "Message" ? r.label : `${r.id} · ${r.label || ""}`)}</span>
+      <span class="go mono">${r.type === "Person" ? "profile" : r.feature ? "graph" : "neighbours"} ↵</span>
+    </li>`).join("") : `<li class="palette__empty">No matches.</li>`;
+}
+async function runSearch(q) {
+  if (!q.trim()) { palRows = []; renderPalette(); return; }
+  palRows = await api(`/api/search?q=${encodeURIComponent(q)}`);
+  palIdx = 0;
+  renderPalette();
+}
+async function choose(r) {
+  closePalette();
+  if (r.type === "Person") return openPerson(r.id);
+  setView("graph");
+  if (r.feature) await showGraph(r.feature);
+  $("#graph-sec").scrollIntoView({ behavior: "smooth" });
+  setTimeout(() => focusNode(r.id), 400);
+}
+$("#search-open").addEventListener("click", openPalette);
+$("#palette").addEventListener("click", (e) => {
+  if (e.target.id === "palette") return closePalette();
+  const li = e.target.closest("[data-pal]");
+  if (li) choose(palRows[+li.dataset.pal]);
+});
+$("#palette-input").addEventListener("input", (e) => { clearTimeout(palTimer); palTimer = setTimeout(() => runSearch(e.target.value), 140); });
+$("#palette-input").addEventListener("keydown", (e) => {
+  if (e.key === "ArrowDown") { palIdx = Math.min(palRows.length - 1, palIdx + 1); renderPalette(); e.preventDefault(); }
+  if (e.key === "ArrowUp") { palIdx = Math.max(0, palIdx - 1); renderPalette(); e.preventDefault(); }
+  if (e.key === "Enter" && palRows[palIdx]) choose(palRows[palIdx]);
+});
+document.addEventListener("keydown", (e) => {
+  const typing = /INPUT|TEXTAREA|SELECT/.test(document.activeElement?.tagName || "");
+  if ((e.key === "/" && !typing) || ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === "k")) { e.preventDefault(); openPalette(); }
+  if (e.key === "Escape") { closePalette(); $("#drawer").hidden = true; }
+});
+
+/* ---------- graph: focus + expand neighbours ---------- */
+async function focusNode(id) {
+  if (!cy) return;
+  let n = cy.getElementById(id);
+  if (!n.length) await expandNode(id, true);
+  n = cy.getElementById(id);
+  if (!n.length) return;
+  cy.animate({ center: { eles: n }, zoom: 1.4 }, { duration: 500 });
+  cy.$(":selected").unselect(); n.select(); n.emit("tap");
+}
+async function expandNode(id, includeSelf) {
+  const g = await api(`/api/nodes/${encodeURIComponent(id)}/neighbors`);
+  const add = [];
+  if (includeSelf && !cy.getElementById(id).length) {
+    const hit = palRows.find((r) => r.id === id);
+    add.push({ group: "nodes", data: { id, label: id, type: hit?.type || "Message", text: hit?.label, color: css(TYPES[hit?.type] || "--muted") } });
+  }
+  for (const n of g.nodes) if (!cy.getElementById(n.id).length) add.push({ group: "nodes", data: { ...n, color: css(TYPES[n.type] || "--muted") } });
+  for (const e of g.edges) {
+    const eid = `x:${e.from}:${e.rel}:${e.to}`;
+    if (!cy.getElementById(eid).length) add.push({ group: "edges", data: { id: eid, source: e.from, target: e.to, label: e.rel } });
+  }
+  if (!add.length) return;
+  const center = cy.getElementById(id).position() || { x: 0, y: 0 };
+  const added = cy.add(add.map((x) => (x.group === "nodes" ? { ...x, position: { x: center.x + (Math.random() - .5) * 160, y: center.y + (Math.random() - .5) * 160 } } : x)));
+  added.nodes().style("opacity", 0).animate({ style: { opacity: 1 } }, { duration: 400 });
+  cy.layout({ name: "cose", animate: true, animationDuration: 600, fit: false, randomize: false, nodeRepulsion: 18000, idealEdgeLength: 80 }).run();
+  $("#canvas-tag").textContent = `${cy.nodes().length} nodes · ${cy.edges().length} edges · expanded ${id}`;
+}
+function wireGraphExplore() {
+  if (!cy || cy._explore) return;
+  cy._explore = true;
+  cy.on("dbltap", "node", (e) => {
+    const d = e.target.data();
+    if (d.type === "Person") return openPerson(d.id);
+    expandNode(d.id);
+  });
+}
+setInterval(wireGraphExplore, 500);
+document.querySelector(".canvas")?.insertAdjacentHTML("beforeend", `<div class="canvas__hint mono">double-click a node to expand</div>`);
+
+/* ---------- person profile drawer ---------- */
+async function openPerson(pid) {
+  const p = await api(`/api/people/${encodeURIComponent(pid)}`);
+  const max = Math.max(1, ...p.features.map((f) => f.score));
+  $("#drawer-body").innerHTML = `
+    <span class="mono" style="color:var(--accent)">Person · ${esc(p.id)}</span>
+    <h3>${esc(p.name)}</h3><div class="role">${esc(p.role)} · ${p.messages} messages</div>
+    ${p.drift_caused.map((d) => `<div class="warnbox">Their decision on ${esc(d.changed_at.slice(0, 10))} (“${esc(d.requirement_text)}”) never reached ${esc(d.ticket)}.</div>`).join("")}
+    ${p.stale_work.map((d) => `<div class="warnbox">Owns ${esc(d.ticket)}, which is stale: ${esc(d.changed_by)} changed it on ${esc(d.changed_at.slice(0, 10))}.</div>`).join("")}
+    <div class="mono kicker">Knows about</div>
+    <ul>${p.features.map((f) => `<li class="fbar"><b>${esc(f.name)}</b><div class="risk__bar"><span style="width:${Math.round(f.score / max * 100)}%"></span></div><span class="mono">${f.score}</span></li>`).join("") || "<li>No feature involvement</li>"}</ul>
+    <div class="mono kicker">Owns · ${p.owns.length}</div>
+    <ul>${p.owns.map((t) => `<li><b>${esc(t.ticket)}</b> ${esc(t.title)} <span class="muted">· ${esc(t.state)}${t.feature ? " · " + esc(t.feature) : ""}</span></li>`).join("") || "<li>Nothing assigned</li>"}</ul>
+    <div class="mono kicker">Shipped · ${p.prs.length}</div>
+    <ul>${p.prs.map((x) => `<li>${link(x.url, "#" + x.pr)} ${esc(x.title)} <span class="muted">· ${esc(x.tickets.join(", ") || "no ticket")}</span></li>`).join("") || "<li>No PRs</li>"}</ul>
+    <div class="mono kicker">Decided · ${p.decisions.length}</div>
+    <ul>${p.decisions.map((d) => `<li><span class="muted">${esc((d.at || "").slice(0, 10))} · ${esc(d.ticket || "")}${d.kind === "dismissal" ? " · dismissal" : ""}</span><br>${esc(d.text)}</li>`).join("") || "<li>No decisions recorded</li>"}</ul>`;
+  $("#drawer").hidden = false;
+  $("#drawer").scrollTop = 0;
+}
+$("#drawer-close").addEventListener("click", () => ($("#drawer").hidden = true));
+document.addEventListener("click", (e) => {
+  const pl = e.target.closest("[data-person]");
+  if (pl) { e.preventDefault(); openPerson(pl.dataset.person); }
+});
+
+/* deep links: ?person=maya opens a profile, ?q=breach opens search */
+{
+  const qs = new URLSearchParams(location.search);
+  if (qs.get("person")) setTimeout(() => openPerson(qs.get("person")), 600);
+  if (qs.get("q")) setTimeout(() => { openPalette(); $("#palette-input").value = qs.get("q"); runSearch(qs.get("q")); }, 600);
+}
