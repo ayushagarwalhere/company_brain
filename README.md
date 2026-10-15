@@ -13,8 +13,8 @@ This project builds a **context graph in FalkorDB** that ties Slack and Discord 
 3. **Cited Q&A.** A DeepSeek agent picks from 8 graph tools, and every answer shows the graph paths it used.
 4. **Spec generation.** Turns a drifted feature's graph context into an agent-ready spec. It stops at the spec: nothing executes it.
 5. **Coverage and risk.** Finds PRs with no ticket, tickets closed with no code, tickets nobody discussed, and features where one person holds most of the knowledge ("bus factor 1").
-7. **Close the loop.** Each drift card has two actions, and both are written to the graph so they stay auditable. **Write to ticket** makes the decided requirement the ticket's next version (`Ticket -STATES-> new version -SUPERSEDES-> chat requirement`). **Keep old scope** records `Person -MADE-> Decision {kind: dismissal} -DISMISSES-> requirement`. Either way the drift query stops flagging it, and the retro shows the outcome.
 6. **Feature timeline.** Puts ticket versions, chat changes and PRs on one time axis and shades the stretch where the ticket and PRs never caught up.
+7. **Close the loop.** Each drift card has two actions, and both are written to the graph so they stay auditable. **Write to ticket** makes the decided requirement the ticket's next version (`Ticket -STATES-> new version -SUPERSEDES-> chat requirement`). **Keep old scope** records `Person -MADE-> Decision {kind: dismissal} -DISMISSES-> requirement`. Either way the drift query stops flagging it, and the retro shows the outcome.
 
 ```
 (Person maya)-[:POSTED]->(Message @ slack#support-escalations, 2026-09-22)
