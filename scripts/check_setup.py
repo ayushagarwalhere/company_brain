@@ -30,9 +30,7 @@ def check(name):
 
 @check("FalkorDB")
 def falkordb():
-    if not settings.falkordb_password and settings.falkordb_host == "localhost":
-        raise RuntimeError("FALKORDB_HOST / FALKORDB_PASSWORD not set")
-    from graph.db import get_graph
+    from graph.db import get_graph  # a local container needs no password; Cloud needs host + password
 
     g = get_graph("_setup_check")
     g.query("MERGE (n:Ping {id: 1}) SET n.at = timestamp()")
