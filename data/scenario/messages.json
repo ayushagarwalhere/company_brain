@@ -371,7 +371,7 @@
   "channel": "engineering",
   "author": "kenji",
   "ts": "2026-09-16T04:12:00Z",
-  "text": "Standup: yesterday reviews, today the flaky test on main, no blockers.",
+  "text": "Standup: yesterday reviews, today the e2e timeouts on main, no blockers.",
   "kind": "noise"
  },
  {
@@ -681,7 +681,7 @@
   "channel": "engineering",
   "author": "arjun",
   "ts": "2026-09-18T10:10:00Z",
-  "text": "Standup: yesterday reviews, today the flaky test on main, no blockers.",
+  "text": "Standup: yesterday reviews, today the e2e timeouts on main, no blockers.",
   "kind": "noise"
  },
  {
@@ -1805,7 +1805,7 @@
   "channel": "product",
   "author": "priya",
   "ts": "2026-10-01T05:46:00Z",
-  "text": "Yesterday: BD-109 dashboard idea. Today: same, plus code review. Blockers: none.",
+  "text": "Yesterday: the reporting dashboard idea. Today: same, plus code review. Blockers: none.",
   "kind": "noise"
  },
  {
@@ -1943,7 +1943,7 @@
   "channel": "engineering",
   "author": "sofia",
   "ts": "2026-10-02T06:25:00Z",
-  "text": "Finished the flaky test on main, picking up the next thing from the board.",
+  "text": "Finished the e2e timeouts on main, picking up the next thing from the board.",
   "kind": "noise"
  },
  {

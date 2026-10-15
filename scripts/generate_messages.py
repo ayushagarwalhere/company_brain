@@ -42,12 +42,12 @@ STANDUP = [
 TOPICS = {
     "engineering": [
         "the login rate limit work (BD-107)", "search pagination bug BD-112", "dependency bumps (BD-111)",
-        "CI caching", "the flaky test on main", "API docs for BD-114", "the staging DB migration",
+        "CI caching", "the e2e timeouts on main", "API docs for BD-114", "the staging DB migration",
         "reviewing PRs", "a memory leak in the worker", "log noise in prod",
     ],
     "product": [
         "customer interviews", "pricing page copy", "Q4 roadmap draft", "the onboarding funnel numbers",
-        "churn report", "BD-109 dashboard idea", "release notes",
+        "churn report", "the reporting dashboard idea", "release notes",
     ],
     "support-escalations": [
         "a password reset loop for Initech", "Globex billing question", "an Acme user locked out",

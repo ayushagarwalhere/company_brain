@@ -71,8 +71,8 @@
   },
 
   "expected_drift": [
-    {"feature": "feat_export", "requirement": "req_export_v3", "ticket": "BD-101", "stale_prs": [6, 7],
-     "summary": "Slack decision on 09-22 (12-month range + custom fields) never reached BD-101; PR #6 shipped the 30-day export and PR #7 was merged after the decision without changing scope."},
+    {"feature": "feat_export", "requirement": "req_export_v3", "ticket": "BD-101", "stale_prs": [6],
+     "summary": "Slack decision on 09-22 (12-month range + custom fields) never reached BD-101; PR #6 shipped the 30-day export."},
     {"feature": "feat_sla", "requirement": "req_sla_v2", "ticket": "BD-103", "stale_prs": [5],
      "summary": "Discord decision on 09-17 (warn 15 min before breach, Slack channel, no email) never reached BD-103; PR #5 shipped email-at-breach."}
   ],
