@@ -49,7 +49,9 @@ def stats():
     g = get_graph()
     nodes = Q.rows(g, "MATCH (n) RETURN labels(n)[0] AS label, count(*) AS n ORDER BY n DESC")
     rels = Q.rows(g, "MATCH ()-[r]->() RETURN type(r) AS type, count(*) AS n ORDER BY n DESC")
-    return {"nodes": nodes, "relationships": rels}
+    build = Q.rows(g, "MATCH (b:Build {id: 'latest'}) RETURN b.extractor AS extractor, b.at AS at")
+    nodes = [n for n in nodes if n["label"] != "Build"]
+    return {"nodes": nodes, "relationships": rels, "build": build[0] if build else None}
 
 
 @app.get("/api/features")
@@ -161,6 +163,10 @@ def feature_graph(feature: str):
             nodes[d["requirement"]]["drift"] = True
     return {"nodes": list(nodes.values()), "edges": [{"from": a, "rel": r, "to": b} for a, r, b in edges]}
 
+
+@app.get("/api/connect")
+def connect(a: str, b: str):
+    return tools.how_connected(a, b)
 
 @app.post("/api/ask")
 def ask(body: AskIn):

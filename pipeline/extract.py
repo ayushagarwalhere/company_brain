@@ -6,10 +6,11 @@ Two interchangeable extractors:
                        and drift logic be tested in isolation. Never used for
                        reported scores.
 
-Both answer the same three questions:
+Both answer the same four questions:
   1. group_tickets:  which tickets belong to the same product feature?
   2. classify:       does this chat message change a requirement? to what?
   3. implements:     which requirement versions does this PR actually implement?
+  4. reflects:       does a later ticket edit actually contain an earlier chat change?
 """
 import json
 import re
@@ -48,6 +49,11 @@ For each candidate requirement, decide if the PR's described behaviour satisfies
 Return JSON: {"implements": [requirement ids fully implemented], "reason": short explanation}"""
 
 
+REFLECTS_SYSTEM = """A requirement was changed in chat. Later the ticket text was edited.
+Decide whether the NEW ticket text incorporates the chat change (same behaviour, numbers, scope), even if worded differently.
+An edit that leaves the old behaviour in place does NOT reflect it.
+Return JSON: {"reflects": true|false, "reason": short explanation}"""
+
 def slug(name: str) -> str:
     return "feat_" + re.sub(r"[^a-z0-9]+", "_", name.lower()).strip("_")[:40]
 
@@ -83,6 +89,11 @@ class DeepSeekExtractor:
         ids = {c["id"] for c in candidates}
         return [i for i in llm.chat_json(IMPLEMENTS_SYSTEM, user).get("implements", []) if i in ids]
 
+
+    def reflects(self, ticket_req: dict, chat_req: dict) -> bool:
+        user = (f"Chat change ({chat_req['at']}): {chat_req['text']}\n\n"
+                f"Ticket text after edit ({ticket_req['at']}): {ticket_req['text']}")
+        return bool(llm.chat_json(REFLECTS_SYSTEM, user).get("reflects"))
 
 class OracleExtractor:
     """Answer-key extractor (test harness only)."""
@@ -133,6 +144,14 @@ class OracleExtractor:
         at = to_ms(anchor["at"])
         return [c["id"] for c in candidates if c["at_ms"] == at]
 
+
+    def reflects(self, ticket_req, chat_req):
+        from pipeline.events import to_ms
+        msg = chat_req["id"].removeprefix("req:")
+        dec = next((d for d in self.key["decisions"] if d["message"] == msg), None)
+        r = self.reqs.get(dec["changes"]) if dec else None
+        seen = (r or {}).get("reflected_in_ticket")
+        return bool(seen) and ticket_req["at_ms"] >= to_ms(seen["at"])
 
 def get_extractor(name: str):
     return {"deepseek": DeepSeekExtractor, "oracle": OracleExtractor}[name]()

@@ -8,7 +8,7 @@ This project builds a **context graph in FalkorDB** that ties Slack and Discord 
 
 1. **Live drift alerts.** When a chat message changes a requirement that the ticket or PRs don't reflect, the bot replies in Slack or Discord with the **graph path** as evidence.
 2. **Sprint retro.** Shows what we decided, what we shipped and where they diverge, with a source link on every line.
-3. **Cited Q&A.** A DeepSeek agent picks from 7 graph tools, and every answer shows the graph paths it used.
+3. **Cited Q&A.** A DeepSeek agent picks from 8 graph tools, and every answer shows the graph paths it used.
 4. **Spec generation.** Turns a drifted feature's graph context into an agent-ready spec. It stops at the spec: nothing executes it.
 
 ```
@@ -123,8 +123,9 @@ RETURN f, t, r, m, author, collect({pr: pr.number, implements: old.text}) AS sta
 | `FEATURE_TIMELINE` | chronological messages, tickets, PRs, requirements for a feature |
 | `WHO_KNOWS` | expertise: people ranked by weighted paths to a feature (decision 5, PR 4, ticket 3, message 1) |
 | `DECISION_IMPACT` | downstream of a decision: requirement → ticket → owner, PRs, related tickets |
+| `CONNECTION` | shortest causal chain between any two ids, e.g. `liam` → `PR-6`. This is a bounded undirected search, because FalkorDB's `shortestPath` is directed-only, and it skips the Feature hub so the chain actually explains something |
 
-The `SUPERSEDES` chain is built per ticket by ordering its `STATES` and `AMENDS` requirements by `at_ms`. A live change supersedes whichever requirement for that ticket currently has nothing superseding it.
+The `SUPERSEDES` chain is built per ticket in time order ([`supersession_pairs`](pipeline/resolve.py)). A chat change supersedes whatever is current. A later ticket version supersedes earlier ticket versions, but it supersedes a chat change **only if its text actually reflects that change** (DeepSeek `reflects` check). That way an unrelated ticket edit, like a typo fix, can't hide drift. A live change supersedes whichever requirements for that ticket currently have nothing superseding them.
 
 ## The synthetic company
 
@@ -159,7 +160,8 @@ python -m scripts.check_setup      # PASS/FAIL for FalkorDB, Slack, Discord, Git
 ```bash
 python -m pipeline.build                      # ingest scenario + DeepSeek extraction + resolution, prints drift
 python -m benchmark.score_resolution          # precision/recall vs. the answer key
-uvicorn api.main:app --port 8000              # dashboard on http://localhost:8000
+python -m pytest -q                           # unit + end-to-end graph tests (graph tests skip if FalkorDB is down)
+uvicorn api.main:app --port 8000              # dashboard on http://localhost:8000 (add ?theme=light or ?theme=dark)
 ```
 
 Without a DeepSeek key, `python -m pipeline.build --extractor oracle` uses the answer key for the *language* judgments only (classification, PR→requirement). That's a test harness for the resolution and drift logic, and its scores are never reported as model results.
@@ -204,7 +206,7 @@ _DeepSeek extraction scores and the graph vs. no-graph results go here once the 
 
 - **Synthetic, small dataset.** It has 300 messages, 15 tickets and 12 PRs, so it can't show behaviour at company scale.
 - **TF-IDF semantic fallback misses paraphrases.** For example, "email *at* breach is too late" doesn't link to the SLA feature without the LLM. That's why message→feature recall is 0.92 in the table above.
-- **Time-based supersession.** Any later edit to a ticket supersedes an earlier chat change, even an unrelated edit like a typo fix. A content check ("does this version reflect the change?") would fix that.
+- **Supersession depends on one LLM judgment.** Whether a ticket edit reflects a chat change is a single DeepSeek call per pair, so a wrong "yes" hides drift.
 - **Same-ticket scope.** Stale PRs are those that reference the amended ticket. A PR on a sibling ticket of the same feature isn't flagged.
 - **Live alerts depend on DeepSeek.** Without a key, the live monitor falls back to a deliberately simple keyword heuristic.
 - **Seeded timestamps.** Platform timestamps can't be backdated (see above).

@@ -79,6 +79,19 @@ def list_decisions(feature: str | None = None) -> dict:
                                     for r in rows]}
 
 
+def how_connected(a: str, b: str) -> dict:
+    """Shortest causal chain between two ids (person, message, ticket BD-.., PR-n, decision dec:..)."""
+    rows = Q.rows(_g(), Q.CONNECTION, a=a, b=b)
+    paths = []
+    for r in rows:
+        parts = [f"({r['nodes'][0]['type']} {r['nodes'][0]['id']})"]
+        for i, rel in enumerate(r["rels"]):
+            nxt = r["nodes"][i + 1]
+            forward = r["starts"][i] == r["nodes"][i]["id"]
+            parts.append((f"-[:{rel}]->" if forward else f"<-[:{rel}]-") + f"({nxt['type']} {nxt['id']})")
+        paths.append("".join(parts))
+    return {"rows": rows, "paths": paths}
+
 TOOLS = {
     "list_features": (list_features, "List all features with their tickets. Call first to find feature ids.", {}),
     "drift_for_feature": (drift_for_feature, "Requirements changed in chat that the ticket/PRs don't reflect. Omit feature for all.",
@@ -91,6 +104,8 @@ TOOLS = {
                   {"feature": {"type": "string"}}),
     "list_decisions": (list_decisions, "Decisions made in chat, optionally for one feature, with who made them and where.",
                        {"feature": {"type": "string", "description": "feature id, optional"}}),
+    "how_connected": (how_connected, "Shortest causal chain linking two things, e.g. a person and a PR ('liam', 'PR-6') or a message and a ticket. Ids: person ids, message ids, BD-xxx, PR-n, dec:<message id>.",
+                      {"a": {"type": "string"}, "b": {"type": "string"}}),
     "decision_impact": (decision_impact, "Downstream impact of a decision: ticket, owner, PRs, related tickets.",
                         {"decision": {"type": "string", "description": "decision id like dec:m_exp_12"}}),
 }

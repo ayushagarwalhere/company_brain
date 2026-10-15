@@ -107,6 +107,17 @@ RETURN d.text AS decision, t.id AS ticket, owner.id AS owner,
 """
 
 
+# How are two things connected? Bounded undirected search over causal relationships
+# (FalkorDB's shortestPath is directed-only). ABOUT is left out on purpose: going
+# through the Feature hub is always short and explains nothing.
+CONNECTION = """
+MATCH (a {id: $a}), (b {id: $b})
+MATCH p = (a)-[:POSTED|REPLY_TO|CHANGES|AMENDS|STATES|REFERENCES|IMPLEMENTS|MADE|AUTHORED|ASSIGNED_TO|SUPERSEDES|MENTIONS|RECORDED_IN*1..7]-(b)
+RETURN [n IN nodes(p) | {id: n.id, type: labels(n)[0]}] AS nodes, [r IN relationships(p) | type(r)] AS rels,
+       [r IN relationships(p) | startNode(r).id] AS starts, length(p) AS hops
+ORDER BY hops LIMIT 1
+"""
+
 def rows(g, query: str, **params) -> list[dict]:
     res = g.query(query, params)
     cols = [c[1] if isinstance(c, (list, tuple)) else c for c in res.header]

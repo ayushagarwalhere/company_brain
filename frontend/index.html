@@ -4,77 +4,144 @@
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <title>Drift Monitor</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Geist:wght@300..700&family=Geist+Mono:wght@400;500&display=swap" rel="stylesheet">
   <link rel="stylesheet" href="/static/style.css">
   <script src="https://cdnjs.cloudflare.com/ajax/libs/cytoscape/3.30.2/cytoscape.min.js"></script>
 </head>
 <body>
-  <header>
-    <div>
-      <h1>Context Graph Drift Monitor</h1>
-      <p class="sub">Brightdesk · decisions in chat vs. tickets vs. shipped code, linked in FalkorDB</p>
+  <div class="loader" id="loader" aria-hidden="true">
+    <div class="loader__inner">
+      <div class="mono loader__label">Initializing context graph</div>
+      <div class="loader__pct" id="loader-pct">0%</div>
+      <div class="loader__bar"><span id="loader-bar"></span></div>
     </div>
-    <div id="stats" class="stats"></div>
+  </div>
+
+  <nav class="nav">
+    <a class="brand" href="#top"><span class="brand__mark"></span>Drift Monitor</a>
+    <div class="nav__links mono">
+      <a href="#drift">[01] Drift</a>
+      <a href="#graph-sec">[02] Graph</a>
+      <a href="#ask">[03] Ask</a>
+      <a href="#retro-sec">[04] Retro</a>
+      <a href="#simulate">[05] Simulate</a>
+    </div>
+    <button class="theme-toggle mono" id="theme-toggle" aria-label="Toggle theme">◐</button>
+  </nav>
+
+  <header class="hero" id="top">
+    <div class="hero__eyebrow mono reveal">Company Brain · FalkorDB context graph</div>
+    <h1 class="hero__title reveal">Decided in chat.<br><span class="accent-text">Never shipped.</span></h1>
+    <div class="hero__grid">
+      <p class="hero__lede reveal">Requirements change in Slack and Discord threads. Tickets don't follow, and PRs ship the old version.
+        This graph links every message, ticket and pull request to the same feature, and shows you the exact path where they split.</p>
+      <dl class="spec reveal" id="spec-sheet">
+        <div><dt>Type</dt><dd>Context graph · drift monitor</dd></div>
+        <div><dt>Sources</dt><dd>Slack · Discord · GitHub · Tickets</dd></div>
+        <div><dt>Graph</dt><dd id="spec-graph">…</dd></div>
+        <div><dt>Open drift</dt><dd id="spec-drift">…</dd></div>
+        <div><dt>Extraction</dt><dd id="spec-build">…</dd></div>
+      </dl>
+    </div>
+    <ol class="syslog mono reveal" id="syslog"></ol>
   </header>
 
   <main>
-    <section class="card wide">
-      <div class="card-head"><h2>Open drift</h2><span class="hint">chat changed a requirement; ticket and PRs didn't follow</span></div>
-      <div id="drift"></div>
+    <section class="sec" id="drift">
+      <div class="sec__label">
+        <span class="mono idx">[01]</span>
+        <h2>Open drift</h2>
+        <p>A chat message changed a requirement. Nothing newer replaced it, and no PR implements it.</p>
+      </div>
+      <div class="sec__body" id="drift-list"></div>
     </section>
 
-    <section class="card">
-      <div class="card-head">
+    <section class="sec" id="graph-sec">
+      <div class="sec__label">
+        <span class="mono idx">[02]</span>
         <h2>Feature graph</h2>
-        <select id="feature-select" aria-label="Feature"></select>
+        <p>Tickets, requirement versions, the messages that changed them, and the PRs that implement them.</p>
+        <select id="feature-select" class="field" aria-label="Feature"></select>
+        <div class="legend mono" id="legend"></div>
       </div>
-      <div id="graph"></div>
-      <div class="legend" id="legend"></div>
-      <div id="graph-detail" class="detail">Click a node to see its text.</div>
-    </section>
-
-    <section class="card">
-      <div class="card-head"><h2>Ask the graph</h2></div>
-      <form id="ask-form" class="row">
-        <input id="ask-input" placeholder="What did we decide about export, and did we ship it?" autocomplete="off">
-        <button>Ask</button>
-      </form>
-      <div class="chips">
-        <button class="chip" data-q="What did we decide about the SLA notifications and did we ship it?">SLA decision shipped?</button>
-        <button class="chip" data-q="Who knows the most about ticket export?">Who knows export?</button>
-        <button class="chip" data-q="Which features have drifted and why?">What drifted?</button>
-      </div>
-      <div id="answer"></div>
-    </section>
-
-    <section class="card">
-      <div class="card-head"><h2>Simulate a chat message</h2><span class="hint">runs the live drift monitor</span></div>
-      <form id="sim-form">
-        <div class="row">
-          <select id="sim-author" aria-label="Author"></select>
-          <select id="sim-platform" aria-label="Platform"><option>slack</option><option>discord</option></select>
-          <input id="sim-channel" value="engineering" aria-label="Channel">
+      <div class="sec__body">
+        <div class="canvas">
+          <div id="graph"></div>
+          <div class="canvas__coords mono" id="coords">X:0000 Y:0000</div>
+          <div class="canvas__tag mono" id="canvas-tag"></div>
         </div>
-        <textarea id="sim-text" rows="3">Decision: dark mode must also ship a high-contrast theme, BD-105.</textarea>
-        <button>Post message</button>
-      </form>
-      <div id="sim-result"></div>
-    </section>
-
-    <section class="card wide">
-      <div class="card-head">
-        <h2>Sprint retro</h2>
-        <div class="tabs" id="sprint-tabs"></div>
+        <dl class="spec spec--node" id="node-detail"><div><dt>Node</dt><dd>Select a node</dd></div></dl>
       </div>
-      <div id="retro"></div>
     </section>
 
-    <section class="card wide" id="spec-card" hidden>
-      <div class="card-head"><h2>Agent-ready spec</h2><span class="hint" id="spec-engine"></span></div>
-      <pre id="spec"></pre>
+    <section class="sec" id="ask">
+      <div class="sec__label">
+        <span class="mono idx">[03]</span>
+        <h2>Ask the graph</h2>
+        <p>DeepSeek picks graph tools. Every answer lists the paths it used.</p>
+      </div>
+      <div class="sec__body">
+        <form id="ask-form" class="prompt">
+          <span class="mono prompt__sign">&gt;</span>
+          <input id="ask-input" placeholder="What did we decide about export, and did we ship it?" autocomplete="off">
+          <button class="btn">Ask</button>
+        </form>
+        <div class="chips">
+          <button class="chip mono" data-q="What did we decide about the SLA notifications and did we ship it?">SLA decision shipped?</button>
+          <button class="chip mono" data-q="Who knows the most about ticket export?">Who knows export?</button>
+          <button class="chip mono" data-q="How is liam connected to PR-6?">Liam → PR #6</button>
+          <button class="chip mono" data-q="Which features have drifted and why?">What drifted?</button>
+        </div>
+        <div id="answer"></div>
+      </div>
+    </section>
+
+    <section class="sec" id="retro-sec">
+      <div class="sec__label">
+        <span class="mono idx">[04]</span>
+        <h2>Sprint retro</h2>
+        <p>What we decided, what we shipped, where they diverge. Every line has a source.</p>
+        <div class="tabs mono" id="sprint-tabs"></div>
+      </div>
+      <div class="sec__body" id="retro"></div>
+    </section>
+
+    <section class="sec" id="simulate">
+      <div class="sec__label">
+        <span class="mono idx">[05]</span>
+        <h2>Simulate a message</h2>
+        <p>Post as a teammate. The live monitor writes it to the graph, resolves it and runs the drift query.</p>
+      </div>
+      <div class="sec__body">
+        <form id="sim-form" class="sim">
+          <div class="sim__row">
+            <label class="mono">Author<select id="sim-author" class="field"></select></label>
+            <label class="mono">Platform<select id="sim-platform" class="field"><option>slack</option><option>discord</option></select></label>
+            <label class="mono">Channel<input id="sim-channel" class="field" value="engineering"></label>
+          </div>
+          <textarea id="sim-text" class="field" rows="3">Decision: dark mode must also ship a high-contrast theme, BD-105.</textarea>
+          <button class="btn">Post message</button>
+        </form>
+        <div id="sim-result"></div>
+      </div>
+    </section>
+
+    <section class="sec" id="spec-sec" hidden>
+      <div class="sec__label">
+        <span class="mono idx">[06]</span>
+        <h2>Agent-ready spec</h2>
+        <p id="spec-engine">Built from graph context only. Not executed.</p>
+      </div>
+      <div class="sec__body"><pre class="specdoc" id="spec-doc"></pre></div>
     </section>
   </main>
 
-  <footer>Every alert and answer is backed by a graph path. Specs are generated, not executed.</footer>
+  <footer class="foot">
+    <span class="mono">Every alert and answer is backed by a graph path</span>
+    <span class="mono">Graph Hacks · Company Brain</span>
+  </footer>
   <script src="/static/app.js"></script>
 </body>
 </html>

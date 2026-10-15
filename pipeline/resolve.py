@@ -61,6 +61,29 @@ def load_prs(g):
 
 # ---------------------------------------------------------------- resolution
 
+def supersession_pairs(chain: list[dict], reflects) -> list[dict]:
+    """SUPERSEDES edges for one ticket's requirements (chronological).
+
+    A chat change supersedes whatever is current. A later ticket version supersedes
+    earlier ticket versions, but a chat change only if its text actually reflects it,
+    so an unrelated ticket edit (typo fix, new label) can't silently hide drift.
+    """
+    pairs, heads = [], []
+    for r in chain:
+        if r["origin"] == "chat" or not heads:
+            pairs += [{"new": r["id"], "old": h["id"]} for h in heads]
+            heads = [r]
+            continue
+        keep = []
+        for h in heads:
+            if h["origin"] == "ticket" or reflects(r, h):
+                pairs.append({"new": r["id"], "old": h["id"]})
+            else:
+                keep.append(h)
+        heads = [r] + keep
+    return pairs
+
+
 def reset_derived(g):
     for label in ("Feature", "Requirement", "Decision"):
         g.query(f"MATCH (n:{label}) DETACH DELETE n")
@@ -233,11 +256,10 @@ def resolve(g, extractor_name: str = "deepseek", semantic: str | None = None, lo
 
     # 6. SUPERSEDES chains per ticket ----------------------------------------------
     reqs_by_ticket = defaultdict(list)
-    for r in _rows(g, """MATCH (q:Requirement) RETURN q.id AS id, q.ticket AS ticket, q.text AS text,
+    for r in _rows(g, """MATCH (q:Requirement) RETURN q.id AS id, q.ticket AS ticket, q.text AS text, q.origin AS origin,
                                                        q.at AS at, q.at_ms AS at_ms ORDER BY q.at_ms, q.id"""):
         reqs_by_ticket[r["ticket"]].append(r)
-    pairs = [{"new": chain[i]["id"], "old": chain[i - 1]["id"]}
-             for chain in reqs_by_ticket.values() for i in range(1, len(chain))]
+    pairs = [p for chain in reqs_by_ticket.values() for p in supersession_pairs(chain, ex.reflects)]
     g.query("""UNWIND $ps AS p MATCH (n:Requirement {id: p.new}), (o:Requirement {id: p.old})
                MERGE (n)-[:SUPERSEDES]->(o)""", {"ps": pairs})
 
