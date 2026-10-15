@@ -260,3 +260,6 @@ $("#sim-form").addEventListener("submit", simulate);
   setTimeout(() => { $("#loader").classList.add("done"); observeReveals(); }, 250);
   setTimeout(() => $("#loader").remove(), 900);
 })();
+
+/* ?static: no animations (screenshots, slow machines) */
+if (new URLSearchParams(location.search).has("static")) document.documentElement.classList.add("static");

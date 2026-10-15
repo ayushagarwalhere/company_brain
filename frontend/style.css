@@ -192,3 +192,5 @@ select.field { width: auto; min-width: 220px; }
   .sim__row { grid-template-columns: minmax(0, 1fr); }
   .spec > div { grid-template-columns: 8em 1fr; }
 }
+.static .reveal, .static .syslog li { opacity: 1 !important; transform: none !important; transition: none !important; }
+.static .loader { display: none; }

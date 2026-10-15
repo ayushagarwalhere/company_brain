@@ -1,5 +1,7 @@
 # Context Graph Drift Monitor
 
+![Dashboard](docs/screenshot-hero.png)
+
 > **Graph Hacks: Context for AI Agents** (WeMakeDevs × FalkorDB). Track: **Company Brain**.
 
 Teams make decisions in chat, write requirements in tickets and ship code in pull requests, but nothing links the three. A requirement quietly changes in a Slack thread, the ticket is never updated, and engineering keeps building the old version.
