@@ -39,10 +39,14 @@ MATCH (p:Person)-[:MADE]->(d:Decision)-[:CHANGES]->(r:Requirement)-[:AMENDS]->(t
 WHERE d.at_ms >= s.start_ms AND d.at_ms <= s.end_ms
 MATCH (d)-[:RECORDED_IN]->(m:Message)
 OPTIONAL MATCH (r)-[:ABOUT]->(f:Feature)
+OPTIONAL MATCH (newer:Requirement)-[:SUPERSEDES]->(r)
+OPTIONAL MATCH (impl:PullRequest)-[:IMPLEMENTS]->(r)
+OPTIONAL MATCH (impl2:PullRequest)-[:IMPLEMENTS]->(newer)
 RETURN d.id AS decision, d.text AS text, d.at AS at, p.id AS by, t.id AS ticket, f.name AS feature,
        m.url AS source, m.source AS platform, m.channel AS channel,
-       exists((r)<-[:SUPERSEDES]-()) AS superseded, exists((:PullRequest)-[:IMPLEMENTS]->(r)) AS implemented
-ORDER BY d.at_ms
+       newer.origin AS superseded_by, collect(DISTINCT impl.number) + collect(DISTINCT impl2.number) AS shipped_in,
+       d.at_ms AS at_ms
+ORDER BY at_ms
 """
 
 SPRINT_SHIPPED = """
@@ -54,8 +58,8 @@ OPTIONAL MATCH (pr)-[:ABOUT]->(f:Feature)
 OPTIONAL MATCH (pr)-[:IMPLEMENTS]->(r:Requirement)
 RETURN pr.number AS pr, pr.title AS title, pr.url AS url, pr.merged AS merged, a.id AS author,
        collect(DISTINCT t.id) AS tickets, collect(DISTINCT coalesce(ref.how, 'hard')) AS link,
-       f.name AS feature, collect(DISTINCT r.id) AS implements
-ORDER BY pr.merged_ms
+       f.name AS feature, collect(DISTINCT r.id) AS implements, pr.merged_ms AS merged_ms
+ORDER BY merged_ms
 """
 
 FEATURE_TIMELINE = """
@@ -77,8 +81,8 @@ OPTIONAL MATCH (r)-[:SUPERSEDES]->(prev:Requirement)
 OPTIONAL MATCH (pr:PullRequest)-[:IMPLEMENTS]->(r)
 RETURN t.id AS ticket, r.id AS requirement, r.text AS text, r.at AS at, r.origin AS origin,
        labels(src)[0] AS source_type, src.id AS source_id, coalesce(src.url, '') AS source_url,
-       prev.id AS supersedes, collect(DISTINCT pr.number) AS implemented_by
-ORDER BY t.id, r.at_ms
+       prev.id AS supersedes, collect(DISTINCT pr.number) AS implemented_by, r.at_ms AS at_ms
+ORDER BY ticket, at_ms
 """
 
 # Who knows a topic: people connected to the feature through anything they wrote,
