@@ -98,3 +98,21 @@ def test_heuristic_extractor_finds_planted_drift_without_llm():
         assert s["requirement_changes"]["precision"] == 1.0
     finally:
         g2.delete()
+
+
+def test_write_to_ticket_and_dismiss_close_the_loop(g):
+    """Runs last on the shared graph: both actions remove drift and leave an auditable trail."""
+    from graph.queries import drift, rows
+    from pipeline.actions import dismiss, write_to_ticket
+    open_ = {d["requirement"]: d for d in drift(g)}
+    sla = next(r for r, d in open_.items() if d["ticket"] == "BD-103")
+    exp = next(r for r, d in open_.items() if d["ticket"] == "BD-101")
+    out = write_to_ticket(g, sla, actor="maya")
+    assert out["ticket"] == "BD-103"
+    assert rows(g, "MATCH (:Ticket {id:'BD-103'})-[:STATES]->(v:Requirement)-[:SUPERSEDES]->(:Requirement {id:$r}) "
+                   "RETURN v.id AS v", r=sla)[0]["v"] == out["version"]
+    dismiss(g, exp, actor="arjun")
+    assert rows(g, "MATCH (:Person {id:'arjun'})-[:MADE]->(:Decision {kind:'dismissal'})-[:DISMISSES]->(r:Requirement) "
+                   "RETURN r.id AS r") == [{"r": exp}]
+    remaining = {d["ticket"] for d in drift(g)}
+    assert "BD-103" not in remaining and "BD-101" not in remaining

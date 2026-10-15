@@ -105,8 +105,10 @@ async function loadDrift() {
       <div class="mono kicker">Evidence path</div>
       ${renderPath(d.path)}
       <div class="actions">
+        <button class="btn" data-act="write-to-ticket" data-req="${esc(d.requirement)}" title="Make the decided requirement the ticket's next version">Write to ${esc(d.ticket)}</button>
+        <button class="btn btn--ghost" data-act="dismiss" data-req="${esc(d.requirement)}" title="Record a decision to keep the old scope">Keep old scope</button>
         <button class="btn btn--ghost" data-graph="${esc(d.feature)}">Show in graph</button>
-        <button class="btn" data-spec="${esc(d.feature)}">Generate spec</button>
+        <button class="btn btn--ghost" data-spec="${esc(d.feature)}">Generate spec</button>
       </div>
     </article>`).join("");
   observeReveals();
@@ -251,6 +253,38 @@ async function loadCoverage() {
   observeReveals();
 }
 
+/* ---------- closing the loop on drift ---------- */
+async function refreshAll() {
+  await Promise.allSettled([loadDrift(), loadStats(), loadCoverage(), loadSprints()]);
+  if (currentFeature) { showGraph(currentFeature); if (view === "timeline") loadTimeline(currentFeature); }
+}
+
+async function driftAction(act, requirement, btn) {
+  const card = btn.closest(".violation");
+  btn.disabled = true;
+  try {
+    const actor = $("#sim-author")?.value || "maya";
+    const r = await api(`/api/drift/${act}`, { requirement, actor });
+    if (card) {
+      card.classList.add("resolving");
+      card.insertAdjacentHTML("beforeend", `<div class="resolved-note mono">${act === "dismiss"
+        ? `Dismissed by ${esc(r.by)}: (${esc(r.by)})-[:MADE]->(Decision)-[:DISMISSES]->(Requirement)`
+        : `Written to ${esc(r.ticket)} as ${esc(r.version)}: (Ticket)-[:STATES]->(new version)-[:SUPERSEDES]->(chat requirement)`}</div>`);
+      await new Promise((res) => setTimeout(res, 1400));
+    }
+    await refreshAll();
+  } catch (e) {
+    btn.disabled = false;
+    alert(e.message);
+  }
+}
+
+async function resetDemo(btn) {
+  btn.disabled = true; btn.textContent = "Rebuilding graph…";
+  try { await api("/api/demo/reset", {}); await refreshAll(); $("#sim-result").innerHTML = ""; }
+  finally { btn.disabled = false; btn.textContent = "Reset demo data"; }
+}
+
 /* ---------- ask ---------- */
 async function ask(q) {
   $("#ask-input").value = q;
@@ -333,7 +367,7 @@ if ("IntersectionObserver" in window) {
 async function loadRetro(sprint) {
   document.querySelectorAll("#sprint-tabs button").forEach((b) => b.classList.toggle("active", b.dataset.sprint === sprint));
   const r = await api(`/api/retro/${sprint}`);
-  const status = (d) => d.shipped_in.length ? `<span class="badge ok">shipped ${d.shipped_in.map((n) => "#" + n).join(", ")}</span>`
+  const status = (d) => d.dismissed_by ? `<span class="badge">dismissed · ${esc(d.dismissed_by)}</span>` : d.shipped_in.length ? `<span class="badge ok">shipped ${d.shipped_in.map((n) => "#" + n).join(", ")}</span>`
     : d.superseded_by === "ticket" ? `<span class="badge">in ticket</span>` : `<span class="badge warn">not shipped</span>`;
   let k = 0;
   $("#retro").innerHTML = `<div class="retro-cols">
@@ -396,8 +430,9 @@ document.querySelectorAll(".sec__label, .sec__body").forEach((el) => el.classLis
 
 /* ---------- wiring ---------- */
 document.addEventListener("click", (e) => {
-  const t = e.target.closest("[data-graph],[data-spec],[data-q],[data-sprint],[data-view]");
+  const t = e.target.closest("[data-graph],[data-spec],[data-q],[data-sprint],[data-view],[data-act]");
   if (!t) return;
+  if (t.dataset.act) driftAction(t.dataset.act, t.dataset.req, t);
   if (t.dataset.view) setView(t.dataset.view);
   if (t.dataset.graph) { showGraph(t.dataset.graph); $("#graph-sec").scrollIntoView({ behavior: "smooth" }); }
   if (t.dataset.spec) spec(t.dataset.spec, t);
@@ -429,3 +464,5 @@ if (new URLSearchParams(location.search).has("static")) {
 if (new URLSearchParams(location.search).get("view") === "timeline") {
   const wait = setInterval(() => { if (currentFeature) { clearInterval(wait); setView("timeline"); } }, 100);
 }
+
+$("#reset-demo")?.addEventListener("click", (e) => resetDemo(e.currentTarget));

@@ -17,6 +17,7 @@ It builds a **context graph** (FalkorDB) that links chat messages, tickets and G
 - **Ask the graph:** an LLM agent answers questions using 8 graph tools (drift, decision history, timeline, who-knows, impact, how-connected…), and every answer lists the graph paths it used.
 - **Spec generation:** turns a drifted feature's graph context into an agent-ready spec (it stops at the spec; nothing auto-executes).
 - **Coverage and risk:** PRs with no ticket, tickets closed without code, tickets nobody discussed, and features where one person holds most of the knowledge.
+- **Close the loop:** one click writes the decided requirement into the ticket as its next version, or records a "keep the old scope" decision. Both are stored in the graph, and the drift clears.
 - **Feature timeline:** ticket versions, chat changes and PRs on one time axis, with the stretch where the ticket and PRs never caught up shaded in.
 - **Dashboard:** drift cards with before/after diffs, an interactive feature graph, the retro, and a "simulate a message" box that runs the live monitor.
 

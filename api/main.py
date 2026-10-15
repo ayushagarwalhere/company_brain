@@ -223,6 +223,49 @@ def simulate(body: SimulateIn):
     return r
 
 
+class DriftActionIn(BaseModel):
+    requirement: str
+    actor: str = "maya"
+    reason: str = "keep the old scope"
+
+
+@app.post("/api/drift/write-to-ticket")
+def drift_write(body: DriftActionIn):
+    from pipeline.actions import write_to_ticket
+    try:
+        return write_to_ticket(get_graph(), body.requirement, body.actor)
+    except ValueError as e:
+        raise HTTPException(409, str(e))
+
+
+@app.post("/api/drift/dismiss")
+def drift_dismiss(body: DriftActionIn):
+    from pipeline.actions import dismiss
+    try:
+        return dismiss(get_graph(), body.requirement, body.actor, body.reason)
+    except ValueError as e:
+        raise HTTPException(409, str(e))
+
+
+@app.post("/api/demo/reset")
+def demo_reset():
+    """Rebuilds the graph from the source data: undoes simulated messages, ticket writes and dismissals."""
+    from config import settings
+    from pipeline import live
+    from pipeline.build import mark_build
+    from pipeline.ingest import ingest
+    from pipeline.resolve import resolve
+    g = get_graph()
+    prev = Q.rows(g, "MATCH (b:Build {id: 'latest'}) RETURN b.extractor AS e")
+    extractor = prev[0]["e"] if prev else ("deepseek" if settings.deepseek_api_key else "heuristic")
+    ingest(reset=True)
+    g = get_graph()
+    resolve(g, extractor, log=lambda *_: None)
+    mark_build(g, extractor)
+    live._last_alert.clear()
+    return {"rebuilt_with": extractor}
+
+
 @app.get("/")
 def index():
     return FileResponse(FRONTEND / "index.html")

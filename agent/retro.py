@@ -30,7 +30,9 @@ def to_markdown(r: dict) -> str:
     if not r["decided"]:
         out.append("_No decisions recorded in chat._")
     for d in r["decided"]:
-        if d["shipped_in"]:
+        if d.get("dismissed_by"):
+            status = f"dismissed by {d['dismissed_by']}"
+        elif d["shipped_in"]:
             status = "shipped in " + ", ".join(f"#{n}" for n in d["shipped_in"])
         elif d["superseded_by"] == "ticket":
             status = "written into ticket, not shipped yet"

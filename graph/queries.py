@@ -5,6 +5,7 @@ Drift definition (time-ordered path query):
     - R came from chat:      (Message)-[:CHANGES]->(R)-[:AMENDS]->(Ticket)
     - R is still current:    nothing SUPERSEDES R (no newer ticket version or chat change for that ticket)
     - no PR delivers it:     NOT (PullRequest)-[:IMPLEMENTS]->(R)
+    - nobody dismissed it:   NOT (Decision)-[:DISMISSES]->(R)   ("keep the old scope")
   Evidence = the message path, the stale ticket text, and PRs on the same ticket
   (which, by the last condition, implement an older requirement or none).
 """
@@ -13,6 +14,7 @@ DRIFT = """
 MATCH (m:Message)-[:CHANGES]->(r:Requirement)-[:AMENDS]->(t:Ticket)-[:ABOUT]->(f:Feature)
 WHERE NOT (r)<-[:SUPERSEDES]-(:Requirement)
   AND NOT (:PullRequest)-[:IMPLEMENTS]->(r)
+  AND NOT (:Decision)-[:DISMISSES]->(r)
   AND ($feature IS NULL OR f.id = $feature)
   AND ($ticket IS NULL OR t.id = $ticket)
 MATCH (author:Person)-[:POSTED]->(m)
@@ -42,7 +44,9 @@ OPTIONAL MATCH (r)-[:ABOUT]->(f:Feature)
 OPTIONAL MATCH (newer:Requirement)-[:SUPERSEDES]->(r)
 OPTIONAL MATCH (impl:PullRequest)-[:IMPLEMENTS]->(r)
 OPTIONAL MATCH (impl2:PullRequest)-[:IMPLEMENTS]->(newer)
-RETURN d.id AS decision, d.text AS text, d.at AS at, p.id AS by, t.id AS ticket, f.name AS feature,
+OPTIONAL MATCH (dis:Decision)-[:DISMISSES]->(r)
+OPTIONAL MATCH (disby:Person)-[:MADE]->(dis)
+RETURN d.id AS decision, disby.id AS dismissed_by, d.text AS text, d.at AS at, p.id AS by, t.id AS ticket, f.name AS feature,
        m.url AS source, m.source AS platform, m.channel AS channel,
        newer.origin AS superseded_by, collect(DISTINCT impl.number) + collect(DISTINCT impl2.number) AS shipped_in,
        d.at_ms AS at_ms

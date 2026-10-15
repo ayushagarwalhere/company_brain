@@ -381,3 +381,10 @@ select.field { width: auto; min-width: 220px; }
 .risk__row .mono { text-align: right; }
 .static .risk__bar span { transition: none; }
 @media (max-width: 900px) { .risk__row { grid-template-columns: minmax(0, 1fr); } .risk__row .mono { text-align: left; } }
+
+/* drift resolution feedback */
+.violation.resolving { border-color: var(--ok); }
+.violation.resolving::before { background: var(--ok); }
+.violation.resolving .diff, .violation.resolving .path { opacity: .35; transition: opacity .6s var(--ease); }
+.resolved-note { margin-top: 14px; color: var(--ok); font-size: 11px; animation: rise .5s var(--ease); overflow-wrap: anywhere; }
+.foot { align-items: center; }
