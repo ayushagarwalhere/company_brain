@@ -1,0 +1,33 @@
+{
+  "id": "BD-101",
+  "identifier": "BD-101",
+  "title": "Ticket export to CSV",
+  "description": "Admins can export tickets created in the last 30 days as a CSV file. Columns: id, subject, status, created_at, assignee.",
+  "state": "Done",
+  "priority": "High",
+  "labels": [
+    "export",
+    "backend"
+  ],
+  "creator": "maya",
+  "assignee": "sofia",
+  "cycle": "s1",
+  "createdAt": "2026-09-14T04:50:00Z",
+  "updatedAt": "2026-09-15T10:30:00Z",
+  "completedAt": "2026-09-25T05:45:00Z",
+  "url": "https://linear.example/brightdesk/issue/BD-101",
+  "history": [
+    {
+      "at": "2026-09-14T04:50:00Z",
+      "actor": "maya",
+      "field": "description",
+      "to": "Admins can export tickets created in the last 30 days as a CSV file. Columns: id, subject, status, created_at."
+    },
+    {
+      "at": "2026-09-15T10:30:00Z",
+      "actor": "maya",
+      "field": "description",
+      "to": "Admins can export tickets created in the last 30 days as a CSV file. Columns: id, subject, status, created_at, assignee."
+    }
+  ]
+}

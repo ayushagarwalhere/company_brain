@@ -1,0 +1,2723 @@
+[
+ {
+  "id": "m_noise_081",
+  "platform": "slack",
+  "channel": "engineering",
+  "author": "zara",
+  "ts": "2026-09-14T03:36:00Z",
+  "text": "happy friday!",
+  "kind": "noise"
+ },
+ {
+  "id": "m_noise_114",
+  "platform": "slack",
+  "channel": "product",
+  "author": "arjun",
+  "ts": "2026-09-14T03:43:00Z",
+  "text": "nice 🎉",
+  "kind": "noise"
+ },
+ {
+  "id": "m_exp_01",
+  "platform": "slack",
+  "channel": "product",
+  "author": "maya",
+  "ts": "2026-09-14T05:10:00Z",
+  "text": "Kicking off Sprint 1. Top item for me is ticket export (BD-101): admins should be able to download the last 30 days of tickets as CSV. Customers keep asking for it.",
+  "kind": "signal"
+ },
+ {
+  "id": "m_exp_02",
+  "platform": "slack",
+  "channel": "product",
+  "author": "sofia",
+  "ts": "2026-09-14T05:18:00Z",
+  "thread_of": "m_exp_01",
+  "text": "I can take the backend for BD-101. Columns id, subject, status, created_at to start?",
+  "kind": "signal"
+ },
+ {
+  "id": "m_exp_03",
+  "platform": "slack",
+  "channel": "product",
+  "author": "maya",
+  "ts": "2026-09-14T05:22:00Z",
+  "thread_of": "m_exp_01",
+  "text": "Yes, that's what's in the ticket. Kenji, can you do the button in the list view (BD-102)?",
+  "kind": "signal"
+ },
+ {
+  "id": "m_exp_04",
+  "platform": "slack",
+  "channel": "product",
+  "author": "kenji",
+  "ts": "2026-09-14T05:30:00Z",
+  "thread_of": "m_exp_01",
+  "text": "Sure, I'll pick up the export button once Sofia's endpoint shape is settled.",
+  "kind": "signal"
+ },
+ {
+  "id": "m_noise_180",
+  "platform": "slack",
+  "channel": "product",
+  "author": "maya",
+  "ts": "2026-09-14T06:10:00Z",
+  "text": "Standup: yesterday reviews, today release notes, no blockers.",
+  "kind": "noise"
+ },
+ {
+  "id": "m_sla_01",
+  "platform": "discord",
+  "channel": "engineering",
+  "author": "maya",
+  "ts": "2026-09-14T06:30:00Z",
+  "text": "Second big item for Sprint 1 is SLA alerts, BD-103: when a ticket breaches its SLA we email the assignee. BD-104 covers the settings page where admins set SLA hours per priority.",
+  "kind": "signal"
+ },
+ {
+  "id": "m_sla_02",
+  "platform": "discord",
+  "channel": "engineering",
+  "author": "dev",
+  "ts": "2026-09-14T06:41:00Z",
+  "thread_of": "m_sla_01",
+  "text": "I'll take BD-103. Probably a periodic job that checks open tickets against their deadlines.",
+  "kind": "signal"
+ },
+ {
+  "id": "m_noise_194",
+  "platform": "slack",
+  "channel": "engineering",
+  "author": "dev",
+  "ts": "2026-09-14T07:10:00Z",
+  "text": "BD-112 is reproducible: two tickets with the same created_at.",
+  "kind": "noise"
+ },
+ {
+  "id": "m_noise_013",
+  "platform": "discord",
+  "channel": "engineering",
+  "author": "sofia",
+  "ts": "2026-09-14T07:56:00Z",
+  "text": "Fixed, it was a missing env var.",
+  "kind": "noise"
+ },
+ {
+  "id": "m_noise_030",
+  "platform": "discord",
+  "channel": "engineering",
+  "author": "sofia",
+  "ts": "2026-09-14T08:08:00Z",
+  "text": "nice 🎉",
+  "kind": "noise"
+ },
+ {
+  "id": "m_noise_172",
+  "platform": "slack",
+  "channel": "support-escalations",
+  "author": "arjun",
+  "ts": "2026-09-14T09:11:00Z",
+  "text": "brb, meeting",
+  "kind": "noise"
+ },
+ {
+  "id": "m_noise_023",
+  "platform": "discord",
+  "channel": "engineering",
+  "author": "arjun",
+  "ts": "2026-09-14T09:33:00Z",
+  "text": "Rate limit for logins (BD-107): 10 attempts / 5 min, then 15 min lock. Sound right?",
+  "kind": "noise"
+ },
+ {
+  "id": "m_noise_087",
+  "platform": "slack",
+  "channel": "support-escalations",
+  "author": "maya",
+  "ts": "2026-09-14T09:47:00Z",
+  "text": "Yesterday: an Umbrella Inc. attachment upload failure. Today: same, plus code review. Blockers: none.",
+  "kind": "noise"
+ },
+ {
+  "id": "m_noise_037",
+  "platform": "discord",
+  "channel": "engineering",
+  "author": "zara",
+  "ts": "2026-09-14T11:12:00Z",
+  "text": "brb, meeting",
+  "kind": "noise"
+ },
+ {
+  "id": "m_noise_038",
+  "platform": "slack",
+  "channel": "engineering",
+  "author": "zara",
+  "ts": "2026-09-14T11:20:00Z",
+  "text": "Working on reviewing PRs today. Might need a second pair of eyes this afternoon.",
+  "kind": "noise"
+ },
+ {
+  "id": "m_noise_056",
+  "platform": "discord",
+  "channel": "random",
+  "author": "liam",
+  "ts": "2026-09-14T11:36:00Z",
+  "text": "Recommendation: 'Shape Up' is a good read.",
+  "kind": "noise"
+ },
+ {
+  "id": "m_noise_243",
+  "platform": "discord",
+  "channel": "design",
+  "author": "kenji",
+  "ts": "2026-09-14T12:19:00Z",
+  "text": "that demo went well 🙌",
+  "kind": "noise"
+ },
+ {
+  "id": "m_noise_260",
+  "platform": "slack",
+  "channel": "support-escalations",
+  "author": "liam",
+  "ts": "2026-09-15T03:34:00Z",
+  "text": "Globex wants an invoice resent, handled.",
+  "kind": "noise"
+ },
+ {
+  "id": "m_noise_009",
+  "platform": "slack",
+  "channel": "engineering",
+  "author": "dev",
+  "ts": "2026-09-15T04:45:00Z",
+  "text": "Working on the staging DB migration today. Might need a second pair of eyes this afternoon.",
+  "kind": "noise"
+ },
+ {
+  "id": "m_noise_064",
+  "platform": "slack",
+  "channel": "support-escalations",
+  "author": "zara",
+  "ts": "2026-09-15T05:33:00Z",
+  "text": "Customer asking if we support SAML SSO. Not yet, right?",
+  "kind": "noise"
+ },
+ {
+  "id": "m_noise_196",
+  "platform": "discord",
+  "channel": "engineering",
+  "author": "dev",
+  "ts": "2026-09-15T06:14:00Z",
+  "text": "morning all ☀️",
+  "kind": "noise"
+ },
+ {
+  "id": "m_noise_149",
+  "platform": "discord",
+  "channel": "random",
+  "author": "kenji",
+  "ts": "2026-09-15T07:15:00Z",
+  "text": "Offsite poll closes Friday!",
+  "kind": "noise"
+ },
+ {
+  "id": "m_noise_054",
+  "platform": "slack",
+  "channel": "engineering",
+  "author": "kenji",
+  "ts": "2026-09-15T07:17:00Z",
+  "text": "did anyone see the match last night?",
+  "kind": "noise"
+ },
+ {
+  "id": "m_noise_135",
+  "platform": "slack",
+  "channel": "product",
+  "author": "maya",
+  "ts": "2026-09-15T07:17:00Z",
+  "text": "Yesterday: pricing page copy. Today: same, plus code review. Blockers: none.",
+  "kind": "noise"
+ },
+ {
+  "id": "m_noise_153",
+  "platform": "slack",
+  "channel": "engineering",
+  "author": "zara",
+  "ts": "2026-09-15T07:28:00Z",
+  "text": "nice 🎉",
+  "kind": "noise"
+ },
+ {
+  "id": "m_exp_05",
+  "platform": "slack",
+  "channel": "support-escalations",
+  "author": "liam",
+  "ts": "2026-09-15T08:02:00Z",
+  "text": "Acme Corp asked whether the export will include who each ticket is assigned to. Without that they can't do per-agent reporting.",
+  "kind": "signal"
+ },
+ {
+  "id": "m_noise_019",
+  "platform": "discord",
+  "channel": "engineering",
+  "author": "arjun",
+  "ts": "2026-09-15T08:39:00Z",
+  "text": "Working on a memory leak in the worker today. Might need a second pair of eyes this afternoon.",
+  "kind": "noise"
+ },
+ {
+  "id": "m_exp_06",
+  "platform": "slack",
+  "channel": "support-escalations",
+  "author": "maya",
+  "ts": "2026-09-15T08:40:00Z",
+  "thread_of": "m_exp_05",
+  "text": "Good call. Let's add an assignee column to the export. I'm updating BD-101 now.",
+  "kind": "signal"
+ },
+ {
+  "id": "m_noise_214",
+  "platform": "slack",
+  "channel": "engineering",
+  "author": "kenji",
+  "ts": "2026-09-15T08:59:00Z",
+  "text": "Rolling back the last deploy, seeing 500s on /login.",
+  "kind": "noise"
+ },
+ {
+  "id": "m_noise_134",
+  "platform": "slack",
+  "channel": "product",
+  "author": "liam",
+  "ts": "2026-09-15T09:35:00Z",
+  "text": "new snacks in the kitchen",
+  "kind": "noise"
+ },
+ {
+  "id": "m_noise_058",
+  "platform": "discord",
+  "channel": "design",
+  "author": "priya",
+  "ts": "2026-09-15T10:08:00Z",
+  "text": "Settings page spacing feels cramped on mobile.",
+  "kind": "noise"
+ },
+ {
+  "id": "m_exp_07",
+  "platform": "slack",
+  "channel": "support-escalations",
+  "author": "maya",
+  "ts": "2026-09-15T10:31:00Z",
+  "thread_of": "m_exp_05",
+  "text": "Done, BD-101 now lists assignee as a required column.",
+  "kind": "signal"
+ },
+ {
+  "id": "m_noise_100",
+  "platform": "discord",
+  "channel": "design",
+  "author": "priya",
+  "ts": "2026-09-15T10:40:00Z",
+  "text": "brb, meeting",
+  "kind": "noise"
+ },
+ {
+  "id": "m_noise_118",
+  "platform": "discord",
+  "channel": "design",
+  "author": "priya",
+  "ts": "2026-09-15T10:52:00Z",
+  "text": "Icon set cleanup is about 70% done.",
+  "kind": "noise"
+ },
+ {
+  "id": "m_noise_031",
+  "platform": "slack",
+  "channel": "support-escalations",
+  "author": "maya",
+  "ts": "2026-09-15T11:27:00Z",
+  "text": "Customer asking if we support SAML SSO. Not yet, right?",
+  "kind": "noise"
+ },
+ {
+  "id": "m_noise_016",
+  "platform": "slack",
+  "channel": "engineering",
+  "author": "zara",
+  "ts": "2026-09-15T11:35:00Z",
+  "text": "Reminder: please squash-merge.",
+  "kind": "noise"
+ },
+ {
+  "id": "m_noise_088",
+  "platform": "slack",
+  "channel": "support-escalations",
+  "author": "arjun",
+  "ts": "2026-09-16T03:41:00Z",
+  "text": "coffee machine on 3rd floor is fixed finally",
+  "kind": "noise"
+ },
+ {
+  "id": "m_noise_121",
+  "platform": "slack",
+  "channel": "engineering",
+  "author": "sofia",
+  "ts": "2026-09-16T04:07:00Z",
+  "text": "Can someone review my PR? Small one.",
+  "kind": "noise"
+ },
+ {
+  "id": "m_noise_014",
+  "platform": "slack",
+  "channel": "engineering",
+  "author": "kenji",
+  "ts": "2026-09-16T04:12:00Z",
+  "text": "Standup: yesterday reviews, today the flaky test on main, no blockers.",
+  "kind": "noise"
+ },
+ {
+  "id": "m_noise_098",
+  "platform": "discord",
+  "channel": "engineering",
+  "author": "zara",
+  "ts": "2026-09-16T04:22:00Z",
+  "text": "Yesterday: CI caching. Today: same, plus code review. Blockers: none.",
+  "kind": "noise"
+ },
+ {
+  "id": "m_noise_120",
+  "platform": "discord",
+  "channel": "design",
+  "author": "kenji",
+  "ts": "2026-09-16T04:47:00Z",
+  "text": "sounds good",
+  "kind": "noise"
+ },
+ {
+  "id": "m_noise_085",
+  "platform": "discord",
+  "channel": "engineering",
+  "author": "zara",
+  "ts": "2026-09-16T06:03:00Z",
+  "text": "I'll be out Monday, dentist",
+  "kind": "noise"
+ },
+ {
+  "id": "m_exp_08",
+  "platform": "slack",
+  "channel": "engineering",
+  "author": "sofia",
+  "ts": "2026-09-16T06:12:00Z",
+  "text": "Export endpoint skeleton is up locally. Streaming the CSV so big accounts don't time out.",
+  "kind": "signal"
+ },
+ {
+  "id": "m_noise_032",
+  "platform": "slack",
+  "channel": "product",
+  "author": "maya",
+  "ts": "2026-09-16T07:47:00Z",
+  "text": "coffee machine on 3rd floor is fixed finally",
+  "kind": "noise"
+ },
+ {
+  "id": "m_noise_203",
+  "platform": "slack",
+  "channel": "engineering",
+  "author": "dev",
+  "ts": "2026-09-16T09:30:00Z",
+  "text": "lol",
+  "kind": "noise"
+ },
+ {
+  "id": "m_noise_207",
+  "platform": "slack",
+  "channel": "support-escalations",
+  "author": "maya",
+  "ts": "2026-09-16T10:50:00Z",
+  "text": "Acme user locked out after too many logins, which is good I guess 😅",
+  "kind": "noise"
+ },
+ {
+  "id": "m_noise_079",
+  "platform": "slack",
+  "channel": "product",
+  "author": "priya",
+  "ts": "2026-09-16T10:53:00Z",
+  "text": "Standup: yesterday reviews, today release notes, no blockers.",
+  "kind": "noise"
+ },
+ {
+  "id": "m_noise_101",
+  "platform": "discord",
+  "channel": "engineering",
+  "author": "sofia",
+  "ts": "2026-09-16T11:21:00Z",
+  "text": "that demo went well 🙌",
+  "kind": "noise"
+ },
+ {
+  "id": "m_noise_139",
+  "platform": "discord",
+  "channel": "design",
+  "author": "priya",
+  "ts": "2026-09-16T11:54:00Z",
+  "text": "new snacks in the kitchen",
+  "kind": "noise"
+ },
+ {
+  "id": "m_noise_147",
+  "platform": "discord",
+  "channel": "engineering",
+  "author": "sofia",
+  "ts": "2026-09-17T04:26:00Z",
+  "text": "ty",
+  "kind": "noise"
+ },
+ {
+  "id": "m_noise_078",
+  "platform": "slack",
+  "channel": "product",
+  "author": "maya",
+  "ts": "2026-09-17T04:40:00Z",
+  "text": "did anyone see the match last night?",
+  "kind": "noise"
+ },
+ {
+  "id": "m_sla_03",
+  "platform": "discord",
+  "channel": "engineering",
+  "author": "dev",
+  "ts": "2026-09-17T05:05:00Z",
+  "text": "Talked to a couple of support leads at Acme. They said an email *at* breach is too late; by then the customer is already annoyed. They want a heads-up before it happens, somewhere the team actually looks.",
+  "kind": "signal"
+ },
+ {
+  "id": "m_sla_04",
+  "platform": "discord",
+  "channel": "engineering",
+  "author": "zara",
+  "ts": "2026-09-17T05:12:00Z",
+  "thread_of": "m_sla_03",
+  "text": "Also email notifications get filtered into folders nobody reads, from what I've seen in testing.",
+  "kind": "signal"
+ },
+ {
+  "id": "m_sla_05",
+  "platform": "discord",
+  "channel": "engineering",
+  "author": "maya",
+  "ts": "2026-09-17T05:31:00Z",
+  "thread_of": "m_sla_03",
+  "text": "Agreed. Let's change it: send the warning 15 minutes BEFORE the breach, and post it to the team's Slack channel instead of email. We drop email notifications for this entirely.",
+  "kind": "signal"
+ },
+ {
+  "id": "m_sla_06",
+  "platform": "discord",
+  "channel": "engineering",
+  "author": "arjun",
+  "ts": "2026-09-17T05:36:00Z",
+  "thread_of": "m_sla_03",
+  "text": "ok, agreed. Dev, that changes your job a bit.",
+  "kind": "signal"
+ },
+ {
+  "id": "m_sla_07",
+  "platform": "discord",
+  "channel": "engineering",
+  "author": "dev",
+  "ts": "2026-09-17T05:40:00Z",
+  "thread_of": "m_sla_03",
+  "text": "Makes sense, noted.",
+  "kind": "signal"
+ },
+ {
+  "id": "m_noise_027",
+  "platform": "discord",
+  "channel": "design",
+  "author": "priya",
+  "ts": "2026-09-17T06:09:00Z",
+  "text": "Icon set cleanup is about 70% done.",
+  "kind": "noise"
+ },
+ {
+  "id": "m_noise_226",
+  "platform": "discord",
+  "channel": "engineering",
+  "author": "sofia",
+  "ts": "2026-09-17T06:18:00Z",
+  "text": "I'll be out Monday, dentist",
+  "kind": "noise"
+ },
+ {
+  "id": "m_noise_241",
+  "platform": "slack",
+  "channel": "product",
+  "author": "arjun",
+  "ts": "2026-09-17T06:33:00Z",
+  "text": "Roadmap draft for Q4 is in the doc, comments welcome.",
+  "kind": "noise"
+ },
+ {
+  "id": "m_noise_208",
+  "platform": "slack",
+  "channel": "engineering",
+  "author": "dev",
+  "ts": "2026-09-17T07:37:00Z",
+  "text": "Merged the dependency bumps for BD-111, watch for deprecation warnings.",
+  "kind": "noise"
+ },
+ {
+  "id": "m_noise_175",
+  "platform": "slack",
+  "channel": "support-escalations",
+  "author": "maya",
+  "ts": "2026-09-17T08:08:00Z",
+  "text": "nice 🎉",
+  "kind": "noise"
+ },
+ {
+  "id": "m_noise_083",
+  "platform": "slack",
+  "channel": "engineering",
+  "author": "arjun",
+  "ts": "2026-09-17T10:07:00Z",
+  "text": "morning all ☀️",
+  "kind": "noise"
+ },
+ {
+  "id": "m_noise_042",
+  "platform": "slack",
+  "channel": "product",
+  "author": "arjun",
+  "ts": "2026-09-17T10:18:00Z",
+  "text": "Three customers asked about SSO this week.",
+  "kind": "noise"
+ },
+ {
+  "id": "m_noise_166",
+  "platform": "slack",
+  "channel": "product",
+  "author": "maya",
+  "ts": "2026-09-17T10:44:00Z",
+  "text": "Onboarding completion went from 61% to 68% after the copy change.",
+  "kind": "noise"
+ },
+ {
+  "id": "m_noise_191",
+  "platform": "slack",
+  "channel": "product",
+  "author": "priya",
+  "ts": "2026-09-18T05:03:00Z",
+  "text": "Roadmap draft for Q4 is in the doc, comments welcome.",
+  "kind": "noise"
+ },
+ {
+  "id": "m_noise_256",
+  "platform": "discord",
+  "channel": "engineering",
+  "author": "dev",
+  "ts": "2026-09-18T05:05:00Z",
+  "text": "sounds good",
+  "kind": "noise"
+ },
+ {
+  "id": "m_noise_159",
+  "platform": "discord",
+  "channel": "design",
+  "author": "kenji",
+  "ts": "2026-09-18T06:33:00Z",
+  "text": "Tweaked the empty states, much friendlier now.",
+  "kind": "noise"
+ },
+ {
+  "id": "m_noise_059",
+  "platform": "discord",
+  "channel": "engineering",
+  "author": "arjun",
+  "ts": "2026-09-18T06:50:00Z",
+  "text": "Standup: yesterday reviews, today dependency bumps (BD-111), no blockers.",
+  "kind": "noise"
+ },
+ {
+  "id": "m_sla_09",
+  "platform": "discord",
+  "channel": "engineering",
+  "author": "kenji",
+  "ts": "2026-09-18T08:00:00Z",
+  "text": "SLA settings page (BD-104) is done: per-priority hours, validation, saves to the org settings.",
+  "kind": "signal"
+ },
+ {
+  "id": "m_noise_077",
+  "platform": "discord",
+  "channel": "engineering",
+  "author": "dev",
+  "ts": "2026-09-18T08:13:00Z",
+  "text": "Reminder: please squash-merge.",
+  "kind": "noise"
+ },
+ {
+  "id": "m_noise_232",
+  "platform": "slack",
+  "channel": "product",
+  "author": "liam",
+  "ts": "2026-09-18T09:28:00Z",
+  "text": "Finished release notes, picking up the next thing from the board.",
+  "kind": "noise"
+ },
+ {
+  "id": "m_noise_002",
+  "platform": "slack",
+  "channel": "engineering",
+  "author": "arjun",
+  "ts": "2026-09-18T09:46:00Z",
+  "text": "I'll be out Monday, dentist",
+  "kind": "noise"
+ },
+ {
+  "id": "m_noise_209",
+  "platform": "slack",
+  "channel": "engineering",
+  "author": "arjun",
+  "ts": "2026-09-18T10:10:00Z",
+  "text": "Standup: yesterday reviews, today the flaky test on main, no blockers.",
+  "kind": "noise"
+ },
+ {
+  "id": "m_noise_212",
+  "platform": "discord",
+  "channel": "engineering",
+  "author": "dev",
+  "ts": "2026-09-18T10:54:00Z",
+  "text": "good weekend everyone",
+  "kind": "noise"
+ },
+ {
+  "id": "m_noise_210",
+  "platform": "discord",
+  "channel": "random",
+  "author": "maya",
+  "ts": "2026-09-18T11:23:00Z",
+  "text": "Offsite poll closes Friday!",
+  "kind": "noise"
+ },
+ {
+  "id": "m_noise_045",
+  "platform": "discord",
+  "channel": "engineering",
+  "author": "zara",
+  "ts": "2026-09-18T11:43:00Z",
+  "text": "Can someone review my PR? Small one.",
+  "kind": "noise"
+ },
+ {
+  "id": "m_noise_239",
+  "platform": "discord",
+  "channel": "engineering",
+  "author": "arjun",
+  "ts": "2026-09-21T03:57:00Z",
+  "text": "Yesterday: the staging DB migration. Today: same, plus code review. Blockers: none.",
+  "kind": "noise"
+ },
+ {
+  "id": "m_noise_132",
+  "platform": "slack",
+  "channel": "product",
+  "author": "maya",
+  "ts": "2026-09-21T04:28:00Z",
+  "text": "running 5 min late to standup",
+  "kind": "noise"
+ },
+ {
+  "id": "m_noise_093",
+  "platform": "slack",
+  "channel": "product",
+  "author": "maya",
+  "ts": "2026-09-21T05:16:00Z",
+  "text": "Onboarding completion went from 61% to 68% after the copy change.",
+  "kind": "noise"
+ },
+ {
+  "id": "m_noise_116",
+  "platform": "slack",
+  "channel": "support-escalations",
+  "author": "liam",
+  "ts": "2026-09-21T05:40:00Z",
+  "text": "Standup: yesterday reviews, today a customer asking about SSO, no blockers.",
+  "kind": "noise"
+ },
+ {
+  "id": "m_noise_090",
+  "platform": "slack",
+  "channel": "engineering",
+  "author": "arjun",
+  "ts": "2026-09-21T06:01:00Z",
+  "text": "CI is green again.",
+  "kind": "noise"
+ },
+ {
+  "id": "m_noise_177",
+  "platform": "discord",
+  "channel": "engineering",
+  "author": "dev",
+  "ts": "2026-09-21T08:00:00Z",
+  "text": "that demo went well 🙌",
+  "kind": "noise"
+ },
+ {
+  "id": "m_noise_155",
+  "platform": "discord",
+  "channel": "random",
+  "author": "zara",
+  "ts": "2026-09-21T08:04:00Z",
+  "text": "good weekend everyone",
+  "kind": "noise"
+ },
+ {
+  "id": "m_noise_043",
+  "platform": "discord",
+  "channel": "engineering",
+  "author": "arjun",
+  "ts": "2026-09-21T08:07:00Z",
+  "text": "Can someone review my PR? Small one.",
+  "kind": "noise"
+ },
+ {
+  "id": "m_noise_040",
+  "platform": "discord",
+  "channel": "random",
+  "author": "arjun",
+  "ts": "2026-09-21T08:50:00Z",
+  "text": "My cat walked across the keyboard and pushed to a branch 🐈",
+  "kind": "noise"
+ },
+ {
+  "id": "m_noise_123",
+  "platform": "discord",
+  "channel": "engineering",
+  "author": "arjun",
+  "ts": "2026-09-21T09:30:00Z",
+  "text": "Finished a memory leak in the worker, picking up the next thing from the board.",
+  "kind": "noise"
+ },
+ {
+  "id": "m_noise_057",
+  "platform": "discord",
+  "channel": "engineering",
+  "author": "dev",
+  "ts": "2026-09-21T10:56:00Z",
+  "text": "anyone up for lunch at 1?",
+  "kind": "noise"
+ },
+ {
+  "id": "m_noise_010",
+  "platform": "discord",
+  "channel": "design",
+  "author": "priya",
+  "ts": "2026-09-21T12:02:00Z",
+  "text": "Yesterday: the onboarding typo BD-110. Today: same, plus code review. Blockers: none.",
+  "kind": "noise"
+ },
+ {
+  "id": "m_noise_082",
+  "platform": "discord",
+  "channel": "engineering",
+  "author": "arjun",
+  "ts": "2026-09-21T12:19:00Z",
+  "text": "Finished a memory leak in the worker, picking up the next thing from the board.",
+  "kind": "noise"
+ },
+ {
+  "id": "m_noise_152",
+  "platform": "slack",
+  "channel": "support-escalations",
+  "author": "arjun",
+  "ts": "2026-09-22T06:52:00Z",
+  "text": "Finished an Acme user locked out, picking up the next thing from the board.",
+  "kind": "noise"
+ },
+ {
+  "id": "m_exp_09",
+  "platform": "slack",
+  "channel": "support-escalations",
+  "author": "liam",
+  "ts": "2026-09-22T07:05:00Z",
+  "text": "Just came off calls with Acme and Globex about the export. Both said 30 days is useless for quarterly business reviews, and they need their custom fields in the file too, not just the standard columns.",
+  "kind": "signal"
+ },
+ {
+  "id": "m_exp_10",
+  "platform": "slack",
+  "channel": "support-escalations",
+  "author": "arjun",
+  "ts": "2026-09-22T07:20:00Z",
+  "thread_of": "m_exp_09",
+  "text": "How far back do they need? Unbounded ranges would be expensive.",
+  "kind": "signal"
+ },
+ {
+  "id": "m_exp_11",
+  "platform": "slack",
+  "channel": "support-escalations",
+  "author": "liam",
+  "ts": "2026-09-22T07:26:00Z",
+  "thread_of": "m_exp_09",
+  "text": "A year would cover every case I've heard.",
+  "kind": "signal"
+ },
+ {
+  "id": "m_noise_221",
+  "platform": "slack",
+  "channel": "product",
+  "author": "maya",
+  "ts": "2026-09-22T08:34:00Z",
+  "text": "Standup: yesterday reviews, today customer interviews, no blockers.",
+  "kind": "noise"
+ },
+ {
+  "id": "m_noise_053",
+  "platform": "discord",
+  "channel": "design",
+  "author": "maya",
+  "ts": "2026-09-22T09:06:00Z",
+  "text": "Settings page spacing feels cramped on mobile.",
+  "kind": "noise"
+ },
+ {
+  "id": "m_noise_171",
+  "platform": "slack",
+  "channel": "support-escalations",
+  "author": "liam",
+  "ts": "2026-09-22T09:16:00Z",
+  "text": "Yesterday: an Umbrella Inc. attachment upload failure. Today: same, plus code review. Blockers: none.",
+  "kind": "noise"
+ },
+ {
+  "id": "m_noise_143",
+  "platform": "discord",
+  "channel": "engineering",
+  "author": "zara",
+  "ts": "2026-09-22T09:35:00Z",
+  "text": "brb, meeting",
+  "kind": "noise"
+ },
+ {
+  "id": "m_exp_12",
+  "platform": "slack",
+  "channel": "support-escalations",
+  "author": "maya",
+  "ts": "2026-09-22T09:40:00Z",
+  "thread_of": "m_exp_09",
+  "text": "Decision: the export must support any custom date range up to 12 months (not a fixed 30 days), and it must include all custom fields as extra columns. Arjun, can you make sure the team knows?",
+  "kind": "signal"
+ },
+ {
+  "id": "m_exp_13",
+  "platform": "slack",
+  "channel": "support-escalations",
+  "author": "arjun",
+  "ts": "2026-09-22T09:52:00Z",
+  "thread_of": "m_exp_09",
+  "text": "👍 will raise it at standup tomorrow.",
+  "kind": "signal"
+ },
+ {
+  "id": "m_noise_046",
+  "platform": "discord",
+  "channel": "random",
+  "author": "dev",
+  "ts": "2026-09-22T10:14:00Z",
+  "text": "Recommendation: 'Shape Up' is a good read.",
+  "kind": "noise"
+ },
+ {
+  "id": "m_noise_080",
+  "platform": "discord",
+  "channel": "random",
+  "author": "liam",
+  "ts": "2026-09-22T10:42:00Z",
+  "text": "My cat walked across the keyboard and pushed to a branch 🐈",
+  "kind": "noise"
+ },
+ {
+  "id": "m_noise_050",
+  "platform": "discord",
+  "channel": "engineering",
+  "author": "zara",
+  "ts": "2026-09-23T04:44:00Z",
+  "text": "ty",
+  "kind": "noise"
+ },
+ {
+  "id": "m_noise_111",
+  "platform": "slack",
+  "channel": "support-escalations",
+  "author": "maya",
+  "ts": "2026-09-23T04:52:00Z",
+  "text": "Globex wants an invoice resent, handled.",
+  "kind": "noise"
+ },
+ {
+  "id": "m_noise_231",
+  "platform": "discord",
+  "channel": "design",
+  "author": "maya",
+  "ts": "2026-09-23T04:53:00Z",
+  "text": "Tweaked the empty states, much friendlier now.",
+  "kind": "noise"
+ },
+ {
+  "id": "m_noise_062",
+  "platform": "discord",
+  "channel": "engineering",
+  "author": "sofia",
+  "ts": "2026-09-23T05:57:00Z",
+  "text": "Who owns the cron config these days?",
+  "kind": "noise"
+ },
+ {
+  "id": "m_exp_14",
+  "platform": "slack",
+  "channel": "product",
+  "author": "kenji",
+  "ts": "2026-09-23T06:15:00Z",
+  "text": "While we're on export, should we also offer XLSX? Some users open CSVs in Excel and complain about encoding.",
+  "kind": "signal"
+ },
+ {
+  "id": "m_noise_124",
+  "platform": "slack",
+  "channel": "product",
+  "author": "liam",
+  "ts": "2026-09-23T06:26:00Z",
+  "text": "did anyone see the match last night?",
+  "kind": "noise"
+ },
+ {
+  "id": "m_exp_15",
+  "platform": "slack",
+  "channel": "product",
+  "author": "maya",
+  "ts": "2026-09-23T06:31:00Z",
+  "thread_of": "m_exp_14",
+  "text": "Not this quarter. CSV with UTF-8 BOM should fix the Excel encoding issue. Let's park XLSX.",
+  "kind": "signal"
+ },
+ {
+  "id": "m_noise_063",
+  "platform": "discord",
+  "channel": "design",
+  "author": "kenji",
+  "ts": "2026-09-23T07:14:00Z",
+  "text": "Icon set cleanup is about 70% done.",
+  "kind": "noise"
+ },
+ {
+  "id": "m_noise_202",
+  "platform": "discord",
+  "channel": "random",
+  "author": "kenji",
+  "ts": "2026-09-23T07:26:00Z",
+  "text": "Offsite poll closes Friday!",
+  "kind": "noise"
+ },
+ {
+  "id": "m_noise_237",
+  "platform": "discord",
+  "channel": "random",
+  "author": "sofia",
+  "ts": "2026-09-23T08:44:00Z",
+  "text": "Anyone tried the new ramen place?",
+  "kind": "noise"
+ },
+ {
+  "id": "m_noise_048",
+  "platform": "discord",
+  "channel": "random",
+  "author": "zara",
+  "ts": "2026-09-23T08:59:00Z",
+  "text": "Offsite poll closes Friday!",
+  "kind": "noise"
+ },
+ {
+  "id": "m_sla_08",
+  "platform": "discord",
+  "channel": "engineering",
+  "author": "dev",
+  "ts": "2026-09-23T09:15:00Z",
+  "text": "SLA notifier PR is up, using the existing mailer so it was quick.",
+  "kind": "signal"
+ },
+ {
+  "id": "m_noise_228",
+  "platform": "slack",
+  "channel": "engineering",
+  "author": "zara",
+  "ts": "2026-09-23T09:31:00Z",
+  "text": "Finished the login rate limit work (BD-107), picking up the next thing from the board.",
+  "kind": "noise"
+ },
+ {
+  "id": "m_noise_102",
+  "platform": "slack",
+  "channel": "support-escalations",
+  "author": "maya",
+  "ts": "2026-09-23T09:57:00Z",
+  "text": "nice 🎉",
+  "kind": "noise"
+ },
+ {
+  "id": "m_noise_190",
+  "platform": "slack",
+  "channel": "product",
+  "author": "priya",
+  "ts": "2026-09-23T10:29:00Z",
+  "text": "running 5 min late to standup",
+  "kind": "noise"
+ },
+ {
+  "id": "m_noise_052",
+  "platform": "discord",
+  "channel": "engineering",
+  "author": "zara",
+  "ts": "2026-09-23T11:47:00Z",
+  "text": "CI is green again.",
+  "kind": "noise"
+ },
+ {
+  "id": "m_noise_173",
+  "platform": "discord",
+  "channel": "design",
+  "author": "maya",
+  "ts": "2026-09-24T03:32:00Z",
+  "text": "Icon set cleanup is about 70% done.",
+  "kind": "noise"
+ },
+ {
+  "id": "m_noise_160",
+  "platform": "slack",
+  "channel": "product",
+  "author": "maya",
+  "ts": "2026-09-24T04:57:00Z",
+  "text": "happy friday!",
+  "kind": "noise"
+ },
+ {
+  "id": "m_noise_126",
+  "platform": "slack",
+  "channel": "engineering",
+  "author": "kenji",
+  "ts": "2026-09-24T05:08:00Z",
+  "text": "Finished dependency bumps (BD-111), picking up the next thing from the board.",
+  "kind": "noise"
+ },
+ {
+  "id": "m_noise_151",
+  "platform": "discord",
+  "channel": "random",
+  "author": "dev",
+  "ts": "2026-09-24T05:41:00Z",
+  "text": "coffee machine on 3rd floor is fixed finally",
+  "kind": "noise"
+ },
+ {
+  "id": "m_noise_066",
+  "platform": "discord",
+  "channel": "random",
+  "author": "arjun",
+  "ts": "2026-09-24T06:08:00Z",
+  "text": "Anyone tried the new ramen place?",
+  "kind": "noise"
+ },
+ {
+  "id": "m_noise_242",
+  "platform": "slack",
+  "channel": "engineering",
+  "author": "arjun",
+  "ts": "2026-09-24T06:14:00Z",
+  "text": "did anyone see the match last night?",
+  "kind": "noise"
+ },
+ {
+  "id": "m_noise_044",
+  "platform": "slack",
+  "channel": "support-escalations",
+  "author": "maya",
+  "ts": "2026-09-24T06:17:00Z",
+  "text": "Working on Globex billing question today. Might need a second pair of eyes this afternoon.",
+  "kind": "noise"
+ },
+ {
+  "id": "m_noise_201",
+  "platform": "slack",
+  "channel": "product",
+  "author": "priya",
+  "ts": "2026-09-24T06:48:00Z",
+  "text": "sounds good",
+  "kind": "noise"
+ },
+ {
+  "id": "m_noise_051",
+  "platform": "discord",
+  "channel": "random",
+  "author": "kenji",
+  "ts": "2026-09-24T07:10:00Z",
+  "text": "nice 🎉",
+  "kind": "noise"
+ },
+ {
+  "id": "m_noise_156",
+  "platform": "discord",
+  "channel": "random",
+  "author": "arjun",
+  "ts": "2026-09-24T07:52:00Z",
+  "text": "Offsite poll closes Friday!",
+  "kind": "noise"
+ },
+ {
+  "id": "m_noise_138",
+  "platform": "slack",
+  "channel": "engineering",
+  "author": "arjun",
+  "ts": "2026-09-24T08:31:00Z",
+  "text": "Found the cause of the memory leak: unbounded cache in the worker.",
+  "kind": "noise"
+ },
+ {
+  "id": "m_noise_170",
+  "platform": "slack",
+  "channel": "product",
+  "author": "maya",
+  "ts": "2026-09-24T08:46:00Z",
+  "text": "Pricing page experiment starts Monday.",
+  "kind": "noise"
+ },
+ {
+  "id": "m_noise_193",
+  "platform": "slack",
+  "channel": "support-escalations",
+  "author": "maya",
+  "ts": "2026-09-24T08:50:00Z",
+  "text": "Initech user stuck in a password reset loop, can someone look?",
+  "kind": "noise"
+ },
+ {
+  "id": "m_exp_16",
+  "platform": "slack",
+  "channel": "engineering",
+  "author": "sofia",
+  "ts": "2026-09-24T10:05:00Z",
+  "text": "PR for the export endpoint is up: last 30 days, CSV, id/subject/status/created_at/assignee. Reviews welcome.",
+  "kind": "signal"
+ },
+ {
+  "id": "m_noise_003",
+  "platform": "discord",
+  "channel": "engineering",
+  "author": "arjun",
+  "ts": "2026-09-24T10:11:00Z",
+  "text": "thanks!",
+  "kind": "noise"
+ },
+ {
+  "id": "m_noise_220",
+  "platform": "slack",
+  "channel": "engineering",
+  "author": "zara",
+  "ts": "2026-09-24T10:20:00Z",
+  "text": "Working on reviewing PRs today. Might need a second pair of eyes this afternoon.",
+  "kind": "noise"
+ },
+ {
+  "id": "m_noise_122",
+  "platform": "discord",
+  "channel": "random",
+  "author": "maya",
+  "ts": "2026-09-24T11:03:00Z",
+  "text": "Recommendation: 'Shape Up' is a good read.",
+  "kind": "noise"
+ },
+ {
+  "id": "m_noise_012",
+  "platform": "discord",
+  "channel": "engineering",
+  "author": "dev",
+  "ts": "2026-09-24T11:35:00Z",
+  "text": "that demo went well 🙌",
+  "kind": "noise"
+ },
+ {
+  "id": "m_noise_181",
+  "platform": "slack",
+  "channel": "support-escalations",
+  "author": "maya",
+  "ts": "2026-09-24T11:37:00Z",
+  "text": "Working on a customer asking about SSO today. Might need a second pair of eyes this afternoon.",
+  "kind": "noise"
+ },
+ {
+  "id": "m_noise_253",
+  "platform": "slack",
+  "channel": "engineering",
+  "author": "arjun",
+  "ts": "2026-09-24T11:49:00Z",
+  "text": "Finished the login rate limit work (BD-107), picking up the next thing from the board.",
+  "kind": "noise"
+ },
+ {
+  "id": "m_noise_199",
+  "platform": "slack",
+  "channel": "engineering",
+  "author": "dev",
+  "ts": "2026-09-24T12:10:00Z",
+  "text": "good weekend everyone",
+  "kind": "noise"
+ },
+ {
+  "id": "m_noise_148",
+  "platform": "slack",
+  "channel": "engineering",
+  "author": "kenji",
+  "ts": "2026-09-24T12:11:00Z",
+  "text": "Yesterday: CI caching. Today: same, plus code review. Blockers: none.",
+  "kind": "noise"
+ },
+ {
+  "id": "m_noise_189",
+  "platform": "discord",
+  "channel": "design",
+  "author": "maya",
+  "ts": "2026-09-25T03:35:00Z",
+  "text": "Settings page spacing feels cramped on mobile.",
+  "kind": "noise"
+ },
+ {
+  "id": "m_noise_195",
+  "platform": "slack",
+  "channel": "product",
+  "author": "liam",
+  "ts": "2026-09-25T05:36:00Z",
+  "text": "Finished pricing page copy, picking up the next thing from the board.",
+  "kind": "noise"
+ },
+ {
+  "id": "m_exp_17",
+  "platform": "slack",
+  "channel": "engineering",
+  "author": "arjun",
+  "ts": "2026-09-25T05:44:00Z",
+  "thread_of": "m_exp_16",
+  "text": "LGTM, merging. Nice work on the streaming.",
+  "kind": "signal"
+ },
+ {
+  "id": "m_noise_168",
+  "platform": "slack",
+  "channel": "engineering",
+  "author": "sofia",
+  "ts": "2026-09-25T06:17:00Z",
+  "text": "thanks!",
+  "kind": "noise"
+ },
+ {
+  "id": "m_noise_163",
+  "platform": "slack",
+  "channel": "support-escalations",
+  "author": "maya",
+  "ts": "2026-09-25T06:20:00Z",
+  "text": "Finished an Umbrella Inc. attachment upload failure, picking up the next thing from the board.",
+  "kind": "noise"
+ },
+ {
+  "id": "m_noise_250",
+  "platform": "discord",
+  "channel": "design",
+  "author": "priya",
+  "ts": "2026-09-25T06:31:00Z",
+  "text": "Settings page spacing feels cramped on mobile.",
+  "kind": "noise"
+ },
+ {
+  "id": "m_noise_248",
+  "platform": "discord",
+  "channel": "engineering",
+  "author": "sofia",
+  "ts": "2026-09-25T06:59:00Z",
+  "text": "I'll be out Monday, dentist",
+  "kind": "noise"
+ },
+ {
+  "id": "m_noise_240",
+  "platform": "slack",
+  "channel": "product",
+  "author": "maya",
+  "ts": "2026-09-25T07:34:00Z",
+  "text": "Release notes for this sprint are drafted.",
+  "kind": "noise"
+ },
+ {
+  "id": "m_noise_103",
+  "platform": "discord",
+  "channel": "design",
+  "author": "priya",
+  "ts": "2026-09-25T08:16:00Z",
+  "text": "Tweaked the empty states, much friendlier now.",
+  "kind": "noise"
+ },
+ {
+  "id": "m_noise_084",
+  "platform": "slack",
+  "channel": "product",
+  "author": "arjun",
+  "ts": "2026-09-25T08:38:00Z",
+  "text": "Working on Q4 roadmap draft today. Might need a second pair of eyes this afternoon.",
+  "kind": "noise"
+ },
+ {
+  "id": "m_noise_070",
+  "platform": "slack",
+  "channel": "engineering",
+  "author": "arjun",
+  "ts": "2026-09-25T09:46:00Z",
+  "text": "Found the cause of the memory leak: unbounded cache in the worker.",
+  "kind": "noise"
+ },
+ {
+  "id": "m_noise_182",
+  "platform": "slack",
+  "channel": "product",
+  "author": "arjun",
+  "ts": "2026-09-25T11:42:00Z",
+  "text": "sounds good",
+  "kind": "noise"
+ },
+ {
+  "id": "m_noise_008",
+  "platform": "slack",
+  "channel": "product",
+  "author": "maya",
+  "ts": "2026-09-25T11:56:00Z",
+  "text": "happy friday!",
+  "kind": "noise"
+ },
+ {
+  "id": "m_noise_217",
+  "platform": "slack",
+  "channel": "engineering",
+  "author": "arjun",
+  "ts": "2026-09-25T12:01:00Z",
+  "text": "brb, meeting",
+  "kind": "noise"
+ },
+ {
+  "id": "m_noise_089",
+  "platform": "slack",
+  "channel": "support-escalations",
+  "author": "liam",
+  "ts": "2026-09-25T12:17:00Z",
+  "text": "is the wifi slow for anyone else?",
+  "kind": "noise"
+ },
+ {
+  "id": "m_noise_211",
+  "platform": "slack",
+  "channel": "support-escalations",
+  "author": "arjun",
+  "ts": "2026-09-28T04:50:00Z",
+  "text": "Initech user stuck in a password reset loop, can someone look?",
+  "kind": "noise"
+ },
+ {
+  "id": "m_dark_01",
+  "platform": "discord",
+  "channel": "design",
+  "author": "priya",
+  "ts": "2026-09-28T05:20:00Z",
+  "text": "Sprint 2: dark mode is go. Spec is in BD-105: follow the OS theme by default, with a Light / Dark / System toggle. BD-106 is the theme token refactor that has to land first.",
+  "kind": "signal"
+ },
+ {
+  "id": "m_dark_02",
+  "platform": "discord",
+  "channel": "design",
+  "author": "kenji",
+  "ts": "2026-09-28T05:34:00Z",
+  "thread_of": "m_dark_01",
+  "text": "I'll do BD-106 first, then BD-105.",
+  "kind": "signal"
+ },
+ {
+  "id": "m_noise_025",
+  "platform": "discord",
+  "channel": "design",
+  "author": "kenji",
+  "ts": "2026-09-28T05:41:00Z",
+  "text": "I'll be out Monday, dentist",
+  "kind": "noise"
+ },
+ {
+  "id": "m_noise_075",
+  "platform": "slack",
+  "channel": "engineering",
+  "author": "dev",
+  "ts": "2026-09-28T06:20:00Z",
+  "text": "Merged the dependency bumps for BD-111, watch for deprecation warnings.",
+  "kind": "noise"
+ },
+ {
+  "id": "m_noise_257",
+  "platform": "slack",
+  "channel": "product",
+  "author": "priya",
+  "ts": "2026-09-28T07:10:00Z",
+  "text": "Pricing page experiment starts Monday.",
+  "kind": "noise"
+ },
+ {
+  "id": "m_noise_004",
+  "platform": "slack",
+  "channel": "product",
+  "author": "priya",
+  "ts": "2026-09-28T07:18:00Z",
+  "text": "ty",
+  "kind": "noise"
+ },
+ {
+  "id": "m_noise_117",
+  "platform": "slack",
+  "channel": "engineering",
+  "author": "dev",
+  "ts": "2026-09-28T07:34:00Z",
+  "text": "running 5 min late to standup",
+  "kind": "noise"
+ },
+ {
+  "id": "m_noise_022",
+  "platform": "discord",
+  "channel": "engineering",
+  "author": "arjun",
+  "ts": "2026-09-28T07:39:00Z",
+  "text": "Rate limit for logins (BD-107): 10 attempts / 5 min, then 15 min lock. Sound right?",
+  "kind": "noise"
+ },
+ {
+  "id": "m_noise_158",
+  "platform": "slack",
+  "channel": "product",
+  "author": "maya",
+  "ts": "2026-09-28T07:51:00Z",
+  "text": "morning all ☀️",
+  "kind": "noise"
+ },
+ {
+  "id": "m_noise_049",
+  "platform": "slack",
+  "channel": "support-escalations",
+  "author": "zara",
+  "ts": "2026-09-28T09:12:00Z",
+  "text": "who's in the office tomorrow?",
+  "kind": "noise"
+ },
+ {
+  "id": "m_noise_011",
+  "platform": "slack",
+  "channel": "support-escalations",
+  "author": "maya",
+  "ts": "2026-09-28T10:06:00Z",
+  "text": "Umbrella can't upload attachments over 10 MB, is that expected?",
+  "kind": "noise"
+ },
+ {
+  "id": "m_noise_128",
+  "platform": "discord",
+  "channel": "random",
+  "author": "kenji",
+  "ts": "2026-09-28T10:44:00Z",
+  "text": "Offsite poll closes Friday!",
+  "kind": "noise"
+ },
+ {
+  "id": "m_noise_229",
+  "platform": "slack",
+  "channel": "support-escalations",
+  "author": "maya",
+  "ts": "2026-09-28T11:43:00Z",
+  "text": "Globex wants an invoice resent, handled.",
+  "kind": "noise"
+ },
+ {
+  "id": "m_noise_095",
+  "platform": "slack",
+  "channel": "product",
+  "author": "maya",
+  "ts": "2026-09-28T12:06:00Z",
+  "text": "Roadmap draft for Q4 is in the doc, comments welcome.",
+  "kind": "noise"
+ },
+ {
+  "id": "m_noise_035",
+  "platform": "discord",
+  "channel": "random",
+  "author": "sofia",
+  "ts": "2026-09-29T06:00:00Z",
+  "text": "My cat walked across the keyboard and pushed to a branch 🐈",
+  "kind": "noise"
+ },
+ {
+  "id": "m_dark_03",
+  "platform": "discord",
+  "channel": "design",
+  "author": "kenji",
+  "ts": "2026-09-29T07:00:00Z",
+  "text": "Do we really need the System option? Light/Dark would be simpler.",
+  "kind": "signal"
+ },
+ {
+  "id": "m_dark_04",
+  "platform": "discord",
+  "channel": "design",
+  "author": "priya",
+  "ts": "2026-09-29T07:12:00Z",
+  "thread_of": "m_dark_03",
+  "text": "No, keep System and make it the default, exactly as BD-105 says. Most people never touch the setting.",
+  "kind": "signal"
+ },
+ {
+  "id": "m_noise_245",
+  "platform": "discord",
+  "channel": "engineering",
+  "author": "zara",
+  "ts": "2026-09-29T07:23:00Z",
+  "text": "Fixed, it was a missing env var.",
+  "kind": "noise"
+ },
+ {
+  "id": "m_noise_119",
+  "platform": "slack",
+  "channel": "product",
+  "author": "arjun",
+  "ts": "2026-09-29T08:14:00Z",
+  "text": "Three customers asked about SSO this week.",
+  "kind": "noise"
+ },
+ {
+  "id": "m_noise_255",
+  "platform": "discord",
+  "channel": "engineering",
+  "author": "arjun",
+  "ts": "2026-09-29T09:26:00Z",
+  "text": "Yesterday: reviewing PRs. Today: same, plus code review. Blockers: none.",
+  "kind": "noise"
+ },
+ {
+  "id": "m_noise_178",
+  "platform": "slack",
+  "channel": "product",
+  "author": "priya",
+  "ts": "2026-09-29T09:58:00Z",
+  "text": "that demo went well 🙌",
+  "kind": "noise"
+ },
+ {
+  "id": "m_noise_107",
+  "platform": "slack",
+  "channel": "support-escalations",
+  "author": "liam",
+  "ts": "2026-09-29T10:43:00Z",
+  "text": "Working on a customer asking about SSO today. Might need a second pair of eyes this afternoon.",
+  "kind": "noise"
+ },
+ {
+  "id": "m_noise_198",
+  "platform": "discord",
+  "channel": "design",
+  "author": "kenji",
+  "ts": "2026-09-29T11:31:00Z",
+  "text": "did anyone see the match last night?",
+  "kind": "noise"
+ },
+ {
+  "id": "m_noise_140",
+  "platform": "discord",
+  "channel": "design",
+  "author": "maya",
+  "ts": "2026-09-29T12:06:00Z",
+  "text": "Standup: yesterday reviews, today icon set cleanup, no blockers.",
+  "kind": "noise"
+ },
+ {
+  "id": "m_noise_020",
+  "platform": "slack",
+  "channel": "engineering",
+  "author": "dev",
+  "ts": "2026-09-30T03:45:00Z",
+  "text": "Rate limit for logins (BD-107): 10 attempts / 5 min, then 15 min lock. Sound right?",
+  "kind": "noise"
+ },
+ {
+  "id": "m_noise_218",
+  "platform": "discord",
+  "channel": "random",
+  "author": "arjun",
+  "ts": "2026-09-30T06:24:00Z",
+  "text": "nice 🎉",
+  "kind": "noise"
+ },
+ {
+  "id": "m_noise_247",
+  "platform": "discord",
+  "channel": "design",
+  "author": "kenji",
+  "ts": "2026-09-30T07:15:00Z",
+  "text": "Yesterday: spacing on the settings page. Today: same, plus code review. Blockers: none.",
+  "kind": "noise"
+ },
+ {
+  "id": "m_exp_18",
+  "platform": "slack",
+  "channel": "engineering",
+  "author": "kenji",
+  "ts": "2026-09-30T08:20:00Z",
+  "text": "Export button is wired into the ticket list now, calls Sofia's endpoint. Opening a PR.",
+  "kind": "signal"
+ },
+ {
+  "id": "m_noise_215",
+  "platform": "slack",
+  "channel": "engineering",
+  "author": "dev",
+  "ts": "2026-09-30T09:23:00Z",
+  "text": "morning all ☀️",
+  "kind": "noise"
+ },
+ {
+  "id": "m_noise_216",
+  "platform": "slack",
+  "channel": "engineering",
+  "author": "arjun",
+  "ts": "2026-09-30T09:45:00Z",
+  "text": "is the wifi slow for anyone else?",
+  "kind": "noise"
+ },
+ {
+  "id": "m_noise_219",
+  "platform": "slack",
+  "channel": "product",
+  "author": "maya",
+  "ts": "2026-09-30T09:51:00Z",
+  "text": "Release notes for this sprint are drafted.",
+  "kind": "noise"
+ },
+ {
+  "id": "m_noise_259",
+  "platform": "discord",
+  "channel": "random",
+  "author": "maya",
+  "ts": "2026-09-30T09:52:00Z",
+  "text": "I'll be out Monday, dentist",
+  "kind": "noise"
+ },
+ {
+  "id": "m_noise_244",
+  "platform": "discord",
+  "channel": "engineering",
+  "author": "arjun",
+  "ts": "2026-09-30T10:37:00Z",
+  "text": "on it",
+  "kind": "noise"
+ },
+ {
+  "id": "m_noise_224",
+  "platform": "discord",
+  "channel": "design",
+  "author": "priya",
+  "ts": "2026-09-30T11:04:00Z",
+  "text": "Standup: yesterday reviews, today icon set cleanup, no blockers.",
+  "kind": "noise"
+ },
+ {
+  "id": "m_noise_039",
+  "platform": "discord",
+  "channel": "engineering",
+  "author": "arjun",
+  "ts": "2026-09-30T11:15:00Z",
+  "text": "Merged the dependency bumps for BD-111, watch for deprecation warnings.",
+  "kind": "noise"
+ },
+ {
+  "id": "m_noise_125",
+  "platform": "slack",
+  "channel": "support-escalations",
+  "author": "liam",
+  "ts": "2026-09-30T11:53:00Z",
+  "text": "Working on an Acme user locked out today. Might need a second pair of eyes this afternoon.",
+  "kind": "noise"
+ },
+ {
+  "id": "m_noise_145",
+  "platform": "discord",
+  "channel": "engineering",
+  "author": "zara",
+  "ts": "2026-09-30T12:25:00Z",
+  "text": "Standup: yesterday reviews, today reviewing PRs, no blockers.",
+  "kind": "noise"
+ },
+ {
+  "id": "m_noise_254",
+  "platform": "slack",
+  "channel": "support-escalations",
+  "author": "maya",
+  "ts": "2026-10-01T03:32:00Z",
+  "text": "Acme user locked out after too many logins, which is good I guess 😅",
+  "kind": "noise"
+ },
+ {
+  "id": "m_noise_154",
+  "platform": "slack",
+  "channel": "support-escalations",
+  "author": "liam",
+  "ts": "2026-10-01T04:19:00Z",
+  "text": "Umbrella can't upload attachments over 10 MB, is that expected?",
+  "kind": "noise"
+ },
+ {
+  "id": "m_noise_227",
+  "platform": "discord",
+  "channel": "engineering",
+  "author": "sofia",
+  "ts": "2026-10-01T04:34:00Z",
+  "text": "Fixed, it was a missing env var.",
+  "kind": "noise"
+ },
+ {
+  "id": "m_noise_179",
+  "platform": "discord",
+  "channel": "design",
+  "author": "kenji",
+  "ts": "2026-10-01T05:08:00Z",
+  "text": "Settings page spacing feels cramped on mobile.",
+  "kind": "noise"
+ },
+ {
+  "id": "m_noise_071",
+  "platform": "slack",
+  "channel": "product",
+  "author": "priya",
+  "ts": "2026-10-01T05:46:00Z",
+  "text": "Yesterday: BD-109 dashboard idea. Today: same, plus code review. Blockers: none.",
+  "kind": "noise"
+ },
+ {
+  "id": "m_noise_110",
+  "platform": "discord",
+  "channel": "random",
+  "author": "zara",
+  "ts": "2026-10-01T06:45:00Z",
+  "text": "My cat walked across the keyboard and pushed to a branch 🐈",
+  "kind": "noise"
+ },
+ {
+  "id": "m_sla_10",
+  "platform": "discord",
+  "channel": "engineering",
+  "author": "zara",
+  "ts": "2026-10-01T06:50:00Z",
+  "text": "Testing SLA alerts: the notification fires at breach and it's an email. Wasn't it supposed to warn before breach?",
+  "kind": "signal"
+ },
+ {
+  "id": "m_sla_11",
+  "platform": "discord",
+  "channel": "engineering",
+  "author": "dev",
+  "ts": "2026-10-01T07:05:00Z",
+  "thread_of": "m_sla_10",
+  "text": "I built it to BD-103, which says email at breach. Was there a change?",
+  "kind": "signal"
+ },
+ {
+  "id": "m_sla_12",
+  "platform": "discord",
+  "channel": "engineering",
+  "author": "zara",
+  "ts": "2026-10-01T07:09:00Z",
+  "thread_of": "m_sla_10",
+  "text": "No idea, I'll ask Maya when she's back.",
+  "kind": "signal"
+ },
+ {
+  "id": "m_noise_206",
+  "platform": "discord",
+  "channel": "engineering",
+  "author": "dev",
+  "ts": "2026-10-01T07:58:00Z",
+  "text": "Standup: yesterday reviews, today reviewing PRs, no blockers.",
+  "kind": "noise"
+ },
+ {
+  "id": "m_noise_086",
+  "platform": "discord",
+  "channel": "design",
+  "author": "kenji",
+  "ts": "2026-10-01T08:09:00Z",
+  "text": "Working on icon set cleanup today. Might need a second pair of eyes this afternoon.",
+  "kind": "noise"
+ },
+ {
+  "id": "m_noise_094",
+  "platform": "discord",
+  "channel": "random",
+  "author": "dev",
+  "ts": "2026-10-01T08:26:00Z",
+  "text": "Recommendation: 'Shape Up' is a good read.",
+  "kind": "noise"
+ },
+ {
+  "id": "m_noise_157",
+  "platform": "discord",
+  "channel": "design",
+  "author": "kenji",
+  "ts": "2026-10-01T09:10:00Z",
+  "text": "Typo on onboarding (BD-110) is fixed in the copy doc.",
+  "kind": "noise"
+ },
+ {
+  "id": "m_noise_047",
+  "platform": "discord",
+  "channel": "design",
+  "author": "kenji",
+  "ts": "2026-10-01T11:31:00Z",
+  "text": "Icon set cleanup is about 70% done.",
+  "kind": "noise"
+ },
+ {
+  "id": "m_noise_249",
+  "platform": "discord",
+  "channel": "engineering",
+  "author": "sofia",
+  "ts": "2026-10-02T03:31:00Z",
+  "text": "Merged the dependency bumps for BD-111, watch for deprecation warnings.",
+  "kind": "noise"
+ },
+ {
+  "id": "m_noise_223",
+  "platform": "slack",
+  "channel": "product",
+  "author": "priya",
+  "ts": "2026-10-02T05:41:00Z",
+  "text": "is the wifi slow for anyone else?",
+  "kind": "noise"
+ },
+ {
+  "id": "m_noise_067",
+  "platform": "slack",
+  "channel": "product",
+  "author": "priya",
+  "ts": "2026-10-02T05:56:00Z",
+  "text": "Release notes for this sprint are drafted.",
+  "kind": "noise"
+ },
+ {
+  "id": "m_dark_05",
+  "platform": "discord",
+  "channel": "design",
+  "author": "priya",
+  "ts": "2026-10-02T06:00:00Z",
+  "text": "Decision after the design review: the theme toggle lives in Settings > Appearance, not in the navbar. I've updated BD-105 to say so.",
+  "kind": "signal"
+ },
+ {
+  "id": "m_dark_06",
+  "platform": "discord",
+  "channel": "design",
+  "author": "kenji",
+  "ts": "2026-10-02T06:09:00Z",
+  "thread_of": "m_dark_05",
+  "text": "Works for me, cleaner navbar anyway.",
+  "kind": "signal"
+ },
+ {
+  "id": "m_noise_036",
+  "platform": "discord",
+  "channel": "engineering",
+  "author": "sofia",
+  "ts": "2026-10-02T06:25:00Z",
+  "text": "Finished the flaky test on main, picking up the next thing from the board.",
+  "kind": "noise"
+ },
+ {
+  "id": "m_noise_109",
+  "platform": "slack",
+  "channel": "support-escalations",
+  "author": "liam",
+  "ts": "2026-10-02T07:21:00Z",
+  "text": "Customer asking if we support SAML SSO. Not yet, right?",
+  "kind": "noise"
+ },
+ {
+  "id": "m_noise_183",
+  "platform": "discord",
+  "channel": "random",
+  "author": "dev",
+  "ts": "2026-10-02T08:04:00Z",
+  "text": "lol",
+  "kind": "noise"
+ },
+ {
+  "id": "m_noise_150",
+  "platform": "discord",
+  "channel": "design",
+  "author": "priya",
+  "ts": "2026-10-02T08:31:00Z",
+  "text": "Tweaked the empty states, much friendlier now.",
+  "kind": "noise"
+ },
+ {
+  "id": "m_noise_076",
+  "platform": "discord",
+  "channel": "random",
+  "author": "priya",
+  "ts": "2026-10-02T10:16:00Z",
+  "text": "Offsite poll closes Friday!",
+  "kind": "noise"
+ },
+ {
+  "id": "m_noise_129",
+  "platform": "discord",
+  "channel": "design",
+  "author": "priya",
+  "ts": "2026-10-02T10:20:00Z",
+  "text": "Tweaked the empty states, much friendlier now.",
+  "kind": "noise"
+ },
+ {
+  "id": "m_noise_131",
+  "platform": "slack",
+  "channel": "engineering",
+  "author": "arjun",
+  "ts": "2026-10-02T10:35:00Z",
+  "text": "Prod deploy done ✅",
+  "kind": "noise"
+ },
+ {
+  "id": "m_noise_197",
+  "platform": "slack",
+  "channel": "engineering",
+  "author": "dev",
+  "ts": "2026-10-02T11:05:00Z",
+  "text": "Heads up: staging is down for ~10 min while I run migrations.",
+  "kind": "noise"
+ },
+ {
+  "id": "m_noise_236",
+  "platform": "slack",
+  "channel": "product",
+  "author": "priya",
+  "ts": "2026-10-02T11:55:00Z",
+  "text": "Working on the onboarding funnel numbers today. Might need a second pair of eyes this afternoon.",
+  "kind": "noise"
+ },
+ {
+  "id": "m_noise_234",
+  "platform": "discord",
+  "channel": "design",
+  "author": "priya",
+  "ts": "2026-10-02T12:05:00Z",
+  "text": "Avatar upload mocks for BD-113 are in Figma.",
+  "kind": "noise"
+ },
+ {
+  "id": "m_noise_130",
+  "platform": "slack",
+  "channel": "support-escalations",
+  "author": "liam",
+  "ts": "2026-10-02T12:10:00Z",
+  "text": "Customer asking if we support SAML SSO. Not yet, right?",
+  "kind": "noise"
+ },
+ {
+  "id": "m_noise_007",
+  "platform": "discord",
+  "channel": "engineering",
+  "author": "dev",
+  "ts": "2026-10-05T03:49:00Z",
+  "text": "+1",
+  "kind": "noise"
+ },
+ {
+  "id": "m_noise_162",
+  "platform": "discord",
+  "channel": "engineering",
+  "author": "sofia",
+  "ts": "2026-10-05T04:16:00Z",
+  "text": "who's in the office tomorrow?",
+  "kind": "noise"
+ },
+ {
+  "id": "m_noise_142",
+  "platform": "discord",
+  "channel": "design",
+  "author": "maya",
+  "ts": "2026-10-05T04:50:00Z",
+  "text": "that demo went well 🙌",
+  "kind": "noise"
+ },
+ {
+  "id": "m_noise_174",
+  "platform": "slack",
+  "channel": "engineering",
+  "author": "arjun",
+  "ts": "2026-10-05T05:03:00Z",
+  "text": "morning all ☀️",
+  "kind": "noise"
+ },
+ {
+  "id": "m_noise_246",
+  "platform": "slack",
+  "channel": "product",
+  "author": "liam",
+  "ts": "2026-10-05T05:25:00Z",
+  "text": "Roadmap draft for Q4 is in the doc, comments welcome.",
+  "kind": "noise"
+ },
+ {
+  "id": "m_noise_165",
+  "platform": "slack",
+  "channel": "engineering",
+  "author": "sofia",
+  "ts": "2026-10-05T05:38:00Z",
+  "text": "+1",
+  "kind": "noise"
+ },
+ {
+  "id": "m_noise_258",
+  "platform": "discord",
+  "channel": "design",
+  "author": "priya",
+  "ts": "2026-10-05T08:07:00Z",
+  "text": "Typo on onboarding (BD-110) is fixed in the copy doc.",
+  "kind": "noise"
+ },
+ {
+  "id": "m_noise_225",
+  "platform": "discord",
+  "channel": "engineering",
+  "author": "zara",
+  "ts": "2026-10-05T08:54:00Z",
+  "text": "Prod deploy done ✅",
+  "kind": "noise"
+ },
+ {
+  "id": "m_noise_113",
+  "platform": "discord",
+  "channel": "engineering",
+  "author": "dev",
+  "ts": "2026-10-05T08:55:00Z",
+  "text": "Fixed, it was a missing env var.",
+  "kind": "noise"
+ },
+ {
+  "id": "m_noise_073",
+  "platform": "discord",
+  "channel": "engineering",
+  "author": "dev",
+  "ts": "2026-10-05T09:11:00Z",
+  "text": "Rolling back the last deploy, seeing 500s on /login.",
+  "kind": "noise"
+ },
+ {
+  "id": "m_noise_104",
+  "platform": "discord",
+  "channel": "engineering",
+  "author": "arjun",
+  "ts": "2026-10-05T09:29:00Z",
+  "text": "Who owns the cron config these days?",
+  "kind": "noise"
+ },
+ {
+  "id": "m_noise_105",
+  "platform": "discord",
+  "channel": "engineering",
+  "author": "sofia",
+  "ts": "2026-10-05T11:09:00Z",
+  "text": "lol",
+  "kind": "noise"
+ },
+ {
+  "id": "m_noise_169",
+  "platform": "slack",
+  "channel": "product",
+  "author": "maya",
+  "ts": "2026-10-05T11:34:00Z",
+  "text": "Standup: yesterday reviews, today Q4 roadmap draft, no blockers.",
+  "kind": "noise"
+ },
+ {
+  "id": "m_noise_144",
+  "platform": "slack",
+  "channel": "support-escalations",
+  "author": "liam",
+  "ts": "2026-10-05T11:52:00Z",
+  "text": "Customer asking if we support SAML SSO. Not yet, right?",
+  "kind": "noise"
+ },
+ {
+  "id": "m_noise_261",
+  "platform": "discord",
+  "channel": "random",
+  "author": "zara",
+  "ts": "2026-10-06T03:30:00Z",
+  "text": "Anyone tried the new ramen place?",
+  "kind": "noise"
+ },
+ {
+  "id": "m_noise_021",
+  "platform": "discord",
+  "channel": "design",
+  "author": "kenji",
+  "ts": "2026-10-06T03:32:00Z",
+  "text": "thanks!",
+  "kind": "noise"
+ },
+ {
+  "id": "m_noise_061",
+  "platform": "slack",
+  "channel": "engineering",
+  "author": "dev",
+  "ts": "2026-10-06T03:59:00Z",
+  "text": "on it",
+  "kind": "noise"
+ },
+ {
+  "id": "m_noise_001",
+  "platform": "slack",
+  "channel": "product",
+  "author": "maya",
+  "ts": "2026-10-06T04:07:00Z",
+  "text": "thanks!",
+  "kind": "noise"
+ },
+ {
+  "id": "m_noise_072",
+  "platform": "slack",
+  "channel": "engineering",
+  "author": "sofia",
+  "ts": "2026-10-06T04:08:00Z",
+  "text": "Rate limit for logins (BD-107): 10 attempts / 5 min, then 15 min lock. Sound right?",
+  "kind": "noise"
+ },
+ {
+  "id": "m_noise_108",
+  "platform": "slack",
+  "channel": "product",
+  "author": "arjun",
+  "ts": "2026-10-06T04:49:00Z",
+  "text": "did anyone see the match last night?",
+  "kind": "noise"
+ },
+ {
+  "id": "m_noise_041",
+  "platform": "slack",
+  "channel": "support-escalations",
+  "author": "zara",
+  "ts": "2026-10-06T04:56:00Z",
+  "text": "thanks!",
+  "kind": "noise"
+ },
+ {
+  "id": "m_noise_204",
+  "platform": "slack",
+  "channel": "support-escalations",
+  "author": "arjun",
+  "ts": "2026-10-06T04:57:00Z",
+  "text": "brb, meeting",
+  "kind": "noise"
+ },
+ {
+  "id": "m_noise_024",
+  "platform": "slack",
+  "channel": "engineering",
+  "author": "sofia",
+  "ts": "2026-10-06T05:20:00Z",
+  "text": "Fixed, it was a missing env var.",
+  "kind": "noise"
+ },
+ {
+  "id": "m_noise_137",
+  "platform": "discord",
+  "channel": "design",
+  "author": "kenji",
+  "ts": "2026-10-06T05:52:00Z",
+  "text": "did anyone see the match last night?",
+  "kind": "noise"
+ },
+ {
+  "id": "m_noise_186",
+  "platform": "discord",
+  "channel": "random",
+  "author": "kenji",
+  "ts": "2026-10-06T06:42:00Z",
+  "text": "Anyone tried the new ramen place?",
+  "kind": "noise"
+ },
+ {
+  "id": "m_noise_136",
+  "platform": "discord",
+  "channel": "random",
+  "author": "liam",
+  "ts": "2026-10-06T06:51:00Z",
+  "text": "Recommendation: 'Shape Up' is a good read.",
+  "kind": "noise"
+ },
+ {
+  "id": "m_exp_19",
+  "platform": "slack",
+  "channel": "support-escalations",
+  "author": "liam",
+  "ts": "2026-10-06T07:10:00Z",
+  "text": "Acme tried the new export and it only gives them 30 days, and no custom fields. I thought we agreed on 12 months?",
+  "kind": "signal"
+ },
+ {
+  "id": "m_noise_060",
+  "platform": "slack",
+  "channel": "engineering",
+  "author": "kenji",
+  "ts": "2026-10-06T07:57:00Z",
+  "text": "Who owns the cron config these days?",
+  "kind": "noise"
+ },
+ {
+  "id": "m_noise_251",
+  "platform": "slack",
+  "channel": "engineering",
+  "author": "dev",
+  "ts": "2026-10-06T08:49:00Z",
+  "text": "Merged the dependency bumps for BD-111, watch for deprecation warnings.",
+  "kind": "noise"
+ },
+ {
+  "id": "m_noise_200",
+  "platform": "slack",
+  "channel": "product",
+  "author": "priya",
+  "ts": "2026-10-06T09:01:00Z",
+  "text": "coffee machine on 3rd floor is fixed finally",
+  "kind": "noise"
+ },
+ {
+  "id": "m_noise_188",
+  "platform": "slack",
+  "channel": "support-escalations",
+  "author": "liam",
+  "ts": "2026-10-06T10:56:00Z",
+  "text": "Yesterday: a customer asking about SSO. Today: same, plus code review. Blockers: none.",
+  "kind": "noise"
+ },
+ {
+  "id": "m_noise_029",
+  "platform": "discord",
+  "channel": "random",
+  "author": "arjun",
+  "ts": "2026-10-06T11:28:00Z",
+  "text": "Offsite poll closes Friday!",
+  "kind": "noise"
+ },
+ {
+  "id": "m_noise_074",
+  "platform": "discord",
+  "channel": "random",
+  "author": "priya",
+  "ts": "2026-10-07T04:26:00Z",
+  "text": "My cat walked across the keyboard and pushed to a branch 🐈",
+  "kind": "noise"
+ },
+ {
+  "id": "m_noise_097",
+  "platform": "discord",
+  "channel": "design",
+  "author": "kenji",
+  "ts": "2026-10-07T05:45:00Z",
+  "text": "Working on avatar upload mocks (BD-113) today. Might need a second pair of eyes this afternoon.",
+  "kind": "noise"
+ },
+ {
+  "id": "m_noise_233",
+  "platform": "slack",
+  "channel": "engineering",
+  "author": "zara",
+  "ts": "2026-10-07T05:58:00Z",
+  "text": "Finished the staging DB migration, picking up the next thing from the board.",
+  "kind": "noise"
+ },
+ {
+  "id": "m_noise_033",
+  "platform": "discord",
+  "channel": "random",
+  "author": "zara",
+  "ts": "2026-10-07T06:15:00Z",
+  "text": "Recommendation: 'Shape Up' is a good read.",
+  "kind": "noise"
+ },
+ {
+  "id": "m_noise_185",
+  "platform": "slack",
+  "channel": "engineering",
+  "author": "dev",
+  "ts": "2026-10-07T06:56:00Z",
+  "text": "BD-112 is reproducible: two tickets with the same created_at.",
+  "kind": "noise"
+ },
+ {
+  "id": "m_noise_096",
+  "platform": "slack",
+  "channel": "product",
+  "author": "maya",
+  "ts": "2026-10-07T08:00:00Z",
+  "text": "coffee machine on 3rd floor is fixed finally",
+  "kind": "noise"
+ },
+ {
+  "id": "m_dark_07",
+  "platform": "slack",
+  "channel": "engineering",
+  "author": "kenji",
+  "ts": "2026-10-07T09:30:00Z",
+  "text": "Dark mode PR is up: Light/Dark/System, System default, toggle under Settings > Appearance.",
+  "kind": "signal"
+ },
+ {
+  "id": "m_noise_133",
+  "platform": "slack",
+  "channel": "product",
+  "author": "maya",
+  "ts": "2026-10-07T09:43:00Z",
+  "text": "that demo went well 🙌",
+  "kind": "noise"
+ },
+ {
+  "id": "m_noise_192",
+  "platform": "discord",
+  "channel": "random",
+  "author": "priya",
+  "ts": "2026-10-07T09:48:00Z",
+  "text": "ty",
+  "kind": "noise"
+ },
+ {
+  "id": "m_noise_252",
+  "platform": "discord",
+  "channel": "random",
+  "author": "zara",
+  "ts": "2026-10-07T09:53:00Z",
+  "text": "Offsite poll closes Friday!",
+  "kind": "noise"
+ },
+ {
+  "id": "m_noise_235",
+  "platform": "slack",
+  "channel": "product",
+  "author": "arjun",
+  "ts": "2026-10-07T09:58:00Z",
+  "text": "Yesterday: Q4 roadmap draft. Today: same, plus code review. Blockers: none.",
+  "kind": "noise"
+ },
+ {
+  "id": "m_noise_161",
+  "platform": "slack",
+  "channel": "support-escalations",
+  "author": "maya",
+  "ts": "2026-10-07T10:55:00Z",
+  "text": "Working on a password reset loop for Initech today. Might need a second pair of eyes this afternoon.",
+  "kind": "noise"
+ },
+ {
+  "id": "m_noise_222",
+  "platform": "discord",
+  "channel": "design",
+  "author": "maya",
+  "ts": "2026-10-08T04:28:00Z",
+  "text": "happy friday!",
+  "kind": "noise"
+ },
+ {
+  "id": "m_noise_238",
+  "platform": "discord",
+  "channel": "random",
+  "author": "kenji",
+  "ts": "2026-10-08T05:13:00Z",
+  "text": "Recommendation: 'Shape Up' is a good read.",
+  "kind": "noise"
+ },
+ {
+  "id": "m_dark_08",
+  "platform": "discord",
+  "channel": "design",
+  "author": "priya",
+  "ts": "2026-10-08T05:15:00Z",
+  "text": "Checked the dark mode build, matches the ticket. Shipping it 🎉",
+  "kind": "signal"
+ },
+ {
+  "id": "m_noise_127",
+  "platform": "slack",
+  "channel": "product",
+  "author": "arjun",
+  "ts": "2026-10-08T06:16:00Z",
+  "text": "who's in the office tomorrow?",
+  "kind": "noise"
+ },
+ {
+  "id": "m_noise_099",
+  "platform": "slack",
+  "channel": "support-escalations",
+  "author": "maya",
+  "ts": "2026-10-08T06:42:00Z",
+  "text": "brb, meeting",
+  "kind": "noise"
+ },
+ {
+  "id": "m_noise_141",
+  "platform": "discord",
+  "channel": "random",
+  "author": "liam",
+  "ts": "2026-10-08T07:15:00Z",
+  "text": "running 5 min late to standup",
+  "kind": "noise"
+ },
+ {
+  "id": "m_noise_065",
+  "platform": "slack",
+  "channel": "product",
+  "author": "arjun",
+  "ts": "2026-10-08T08:20:00Z",
+  "text": "Three customers asked about SSO this week.",
+  "kind": "noise"
+ },
+ {
+  "id": "m_noise_055",
+  "platform": "slack",
+  "channel": "support-escalations",
+  "author": "arjun",
+  "ts": "2026-10-08T08:54:00Z",
+  "text": "new snacks in the kitchen",
+  "kind": "noise"
+ },
+ {
+  "id": "m_noise_028",
+  "platform": "slack",
+  "channel": "product",
+  "author": "liam",
+  "ts": "2026-10-08T08:59:00Z",
+  "text": "Yesterday: churn report. Today: same, plus code review. Blockers: none.",
+  "kind": "noise"
+ },
+ {
+  "id": "m_noise_006",
+  "platform": "slack",
+  "channel": "engineering",
+  "author": "dev",
+  "ts": "2026-10-08T09:38:00Z",
+  "text": "Working on reviewing PRs today. Might need a second pair of eyes this afternoon.",
+  "kind": "noise"
+ },
+ {
+  "id": "m_noise_187",
+  "platform": "discord",
+  "channel": "design",
+  "author": "priya",
+  "ts": "2026-10-08T09:38:00Z",
+  "text": "Tweaked the empty states, much friendlier now.",
+  "kind": "noise"
+ },
+ {
+  "id": "m_noise_146",
+  "platform": "slack",
+  "channel": "support-escalations",
+  "author": "liam",
+  "ts": "2026-10-08T09:59:00Z",
+  "text": "I'll be out Monday, dentist",
+  "kind": "noise"
+ },
+ {
+  "id": "m_noise_213",
+  "platform": "discord",
+  "channel": "design",
+  "author": "kenji",
+  "ts": "2026-10-08T10:23:00Z",
+  "text": "Typo on onboarding (BD-110) is fixed in the copy doc.",
+  "kind": "noise"
+ },
+ {
+  "id": "m_noise_017",
+  "platform": "discord",
+  "channel": "engineering",
+  "author": "zara",
+  "ts": "2026-10-08T11:09:00Z",
+  "text": "BD-112 is reproducible: two tickets with the same created_at.",
+  "kind": "noise"
+ },
+ {
+  "id": "m_noise_205",
+  "platform": "discord",
+  "channel": "engineering",
+  "author": "sofia",
+  "ts": "2026-10-08T11:14:00Z",
+  "text": "BD-112 is reproducible: two tickets with the same created_at.",
+  "kind": "noise"
+ },
+ {
+  "id": "m_noise_005",
+  "platform": "discord",
+  "channel": "engineering",
+  "author": "zara",
+  "ts": "2026-10-08T11:16:00Z",
+  "text": "Prod deploy done ✅",
+  "kind": "noise"
+ },
+ {
+  "id": "m_noise_015",
+  "platform": "slack",
+  "channel": "product",
+  "author": "arjun",
+  "ts": "2026-10-08T11:42:00Z",
+  "text": "Release notes for this sprint are drafted.",
+  "kind": "noise"
+ },
+ {
+  "id": "m_noise_018",
+  "platform": "discord",
+  "channel": "random",
+  "author": "arjun",
+  "ts": "2026-10-09T03:39:00Z",
+  "text": "did anyone see the match last night?",
+  "kind": "noise"
+ },
+ {
+  "id": "m_noise_034",
+  "platform": "slack",
+  "channel": "support-escalations",
+  "author": "maya",
+  "ts": "2026-10-09T04:27:00Z",
+  "text": "Yesterday: an Umbrella Inc. attachment upload failure. Today: same, plus code review. Blockers: none.",
+  "kind": "noise"
+ },
+ {
+  "id": "m_noise_092",
+  "platform": "slack",
+  "channel": "engineering",
+  "author": "kenji",
+  "ts": "2026-10-09T06:04:00Z",
+  "text": "Heads up: staging is down for ~10 min while I run migrations.",
+  "kind": "noise"
+ },
+ {
+  "id": "m_noise_184",
+  "platform": "slack",
+  "channel": "support-escalations",
+  "author": "maya",
+  "ts": "2026-10-09T06:05:00Z",
+  "text": "Umbrella can't upload attachments over 10 MB, is that expected?",
+  "kind": "noise"
+ },
+ {
+  "id": "m_noise_115",
+  "platform": "discord",
+  "channel": "engineering",
+  "author": "zara",
+  "ts": "2026-10-09T06:13:00Z",
+  "text": "Who owns the cron config these days?",
+  "kind": "noise"
+ },
+ {
+  "id": "m_noise_230",
+  "platform": "discord",
+  "channel": "engineering",
+  "author": "dev",
+  "ts": "2026-10-09T06:18:00Z",
+  "text": "Merged the dependency bumps for BD-111, watch for deprecation warnings.",
+  "kind": "noise"
+ },
+ {
+  "id": "m_noise_167",
+  "platform": "slack",
+  "channel": "support-escalations",
+  "author": "arjun",
+  "ts": "2026-10-09T07:20:00Z",
+  "text": "who's in the office tomorrow?",
+  "kind": "noise"
+ },
+ {
+  "id": "m_noise_091",
+  "platform": "slack",
+  "channel": "engineering",
+  "author": "zara",
+  "ts": "2026-10-09T08:55:00Z",
+  "text": "Rate limit for logins (BD-107): 10 attempts / 5 min, then 15 min lock. Sound right?",
+  "kind": "noise"
+ },
+ {
+  "id": "m_noise_112",
+  "platform": "discord",
+  "channel": "design",
+  "author": "kenji",
+  "ts": "2026-10-09T09:15:00Z",
+  "text": "Yesterday: spacing on the settings page. Today: same, plus code review. Blockers: none.",
+  "kind": "noise"
+ },
+ {
+  "id": "m_noise_164",
+  "platform": "slack",
+  "channel": "product",
+  "author": "arjun",
+  "ts": "2026-10-09T09:24:00Z",
+  "text": "Working on the onboarding funnel numbers today. Might need a second pair of eyes this afternoon.",
+  "kind": "noise"
+ },
+ {
+  "id": "m_noise_069",
+  "platform": "discord",
+  "channel": "random",
+  "author": "zara",
+  "ts": "2026-10-09T09:26:00Z",
+  "text": "lol",
+  "kind": "noise"
+ },
+ {
+  "id": "m_noise_176",
+  "platform": "discord",
+  "channel": "design",
+  "author": "priya",
+  "ts": "2026-10-09T10:54:00Z",
+  "text": "Settings page spacing feels cramped on mobile.",
+  "kind": "noise"
+ },
+ {
+  "id": "m_noise_106",
+  "platform": "discord",
+  "channel": "design",
+  "author": "kenji",
+  "ts": "2026-10-09T10:59:00Z",
+  "text": "Working on spacing on the settings page today. Might need a second pair of eyes this afternoon.",
+  "kind": "noise"
+ },
+ {
+  "id": "m_noise_026",
+  "platform": "slack",
+  "channel": "support-escalations",
+  "author": "zara",
+  "ts": "2026-10-09T11:45:00Z",
+  "text": "Standup: yesterday reviews, today an Umbrella Inc. attachment upload failure, no blockers.",
+  "kind": "noise"
+ },
+ {
+  "id": "m_noise_068",
+  "platform": "slack",
+  "channel": "support-escalations",
+  "author": "liam",
+  "ts": "2026-10-09T12:27:00Z",
+  "text": "Yesterday: a password reset loop for Initech. Today: same, plus code review. Blockers: none.",
+  "kind": "noise"
+ }
+]

@@ -1,0 +1,10 @@
+[
+  {"id": "maya",  "name": "Maya Chen",      "role": "Product Manager",            "slack": "maya.chen",   "discord": "maya_pm"},
+  {"id": "arjun", "name": "Arjun Mehta",    "role": "Engineering Lead",           "slack": "arjun.mehta", "discord": "arjun_eng"},
+  {"id": "sofia", "name": "Sofia Alvarez",  "role": "Backend Engineer",           "slack": "sofia.a",     "discord": "sofia_dev"},
+  {"id": "dev",   "name": "Dev Patel",      "role": "Backend Engineer (platform)","slack": "dev.patel",   "discord": "devp"},
+  {"id": "kenji", "name": "Kenji Watanabe", "role": "Frontend Engineer",          "slack": "kenji.w",     "discord": "kenji_fe"},
+  {"id": "priya", "name": "Priya Nair",     "role": "Product Designer",           "slack": "priya.n",     "discord": "priya_design"},
+  {"id": "liam",  "name": "Liam O'Connor",  "role": "Customer Success",           "slack": "liam.oc",     "discord": "liam_cs"},
+  {"id": "zara",  "name": "Zara Ahmed",     "role": "QA Engineer",                "slack": "zara.qa",     "discord": "zara_qa"}
+]

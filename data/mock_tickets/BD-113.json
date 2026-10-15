@@ -1,0 +1,27 @@
+{
+  "id": "BD-113",
+  "identifier": "BD-113",
+  "title": "Avatar upload",
+  "description": "Let agents upload a profile picture (PNG/JPG, max 2 MB), cropped to a circle.",
+  "state": "In Progress",
+  "priority": "Low",
+  "labels": [
+    "frontend",
+    "profile"
+  ],
+  "creator": "priya",
+  "assignee": "kenji",
+  "cycle": "s2",
+  "createdAt": "2026-09-30T05:00:00Z",
+  "updatedAt": "2026-09-30T05:00:00Z",
+  "completedAt": null,
+  "url": "https://linear.example/brightdesk/issue/BD-113",
+  "history": [
+    {
+      "at": "2026-09-30T05:00:00Z",
+      "actor": "priya",
+      "field": "description",
+      "to": "Let agents upload a profile picture (PNG/JPG, max 2 MB), cropped to a circle."
+    }
+  ]
+}

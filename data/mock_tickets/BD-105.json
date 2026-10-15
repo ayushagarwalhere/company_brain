@@ -1,0 +1,33 @@
+{
+  "id": "BD-105",
+  "identifier": "BD-105",
+  "title": "Dark mode",
+  "description": "Support dark mode. Default follows the OS theme. Users can pick Light / Dark / System with a toggle located in Settings > Appearance (not the navbar).",
+  "state": "Done",
+  "priority": "Medium",
+  "labels": [
+    "theme",
+    "frontend"
+  ],
+  "creator": "priya",
+  "assignee": "kenji",
+  "cycle": "s2",
+  "createdAt": "2026-09-28T05:00:00Z",
+  "updatedAt": "2026-10-02T06:05:00Z",
+  "completedAt": "2026-10-08T05:20:00Z",
+  "url": "https://linear.example/brightdesk/issue/BD-105",
+  "history": [
+    {
+      "at": "2026-09-28T05:00:00Z",
+      "actor": "priya",
+      "field": "description",
+      "to": "Support dark mode. Default follows the OS theme. Users can pick Light / Dark / System with a toggle."
+    },
+    {
+      "at": "2026-10-02T06:05:00Z",
+      "actor": "priya",
+      "field": "description",
+      "to": "Support dark mode. Default follows the OS theme. Users can pick Light / Dark / System with a toggle located in Settings > Appearance (not the navbar)."
+    }
+  ]
+}

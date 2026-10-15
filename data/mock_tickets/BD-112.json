@@ -1,0 +1,28 @@
+{
+  "id": "BD-112",
+  "identifier": "BD-112",
+  "title": "Search pagination returns duplicates",
+  "description": "Page 2 of ticket search repeats results from page 1 when tickets share a created_at timestamp.",
+  "state": "Done",
+  "priority": "High",
+  "labels": [
+    "bug",
+    "backend",
+    "search"
+  ],
+  "creator": "zara",
+  "assignee": "sofia",
+  "cycle": "s2",
+  "createdAt": "2026-09-29T06:00:00Z",
+  "updatedAt": "2026-09-29T06:00:00Z",
+  "completedAt": "2026-10-02T09:30:00Z",
+  "url": "https://linear.example/brightdesk/issue/BD-112",
+  "history": [
+    {
+      "at": "2026-09-29T06:00:00Z",
+      "actor": "zara",
+      "field": "description",
+      "to": "Page 2 of ticket search repeats results from page 1 when tickets share a created_at timestamp."
+    }
+  ]
+}

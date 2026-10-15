@@ -1,0 +1,28 @@
+{
+  "id": "BD-103",
+  "identifier": "BD-103",
+  "title": "SLA breach notifications",
+  "description": "When a ticket breaches its SLA, send an email notification to the ticket's assignee.",
+  "state": "Done",
+  "priority": "High",
+  "labels": [
+    "sla",
+    "backend",
+    "notifications"
+  ],
+  "creator": "maya",
+  "assignee": "dev",
+  "cycle": "s1",
+  "createdAt": "2026-09-14T06:20:00Z",
+  "updatedAt": "2026-09-14T06:20:00Z",
+  "completedAt": "2026-09-24T11:00:00Z",
+  "url": "https://linear.example/brightdesk/issue/BD-103",
+  "history": [
+    {
+      "at": "2026-09-14T06:20:00Z",
+      "actor": "maya",
+      "field": "description",
+      "to": "When a ticket breaches its SLA, send an email notification to the ticket's assignee."
+    }
+  ]
+}

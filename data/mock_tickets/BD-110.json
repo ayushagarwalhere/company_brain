@@ -1,0 +1,27 @@
+{
+  "id": "BD-110",
+  "identifier": "BD-110",
+  "title": "Fix typo on onboarding screen",
+  "description": "Onboarding step 2 says 'Recieve'. Should be 'Receive'.",
+  "state": "Done",
+  "priority": "Low",
+  "labels": [
+    "bug",
+    "frontend"
+  ],
+  "creator": "zara",
+  "assignee": "kenji",
+  "cycle": "s1",
+  "createdAt": "2026-09-15T09:00:00Z",
+  "updatedAt": "2026-09-15T09:00:00Z",
+  "completedAt": "2026-09-15T11:00:00Z",
+  "url": "https://linear.example/brightdesk/issue/BD-110",
+  "history": [
+    {
+      "at": "2026-09-15T09:00:00Z",
+      "actor": "zara",
+      "field": "description",
+      "to": "Onboarding step 2 says 'Recieve'. Should be 'Receive'."
+    }
+  ]
+}

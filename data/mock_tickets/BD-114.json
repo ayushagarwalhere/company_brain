@@ -1,0 +1,26 @@
+{
+  "id": "BD-114",
+  "identifier": "BD-114",
+  "title": "API README",
+  "description": "Document authentication and the tickets endpoints in the repo README.",
+  "state": "Done",
+  "priority": "Low",
+  "labels": [
+    "docs"
+  ],
+  "creator": "arjun",
+  "assignee": "dev",
+  "cycle": "s2",
+  "createdAt": "2026-10-01T04:00:00Z",
+  "updatedAt": "2026-10-01T04:00:00Z",
+  "completedAt": "2026-10-06T06:00:00Z",
+  "url": "https://linear.example/brightdesk/issue/BD-114",
+  "history": [
+    {
+      "at": "2026-10-01T04:00:00Z",
+      "actor": "arjun",
+      "field": "description",
+      "to": "Document authentication and the tickets endpoints in the repo README."
+    }
+  ]
+}

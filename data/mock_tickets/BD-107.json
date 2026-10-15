@@ -1,0 +1,27 @@
+{
+  "id": "BD-107",
+  "identifier": "BD-107",
+  "title": "Rate-limit login attempts",
+  "description": "Lock an account for 15 minutes after 10 failed login attempts within 5 minutes.",
+  "state": "Done",
+  "priority": "High",
+  "labels": [
+    "security",
+    "backend"
+  ],
+  "creator": "arjun",
+  "assignee": "dev",
+  "cycle": "s2",
+  "createdAt": "2026-09-28T04:30:00Z",
+  "updatedAt": "2026-09-28T04:30:00Z",
+  "completedAt": "2026-10-03T08:00:00Z",
+  "url": "https://linear.example/brightdesk/issue/BD-107",
+  "history": [
+    {
+      "at": "2026-09-28T04:30:00Z",
+      "actor": "arjun",
+      "field": "description",
+      "to": "Lock an account for 15 minutes after 10 failed login attempts within 5 minutes."
+    }
+  ]
+}

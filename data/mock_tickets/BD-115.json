@@ -1,0 +1,27 @@
+{
+  "id": "BD-115",
+  "identifier": "BD-115",
+  "title": "Flaky notification test",
+  "description": "test_sla_job fails ~1 in 10 runs because it depends on wall-clock time. Freeze time in the test.",
+  "state": "Done",
+  "priority": "Medium",
+  "labels": [
+    "bug",
+    "tests"
+  ],
+  "creator": "zara",
+  "assignee": "dev",
+  "cycle": "s1",
+  "createdAt": "2026-09-21T05:00:00Z",
+  "updatedAt": "2026-09-21T05:00:00Z",
+  "completedAt": "2026-09-22T07:00:00Z",
+  "url": "https://linear.example/brightdesk/issue/BD-115",
+  "history": [
+    {
+      "at": "2026-09-21T05:00:00Z",
+      "actor": "zara",
+      "field": "description",
+      "to": "test_sla_job fails ~1 in 10 runs because it depends on wall-clock time. Freeze time in the test."
+    }
+  ]
+}

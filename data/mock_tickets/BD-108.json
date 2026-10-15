@@ -1,0 +1,28 @@
+{
+  "id": "BD-108",
+  "identifier": "BD-108",
+  "title": "Export performance for large accounts",
+  "description": "Profile the export endpoint for accounts with >100k tickets; consider background job + emailed link.",
+  "state": "Backlog",
+  "priority": "Low",
+  "labels": [
+    "export",
+    "backend",
+    "performance"
+  ],
+  "creator": "arjun",
+  "assignee": "sofia",
+  "cycle": "s2",
+  "createdAt": "2026-09-26T04:00:00Z",
+  "updatedAt": "2026-09-26T04:00:00Z",
+  "completedAt": null,
+  "url": "https://linear.example/brightdesk/issue/BD-108",
+  "history": [
+    {
+      "at": "2026-09-26T04:00:00Z",
+      "actor": "arjun",
+      "field": "description",
+      "to": "Profile the export endpoint for accounts with >100k tickets; consider background job + emailed link."
+    }
+  ]
+}

@@ -1,0 +1,27 @@
+{
+  "id": "BD-109",
+  "identifier": "BD-109",
+  "title": "SLA metrics on dashboard",
+  "description": "Show the count of SLA breaches per week on the reporting dashboard.",
+  "state": "Backlog",
+  "priority": "Low",
+  "labels": [
+    "sla",
+    "reporting"
+  ],
+  "creator": "maya",
+  "assignee": null,
+  "cycle": "s2",
+  "createdAt": "2026-09-29T05:00:00Z",
+  "updatedAt": "2026-09-29T05:00:00Z",
+  "completedAt": null,
+  "url": "https://linear.example/brightdesk/issue/BD-109",
+  "history": [
+    {
+      "at": "2026-09-29T05:00:00Z",
+      "actor": "maya",
+      "field": "description",
+      "to": "Show the count of SLA breaches per week on the reporting dashboard."
+    }
+  ]
+}

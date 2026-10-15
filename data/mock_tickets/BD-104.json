@@ -1,0 +1,27 @@
+{
+  "id": "BD-104",
+  "identifier": "BD-104",
+  "title": "SLA settings page",
+  "description": "Admins can configure SLA response time in hours for each priority level (Urgent, High, Medium, Low).",
+  "state": "Done",
+  "priority": "Medium",
+  "labels": [
+    "sla",
+    "frontend"
+  ],
+  "creator": "maya",
+  "assignee": "kenji",
+  "cycle": "s1",
+  "createdAt": "2026-09-14T06:25:00Z",
+  "updatedAt": "2026-09-14T06:25:00Z",
+  "completedAt": "2026-09-18T08:10:00Z",
+  "url": "https://linear.example/brightdesk/issue/BD-104",
+  "history": [
+    {
+      "at": "2026-09-14T06:25:00Z",
+      "actor": "maya",
+      "field": "description",
+      "to": "Admins can configure SLA response time in hours for each priority level (Urgent, High, Medium, Low)."
+    }
+  ]
+}
