@@ -1,0 +1,80 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Drift Monitor</title>
+  <link rel="stylesheet" href="/static/style.css">
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/cytoscape/3.30.2/cytoscape.min.js"></script>
+</head>
+<body>
+  <header>
+    <div>
+      <h1>Context Graph Drift Monitor</h1>
+      <p class="sub">Brightdesk · decisions in chat vs. tickets vs. shipped code, linked in FalkorDB</p>
+    </div>
+    <div id="stats" class="stats"></div>
+  </header>
+
+  <main>
+    <section class="card wide">
+      <div class="card-head"><h2>Open drift</h2><span class="hint">chat changed a requirement; ticket and PRs didn't follow</span></div>
+      <div id="drift"></div>
+    </section>
+
+    <section class="card">
+      <div class="card-head">
+        <h2>Feature graph</h2>
+        <select id="feature-select" aria-label="Feature"></select>
+      </div>
+      <div id="graph"></div>
+      <div class="legend" id="legend"></div>
+      <div id="graph-detail" class="detail">Click a node to see its text.</div>
+    </section>
+
+    <section class="card">
+      <div class="card-head"><h2>Ask the graph</h2></div>
+      <form id="ask-form" class="row">
+        <input id="ask-input" placeholder="What did we decide about export, and did we ship it?" autocomplete="off">
+        <button>Ask</button>
+      </form>
+      <div class="chips">
+        <button class="chip" data-q="What did we decide about the SLA notifications and did we ship it?">SLA decision shipped?</button>
+        <button class="chip" data-q="Who knows the most about ticket export?">Who knows export?</button>
+        <button class="chip" data-q="Which features have drifted and why?">What drifted?</button>
+      </div>
+      <div id="answer"></div>
+    </section>
+
+    <section class="card">
+      <div class="card-head"><h2>Simulate a chat message</h2><span class="hint">runs the live drift monitor</span></div>
+      <form id="sim-form">
+        <div class="row">
+          <select id="sim-author" aria-label="Author"></select>
+          <select id="sim-platform" aria-label="Platform"><option>slack</option><option>discord</option></select>
+          <input id="sim-channel" value="engineering" aria-label="Channel">
+        </div>
+        <textarea id="sim-text" rows="3">Decision: dark mode must also ship a high-contrast theme, BD-105.</textarea>
+        <button>Post message</button>
+      </form>
+      <div id="sim-result"></div>
+    </section>
+
+    <section class="card wide">
+      <div class="card-head">
+        <h2>Sprint retro</h2>
+        <div class="tabs" id="sprint-tabs"></div>
+      </div>
+      <div id="retro"></div>
+    </section>
+
+    <section class="card wide" id="spec-card" hidden>
+      <div class="card-head"><h2>Agent-ready spec</h2><span class="hint" id="spec-engine"></span></div>
+      <pre id="spec"></pre>
+    </section>
+  </main>
+
+  <footer>Every alert and answer is backed by a graph path. Specs are generated, not executed.</footer>
+  <script src="/static/app.js"></script>
+</body>
+</html>
