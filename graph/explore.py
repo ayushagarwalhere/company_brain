@@ -41,7 +41,7 @@ def search(g, text: str, limit: int = 12) -> list[dict]:
                 rows = []
             results += rows
     seen, out = set(), []
-    weight = {"Person": 2.0, "Ticket": 2.0, "PullRequest": 1.8, "Message": 1.0}  # structure before chatter
+    weight = {"Person": 2.0, "Ticket": 2.0, "PullRequest": 1.8, "Document": 1.8, "Message": 1.0}  # structure before chatter
     for r in sorted(results, key=lambda r: -(r["score"] * weight.get(r["type"], 1.0))):
         if r["id"] in seen:
             continue
@@ -82,6 +82,10 @@ def person(g, pid: str) -> dict | None:
                                    RETURN f.id AS id, f.name AS name,
                                           sum(CASE WHEN x:Decision THEN 5 WHEN x:PullRequest THEN 4 WHEN x:Ticket THEN 3 ELSE 1 END) AS score
                                    ORDER BY score DESC""", id=pid)
+    out["docs"] = Q.rows(g, """MATCH (:Person {id: $id})-[:AUTHORED]->(d:Document)
+                               OPTIONAL MATCH (d)-[:MENTIONS]->(t:Ticket)
+                               RETURN d.id AS id, d.title AS title, d.updated AS updated, collect(t.id) AS tickets
+                               ORDER BY id""", id=pid)
     out["messages"] = Q.rows(g, "MATCH (:Person {id: $id})-[:POSTED]->(m:Message) RETURN count(m) AS n", id=pid)[0]["n"]
     out["drift_caused"] = [d for d in Q.drift(g) if d["changed_by"] == pid]
     out["stale_work"] = [d for d in Q.drift(g) if any(

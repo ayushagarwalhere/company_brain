@@ -131,7 +131,8 @@ def feature_graph(feature: str):
         OPTIONAL MATCH (m:Message)-[:CHANGES]->(rc)
         OPTIONAL MATCH (p:Person)-[:POSTED]->(m)
         OPTIONAL MATCH (pr:PullRequest)-[:REFERENCES]->(t)
-        RETURN f, t, rs, rc, m, p, pr""", f=feature)
+        OPTIONAL MATCH (doc:Document)-[:MENTIONS]->(t)
+        RETURN f, t, rs, rc, m, p, pr, doc""", f=feature)
     nodes, edges = {}, set()
 
     def add(n, kind):
@@ -139,7 +140,8 @@ def feature_graph(feature: str):
             return None
         nid = n.properties["id"]
         label = {"Feature": n.properties.get("name"), "Ticket": nid, "PullRequest": f"PR #{n.properties.get('number')}",
-                 "Person": n.properties.get("name") or nid}.get(kind) or (n.properties.get("text") or nid)[:60]
+                 "Person": n.properties.get("name") or nid, "Document": n.properties.get("title")}.get(kind) \
+            or (n.properties.get("text") or nid)[:60]
         nodes[nid] = {"id": nid, "label": label, "type": kind,
                       "text": n.properties.get("text") or n.properties.get("description") or n.properties.get("title")}
         return nid
@@ -152,8 +154,9 @@ def feature_graph(feature: str):
         m = add(r["m"], "Message")
         p = add(r["p"], "Person")
         pr = add(r["pr"], "PullRequest")
+        doc = add(r["doc"], "Document")
         for a, rel, b in ((t, "ABOUT", f), (t, "STATES", rs), (rc, "AMENDS", t), (m, "CHANGES", rc),
-                          (p, "POSTED", m), (pr, "REFERENCES", t)):
+                          (p, "POSTED", m), (pr, "REFERENCES", t), (doc, "MENTIONS", t)):
             if a and b:
                 edges.add((a, rel, b))
     for e in Q.rows(g, """MATCH (a:Requirement)-[x:SUPERSEDES|IMPLEMENTS]->(b:Requirement) WHERE a.id IN $ids
@@ -165,6 +168,9 @@ def feature_graph(feature: str):
     for d in Q.drift(g, feature=feature):
         if d["requirement"] in nodes:
             nodes[d["requirement"]]["drift"] = True
+        for x in d["stale_docs"]:
+            if x["id"] in nodes:
+                nodes[x["id"]]["stale"] = True
     return {"nodes": list(nodes.values()), "edges": [{"from": a, "rel": r, "to": b} for a, r, b in edges]}
 
 

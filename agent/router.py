@@ -133,7 +133,8 @@ def ask(question: str) -> dict:
                 stale = ", ".join(f"#{p['pr']}" for p in d["stale_prs"] if p["pr"] is not None) or "none"
                 lines.append(f"DRIFT on {d['feature_name']}: {d['changed_by']} decided \"{d['requirement_text']}\" on "
                              f"{d['changed_at'][:10]} ({d['source']} #{d['channel']}), but {d['ticket']} still says "
-                             f"\"{d['ticket_text']}\". PRs that shipped the old version: {stale}.")
+                             f"\"{d['ticket_text']}\". PRs that shipped the old version: {stale}."
+                             + (f" Docs still describing the old version: {', '.join(x['title'] for x in d['stale_docs'])}." if d['stale_docs'] else ""))
         elif feature:
             lines.append(f"No open drift on {feature['name']}: its tickets and PRs match the latest decision.")
         else:

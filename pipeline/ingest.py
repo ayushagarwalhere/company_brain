@@ -6,7 +6,7 @@
 """
 import argparse
 
-from connectors import github, scenario, tickets
+from connectors import docs, github, scenario, tickets
 from graph import writer
 from graph.db import get_graph
 
@@ -39,6 +39,7 @@ def ingest(live: bool = False, reset: bool = False, graph_name: str | None = Non
     writer.write_tickets(g, ticket_events)       # tickets before messages, so MENTIONS can link
     writer.write_messages(g, messages)
     writer.write_pull_requests(g, prs)
+    writer.write_documents(g, docs.documents())  # docs come from files in both modes
     return counts(g)
 
 

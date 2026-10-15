@@ -3,7 +3,7 @@
   --bg: #0a0a09; --card: #121210; --card-2: #141412; --ink: #e9e5da; --soft: #cfc9bb; --muted: #9c978b; --note: #7a766c;
   --line: #2a2825; --line-2: #24231f; --accent: #fa3600; --accent-ink: #ff6a3d; --accent-bg: rgba(250, 54, 0, .08);
   --ok: #8fbf7a; --grid: rgba(233, 229, 218, .045);
-  --n-feature: #e9e5da; --n-ticket: #7fb0c9; --n-req: #b9a6e0; --n-msg: #d9b36c; --n-pr: #8fbf7a; --n-person: #8a857a;
+  --n-feature: #e9e5da; --n-doc: #d7a3c4; --n-ticket: #7fb0c9; --n-req: #b9a6e0; --n-msg: #d9b36c; --n-pr: #8fbf7a; --n-person: #8a857a;
   --font: "Geist", "Helvetica Neue", Arial, sans-serif; --mono: "Geist Mono", ui-monospace, Consolas, monospace;
   --ease: cubic-bezier(.2, .7, .1, 1); --r-panel: clamp(12px, 1.4vw, 20px); --r-ctl: 6px;
   --gut: clamp(16px, 3.2vw, 48px); --label-col: 34%;
@@ -13,7 +13,7 @@
   --bg: #efeee8; --card: #fafaf7; --card-2: #f4f3ee; --ink: #282828; --soft: #414140; --muted: #626260; --note: #72726f;
   --line: #c9c9c3; --line-2: #dcdcd5; --accent: #fa3600; --accent-ink: #d42e00; --accent-bg: rgba(250, 54, 0, .07);
   --ok: #2f7d32; --grid: rgba(40, 40, 40, .06);
-  --n-feature: #282828; --n-ticket: #2b6a8a; --n-req: #6b4fb3; --n-msg: #a87412; --n-pr: #2f7d32; --n-person: #8a8a85;
+  --n-feature: #282828; --n-doc: #a3487f; --n-ticket: #2b6a8a; --n-req: #6b4fb3; --n-msg: #a87412; --n-pr: #2f7d32; --n-person: #8a8a85;
   color-scheme: light;
 }
 @media (prefers-color-scheme: light) {
@@ -21,7 +21,7 @@
     --bg: #efeee8; --card: #fafaf7; --card-2: #f4f3ee; --ink: #282828; --soft: #414140; --muted: #626260; --note: #72726f;
     --line: #c9c9c3; --line-2: #dcdcd5; --accent: #fa3600; --accent-ink: #d42e00; --accent-bg: rgba(250, 54, 0, .07);
     --ok: #2f7d32; --grid: rgba(40, 40, 40, .06);
-    --n-feature: #282828; --n-ticket: #2b6a8a; --n-req: #6b4fb3; --n-msg: #a87412; --n-pr: #2f7d32; --n-person: #8a8a85;
+    --n-feature: #282828; --n-doc: #a3487f; --n-ticket: #2b6a8a; --n-req: #6b4fb3; --n-msg: #a87412; --n-pr: #2f7d32; --n-person: #8a8a85;
     color-scheme: light;
   }
 }
@@ -428,3 +428,4 @@ kbd { font: 10px var(--mono); border: 1px solid var(--line); border-radius: 4px;
 .person-link:hover { color: var(--accent-ink); }
 .canvas__hint { position: absolute; right: 14px; top: 12px; color: var(--note); font-size: 10.5px; pointer-events: none; }
 .static .palette, .static .palette__box, .static .drawer { animation: none; opacity: 1; }
+.tl__ev--doc { background: var(--n-doc); border-radius: 2px; }

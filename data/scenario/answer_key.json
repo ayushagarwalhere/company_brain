@@ -1,80 +1,425 @@
 {
   "features": [
-    {"id": "feat_export", "name": "Ticket CSV export", "tickets": ["BD-101", "BD-102", "BD-108"], "prs": [6, 7]},
-    {"id": "feat_sla",    "name": "SLA breach notifications", "tickets": ["BD-103", "BD-104", "BD-109", "BD-115"], "prs": [3, 4, 5]},
-    {"id": "feat_dark",   "name": "Dark mode", "tickets": ["BD-105", "BD-106"], "prs": [10, 12]}
+    {
+      "id": "feat_export",
+      "name": "Ticket CSV export",
+      "tickets": [
+        "BD-101",
+        "BD-102",
+        "BD-108"
+      ],
+      "prs": [
+        6,
+        7
+      ]
+    },
+    {
+      "id": "feat_sla",
+      "name": "SLA breach notifications",
+      "tickets": [
+        "BD-103",
+        "BD-104",
+        "BD-109",
+        "BD-115"
+      ],
+      "prs": [
+        3,
+        4,
+        5
+      ]
+    },
+    {
+      "id": "feat_dark",
+      "name": "Dark mode",
+      "tickets": [
+        "BD-105",
+        "BD-106"
+      ],
+      "prs": [
+        10,
+        12
+      ]
+    }
   ],
-
   "requirements": [
-    {"id": "req_export_v1", "feature": "feat_export", "text": "Export tickets from the last 30 days as CSV with columns id, subject, status, created_at.",
-     "origin": {"kind": "ticket", "id": "BD-101", "at": "2026-09-14T04:50:00Z"}},
-    {"id": "req_export_v2", "feature": "feat_export", "supersedes": "req_export_v1", "text": "Add an assignee column to the export.",
-     "origin": {"kind": "message", "id": "m_exp_06", "at": "2026-09-15T08:40:00Z"},
-     "reflected_in_ticket": {"id": "BD-101", "at": "2026-09-15T10:30:00Z"}},
-    {"id": "req_export_v3", "feature": "feat_export", "supersedes": "req_export_v2",
-     "text": "Export supports any custom date range up to 12 months and includes all custom fields as extra columns.",
-     "origin": {"kind": "message", "id": "m_exp_12", "at": "2026-09-22T09:40:00Z"},
-     "reflected_in_ticket": null},
-
-    {"id": "req_sla_v1", "feature": "feat_sla", "text": "Email the assignee when a ticket breaches its SLA.",
-     "origin": {"kind": "ticket", "id": "BD-103", "at": "2026-09-14T06:20:00Z"}},
-    {"id": "req_sla_v2", "feature": "feat_sla", "supersedes": "req_sla_v1",
-     "text": "Warn 15 minutes before SLA breach in the team's Slack channel; no email.",
-     "origin": {"kind": "message", "id": "m_sla_05", "at": "2026-09-17T05:31:00Z"},
-     "reflected_in_ticket": null},
-
-    {"id": "req_dark_v1", "feature": "feat_dark", "text": "Dark mode; default follows OS; Light/Dark/System toggle.",
-     "origin": {"kind": "ticket", "id": "BD-105", "at": "2026-09-28T05:00:00Z"}},
-    {"id": "req_dark_v2", "feature": "feat_dark", "supersedes": "req_dark_v1", "text": "Theme toggle lives in Settings > Appearance, not the navbar.",
-     "origin": {"kind": "message", "id": "m_dark_05", "at": "2026-10-02T06:00:00Z"},
-     "reflected_in_ticket": {"id": "BD-105", "at": "2026-10-02T06:05:00Z"}}
+    {
+      "id": "req_export_v1",
+      "feature": "feat_export",
+      "text": "Export tickets from the last 30 days as CSV with columns id, subject, status, created_at.",
+      "origin": {
+        "kind": "ticket",
+        "id": "BD-101",
+        "at": "2026-09-14T04:50:00Z"
+      }
+    },
+    {
+      "id": "req_export_v2",
+      "feature": "feat_export",
+      "supersedes": "req_export_v1",
+      "text": "Add an assignee column to the export.",
+      "origin": {
+        "kind": "message",
+        "id": "m_exp_06",
+        "at": "2026-09-15T08:40:00Z"
+      },
+      "reflected_in_ticket": {
+        "id": "BD-101",
+        "at": "2026-09-15T10:30:00Z"
+      }
+    },
+    {
+      "id": "req_export_v3",
+      "feature": "feat_export",
+      "supersedes": "req_export_v2",
+      "text": "Export supports any custom date range up to 12 months and includes all custom fields as extra columns.",
+      "origin": {
+        "kind": "message",
+        "id": "m_exp_12",
+        "at": "2026-09-22T09:40:00Z"
+      },
+      "reflected_in_ticket": null
+    },
+    {
+      "id": "req_sla_v1",
+      "feature": "feat_sla",
+      "text": "Email the assignee when a ticket breaches its SLA.",
+      "origin": {
+        "kind": "ticket",
+        "id": "BD-103",
+        "at": "2026-09-14T06:20:00Z"
+      }
+    },
+    {
+      "id": "req_sla_v2",
+      "feature": "feat_sla",
+      "supersedes": "req_sla_v1",
+      "text": "Warn 15 minutes before SLA breach in the team's Slack channel; no email.",
+      "origin": {
+        "kind": "message",
+        "id": "m_sla_05",
+        "at": "2026-09-17T05:31:00Z"
+      },
+      "reflected_in_ticket": null
+    },
+    {
+      "id": "req_dark_v1",
+      "feature": "feat_dark",
+      "text": "Dark mode; default follows OS; Light/Dark/System toggle.",
+      "origin": {
+        "kind": "ticket",
+        "id": "BD-105",
+        "at": "2026-09-28T05:00:00Z"
+      }
+    },
+    {
+      "id": "req_dark_v2",
+      "feature": "feat_dark",
+      "supersedes": "req_dark_v1",
+      "text": "Theme toggle lives in Settings > Appearance, not the navbar.",
+      "origin": {
+        "kind": "message",
+        "id": "m_dark_05",
+        "at": "2026-10-02T06:00:00Z"
+      },
+      "reflected_in_ticket": {
+        "id": "BD-105",
+        "at": "2026-10-02T06:05:00Z"
+      }
+    }
   ],
-
   "decisions": [
-    {"id": "dec_export_assignee", "feature": "feat_export", "by": "maya", "message": "m_exp_06", "at": "2026-09-15T08:40:00Z", "changes": "req_export_v2"},
-    {"id": "dec_export_range",    "feature": "feat_export", "by": "maya", "message": "m_exp_12", "at": "2026-09-22T09:40:00Z", "changes": "req_export_v3"},
-    {"id": "dec_sla_channel",     "feature": "feat_sla",    "by": "maya", "message": "m_sla_05", "at": "2026-09-17T05:31:00Z", "changes": "req_sla_v2"},
-    {"id": "dec_dark_toggle",     "feature": "feat_dark",   "by": "priya","message": "m_dark_05","at": "2026-10-02T06:00:00Z", "changes": "req_dark_v2"}
+    {
+      "id": "dec_export_assignee",
+      "feature": "feat_export",
+      "by": "maya",
+      "message": "m_exp_06",
+      "at": "2026-09-15T08:40:00Z",
+      "changes": "req_export_v2"
+    },
+    {
+      "id": "dec_export_range",
+      "feature": "feat_export",
+      "by": "maya",
+      "message": "m_exp_12",
+      "at": "2026-09-22T09:40:00Z",
+      "changes": "req_export_v3"
+    },
+    {
+      "id": "dec_sla_channel",
+      "feature": "feat_sla",
+      "by": "maya",
+      "message": "m_sla_05",
+      "at": "2026-09-17T05:31:00Z",
+      "changes": "req_sla_v2"
+    },
+    {
+      "id": "dec_dark_toggle",
+      "feature": "feat_dark",
+      "by": "priya",
+      "message": "m_dark_05",
+      "at": "2026-10-02T06:00:00Z",
+      "changes": "req_dark_v2"
+    }
   ],
-
   "non_changes": [
-    {"message": "m_exp_14", "feature": "feat_export", "kind": "rejected_proposal", "note": "XLSX proposed, rejected in m_exp_15"},
-    {"message": "m_exp_15", "feature": "feat_export", "kind": "rejected_proposal"},
-    {"message": "m_dark_03", "feature": "feat_dark", "kind": "reaffirmation", "note": "Drop System? -> no (m_dark_04)"},
-    {"message": "m_dark_04", "feature": "feat_dark", "kind": "reaffirmation"}
+    {
+      "message": "m_exp_14",
+      "feature": "feat_export",
+      "kind": "rejected_proposal",
+      "note": "XLSX proposed, rejected in m_exp_15"
+    },
+    {
+      "message": "m_exp_15",
+      "feature": "feat_export",
+      "kind": "rejected_proposal"
+    },
+    {
+      "message": "m_dark_03",
+      "feature": "feat_dark",
+      "kind": "reaffirmation",
+      "note": "Drop System? -> no (m_dark_04)"
+    },
+    {
+      "message": "m_dark_04",
+      "feature": "feat_dark",
+      "kind": "reaffirmation"
+    }
   ],
-
   "pr_links": [
-    {"pr": 1,  "ticket": null,     "feature": null,          "link": "none"},
-    {"pr": 2,  "ticket": "BD-111", "feature": null,          "link": "hard"},
-    {"pr": 3,  "ticket": "BD-104", "feature": "feat_sla",    "link": "hard"},
-    {"pr": 4,  "ticket": "BD-115", "feature": "feat_sla",    "link": "hard"},
-    {"pr": 5,  "ticket": "BD-103", "feature": "feat_sla",    "link": "hard", "implements": "req_sla_v1"},
-    {"pr": 6,  "ticket": "BD-101", "feature": "feat_export", "link": "hard", "implements": "req_export_v2"},
-    {"pr": 7,  "ticket": "BD-102", "feature": "feat_export", "link": "soft", "note": "no ticket id; resolve by author kenji + topic + timing"},
-    {"pr": 8,  "ticket": "BD-112", "feature": null,          "link": "hard"},
-    {"pr": 9,  "ticket": "BD-107", "feature": null,          "link": "hard", "note": "ticket id only in body, in parentheses"},
-    {"pr": 10, "ticket": "BD-106", "feature": "feat_dark",   "link": "hard"},
-    {"pr": 11, "ticket": "BD-114", "feature": null,          "link": "hard"},
-    {"pr": 12, "ticket": "BD-105", "feature": "feat_dark",   "link": "hard", "implements": "req_dark_v2"}
+    {
+      "pr": 1,
+      "ticket": null,
+      "feature": null,
+      "link": "none"
+    },
+    {
+      "pr": 2,
+      "ticket": "BD-111",
+      "feature": null,
+      "link": "hard"
+    },
+    {
+      "pr": 3,
+      "ticket": "BD-104",
+      "feature": "feat_sla",
+      "link": "hard"
+    },
+    {
+      "pr": 4,
+      "ticket": "BD-115",
+      "feature": "feat_sla",
+      "link": "hard"
+    },
+    {
+      "pr": 5,
+      "ticket": "BD-103",
+      "feature": "feat_sla",
+      "link": "hard",
+      "implements": "req_sla_v1"
+    },
+    {
+      "pr": 6,
+      "ticket": "BD-101",
+      "feature": "feat_export",
+      "link": "hard",
+      "implements": "req_export_v2"
+    },
+    {
+      "pr": 7,
+      "ticket": "BD-102",
+      "feature": "feat_export",
+      "link": "soft",
+      "note": "no ticket id; resolve by author kenji + topic + timing"
+    },
+    {
+      "pr": 8,
+      "ticket": "BD-112",
+      "feature": null,
+      "link": "hard"
+    },
+    {
+      "pr": 9,
+      "ticket": "BD-107",
+      "feature": null,
+      "link": "hard",
+      "note": "ticket id only in body, in parentheses"
+    },
+    {
+      "pr": 10,
+      "ticket": "BD-106",
+      "feature": "feat_dark",
+      "link": "hard"
+    },
+    {
+      "pr": 11,
+      "ticket": "BD-114",
+      "feature": null,
+      "link": "hard"
+    },
+    {
+      "pr": 12,
+      "ticket": "BD-105",
+      "feature": "feat_dark",
+      "link": "hard",
+      "implements": "req_dark_v2"
+    }
   ],
-
   "message_links": {
-    "feat_export": ["m_exp_01","m_exp_02","m_exp_03","m_exp_04","m_exp_05","m_exp_06","m_exp_07","m_exp_08","m_exp_09","m_exp_10","m_exp_11","m_exp_12","m_exp_13","m_exp_14","m_exp_15","m_exp_16","m_exp_17","m_exp_18","m_exp_19"],
-    "feat_sla":    ["m_sla_01","m_sla_02","m_sla_03","m_sla_04","m_sla_05","m_sla_06","m_sla_07","m_sla_08","m_sla_09","m_sla_10","m_sla_11","m_sla_12"],
-    "feat_dark":   ["m_dark_01","m_dark_02","m_dark_03","m_dark_04","m_dark_05","m_dark_06","m_dark_07","m_dark_08"]
+    "feat_export": [
+      "m_exp_01",
+      "m_exp_02",
+      "m_exp_03",
+      "m_exp_04",
+      "m_exp_05",
+      "m_exp_06",
+      "m_exp_07",
+      "m_exp_08",
+      "m_exp_09",
+      "m_exp_10",
+      "m_exp_11",
+      "m_exp_12",
+      "m_exp_13",
+      "m_exp_14",
+      "m_exp_15",
+      "m_exp_16",
+      "m_exp_17",
+      "m_exp_18",
+      "m_exp_19"
+    ],
+    "feat_sla": [
+      "m_sla_01",
+      "m_sla_02",
+      "m_sla_03",
+      "m_sla_04",
+      "m_sla_05",
+      "m_sla_06",
+      "m_sla_07",
+      "m_sla_08",
+      "m_sla_09",
+      "m_sla_10",
+      "m_sla_11",
+      "m_sla_12"
+    ],
+    "feat_dark": [
+      "m_dark_01",
+      "m_dark_02",
+      "m_dark_03",
+      "m_dark_04",
+      "m_dark_05",
+      "m_dark_06",
+      "m_dark_07",
+      "m_dark_08"
+    ]
   },
   "message_ticket_mentions": {
-    "m_exp_01": ["BD-101"], "m_exp_02": ["BD-101"], "m_exp_03": ["BD-102"], "m_exp_06": ["BD-101"], "m_exp_07": ["BD-101"],
-    "m_sla_01": ["BD-103", "BD-104"], "m_sla_02": ["BD-103"], "m_sla_09": ["BD-104"], "m_sla_11": ["BD-103"],
-    "m_dark_01": ["BD-105", "BD-106"], "m_dark_02": ["BD-106", "BD-105"], "m_dark_04": ["BD-105"], "m_dark_05": ["BD-105"]
+    "m_exp_01": [
+      "BD-101"
+    ],
+    "m_exp_02": [
+      "BD-101"
+    ],
+    "m_exp_03": [
+      "BD-102"
+    ],
+    "m_exp_06": [
+      "BD-101"
+    ],
+    "m_exp_07": [
+      "BD-101"
+    ],
+    "m_sla_01": [
+      "BD-103",
+      "BD-104"
+    ],
+    "m_sla_02": [
+      "BD-103"
+    ],
+    "m_sla_09": [
+      "BD-104"
+    ],
+    "m_sla_11": [
+      "BD-103"
+    ],
+    "m_dark_01": [
+      "BD-105",
+      "BD-106"
+    ],
+    "m_dark_02": [
+      "BD-106",
+      "BD-105"
+    ],
+    "m_dark_04": [
+      "BD-105"
+    ],
+    "m_dark_05": [
+      "BD-105"
+    ]
   },
-
   "expected_drift": [
-    {"feature": "feat_export", "requirement": "req_export_v3", "ticket": "BD-101", "stale_prs": [6],
-     "summary": "Slack decision on 09-22 (12-month range + custom fields) never reached BD-101; PR #6 shipped the 30-day export."},
-    {"feature": "feat_sla", "requirement": "req_sla_v2", "ticket": "BD-103", "stale_prs": [5],
-     "summary": "Discord decision on 09-17 (warn 15 min before breach, Slack channel, no email) never reached BD-103; PR #5 shipped email-at-breach."}
+    {
+      "feature": "feat_export",
+      "requirement": "req_export_v3",
+      "ticket": "BD-101",
+      "stale_prs": [
+        6
+      ],
+      "summary": "Slack decision on 09-22 (12-month range + custom fields) never reached BD-101; PR #6 shipped the 30-day export.",
+      "stale_docs": [
+        "DOC-1"
+      ]
+    },
+    {
+      "feature": "feat_sla",
+      "requirement": "req_sla_v2",
+      "ticket": "BD-103",
+      "stale_prs": [
+        5
+      ],
+      "summary": "Discord decision on 09-17 (warn 15 min before breach, Slack channel, no email) never reached BD-103; PR #5 shipped email-at-breach.",
+      "stale_docs": [
+        "DOC-2"
+      ]
+    }
   ],
-  "expected_no_drift": ["feat_dark"]
+  "expected_no_drift": [
+    "feat_dark"
+  ],
+  "documents": [
+    {
+      "id": "DOC-1",
+      "tickets": [
+        "BD-101",
+        "BD-102"
+      ],
+      "feature": "feat_export",
+      "stale_after": "m_exp_12"
+    },
+    {
+      "id": "DOC-2",
+      "tickets": [
+        "BD-103",
+        "BD-104"
+      ],
+      "feature": "feat_sla",
+      "stale_after": "m_sla_05"
+    },
+    {
+      "id": "DOC-3",
+      "tickets": [
+        "BD-105",
+        "BD-106"
+      ],
+      "feature": "feat_dark",
+      "stale_after": null,
+      "note": "updated 2026-10-02T06:10 right after the toggle decision (06:00): current"
+    },
+    {
+      "id": "DOC-4",
+      "tickets": [
+        "BD-110"
+      ],
+      "feature": null,
+      "stale_after": null
+    }
+  ]
 }

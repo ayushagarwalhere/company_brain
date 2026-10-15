@@ -94,7 +94,14 @@ def reset_derived(g):
     g.query("MATCH ()-[r:REFERENCES]->() WHERE r.via = 'resolved' DELETE r")
 
 
-def resolve(g, extractor_name: str = "deepseek", semantic: str | None = None, log=print) -> dict:
+ABLATIONS = {"threads", "pr_proximity", "semantic", "supersession"}
+
+
+def resolve(g, extractor_name: str = "deepseek", semantic: str | None = None, log=print,
+            ablate: frozenset = frozenset()) -> dict:
+    """`ablate` switches off graph capabilities one at a time (benchmark/ablation.py):
+    threads (REPLY_TO), pr_proximity (author + time window), semantic, supersession (SUPERSEDES/IMPLEMENTS)."""
+    assert set(ablate) <= ABLATIONS, ablate
     ex = get_extractor(extractor_name)
     semantic = semantic or ("llm" if extractor_name == "deepseek" else "tfidf")
     reset_derived(g)
@@ -140,6 +147,8 @@ def resolve(g, extractor_name: str = "deepseek", semantic: str | None = None, lo
         # proximity: tickets owned by the PR author that were open around the PR's time
         cands = [t["id"] for t in tickets if t["assignee"] == pr["author"] and t["created_ms"] <= at
                  and (t["completed_ms"] is None or t["completed_ms"] >= at - DAY_MS)]
+        if "pr_proximity" in ablate:  # text similarity alone, over every ticket that existed
+            cands = [t["id"] for t in tickets if t["created_ms"] <= at]
         best, score = ticket_sim.best(f"{pr['title']} {pr['body']}", among=cands)
         if best and score >= PR_SIM_THRESHOLD:
             pr_links[pr["id"]] = [(best, "proximity+semantic", round(score, 3))]
@@ -155,11 +164,17 @@ def resolve(g, extractor_name: str = "deepseek", semantic: str | None = None, lo
                MERGE (pr)-[:ABOUT {via: p.via}]->(f)""",
             {"ps": [{"pr": p, "f": f, "via": v} for p, (f, v) in pr_feature.items()]})
 
+    # Docs: hard link through the tickets they mention
+    g.query("""MATCH (d:Document)-[:MENTIONS]->(:Ticket)-[:ABOUT]->(f:Feature)
+               MERGE (d)-[:ABOUT {via: 'hard'}]->(f)""")
+
     # 4. Messages -> features ---------------------------------------------------
     msgs = load_messages(g)
     by_id = {m["id"]: m for m in msgs}
 
     def root(mid):
+        if "threads" in ablate:
+            return mid
         seen = set()
         while by_id.get(mid, {}).get("parent") and mid not in seen:
             seen.add(mid)
@@ -202,7 +217,7 @@ def resolve(g, extractor_name: str = "deepseek", semantic: str | None = None, lo
                 msg_feature.setdefault(x["id"], (linked[0], "thread"))
     for m in msgs:  # signal 3: semantic
         # a hard link to a ticket outside every feature is still a resolution: don't guess further
-        if m["id"] in msg_feature or m["mentions"]:
+        if m["id"] in msg_feature or m["mentions"] or "semantic" in ablate:
             continue
         if semantic == "llm":
             f = (cls.get(m["id"]) or {}).get("feature")
@@ -263,7 +278,8 @@ def resolve(g, extractor_name: str = "deepseek", semantic: str | None = None, lo
     for r in _rows(g, """MATCH (q:Requirement) RETURN q.id AS id, q.ticket AS ticket, q.text AS text, q.origin AS origin,
                                                        q.at AS at, q.at_ms AS at_ms ORDER BY q.at_ms, q.id"""):
         reqs_by_ticket[r["ticket"]].append(r)
-    pairs = [p for chain in reqs_by_ticket.values() for p in supersession_pairs(chain, ex.reflects)]
+    pairs = [] if "supersession" in ablate else [
+        p for chain in reqs_by_ticket.values() for p in supersession_pairs(chain, ex.reflects)]
     g.query("""UNWIND $ps AS p MATCH (n:Requirement {id: p.new}), (o:Requirement {id: p.old})
                MERGE (n)-[:SUPERSEDES]->(o)""", {"ps": pairs})
 
@@ -273,7 +289,7 @@ def resolve(g, extractor_name: str = "deepseek", semantic: str | None = None, lo
         tickets_for_pr = [t for t, _, _ in pr_links.get(pr["id"], [])]
         cutoff = pr["merged_ms"] or pr["created_ms"]
         cands = [r for t in tickets_for_pr for r in reqs_by_ticket[t] if r["at_ms"] <= cutoff]
-        if cands:
+        if cands and "supersession" not in ablate:
             impl += [{"pr": pr["id"], "r": rid} for rid in ex.implements(pr, cands)]
     g.query("""UNWIND $xs AS x MATCH (pr:PullRequest {id: x.pr}), (q:Requirement {id: x.r})
                MERGE (pr)-[:IMPLEMENTS]->(q)""", {"xs": impl})

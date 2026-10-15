@@ -6,9 +6,9 @@
 
 Teams make decisions in chat, write requirements in tickets and ship code in pull requests, but nothing links the three. A requirement quietly changes in a Slack thread, the ticket is never updated, and engineering keeps building the old version.
 
-This project builds a **context graph in FalkorDB** that ties Slack and Discord messages, tickets and GitHub PRs to the same feature and requirement, and then:
+This project builds a **context graph in FalkorDB** that ties Slack and Discord messages, product docs (PRDs, design notes), tickets and GitHub PRs to the same feature and requirement, and then:
 
-1. **Live drift alerts.** When a chat message changes a requirement that the ticket or PRs don't reflect, the bot replies in Slack or Discord with the **graph path** as evidence.
+1. **Live drift alerts.** When a chat message changes a requirement that the ticket or PRs don't reflect, the bot replies in Slack or Discord with the **graph path** as evidence, including the PRs that shipped the old version and the **docs still describing it**.
 2. **Sprint retro.** Shows what we decided, what we shipped and where they diverge, with a source link on every line.
 3. **Cited Q&A.** A DeepSeek agent picks from 9 graph tools, and every answer shows the graph paths it used. Without a key, a **rules agent** ([`agent/router.py`](agent/router.py)) routes the question to the same tools by intent (connect, who-knows, PRs, drift, decided/shipped, impact) and builds the answer from their rows. The API, the bots and the dashboard all work either way.
 4. **Spec generation.** Turns a drifted feature's graph context into an agent-ready spec. It stops at the spec: nothing executes it.
@@ -26,7 +26,27 @@ This project builds a **context graph in FalkorDB** that ties Slack and Discord 
 
 ## Why the graph is doing the work
 
-Drift is a **time-ordered path query**. A requirement that came from chat, that nothing newer **SUPERSEDES**, and that no PR **IMPLEMENTS** is drift. Answering that needs the links between message → requirement → ticket → PR and their order. Plain retrieval over the same text gets you the documents, but not which version is current or which PR implements which version. [`benchmark/`](benchmark/) runs the same 15 questions with and without the graph, using the same model and the same data (see [Benchmark](#benchmark)).
+Drift is a **time-ordered path query**. A requirement that came from chat, that nothing newer **SUPERSEDES**, and that no PR **IMPLEMENTS** is drift. Answering that needs the links between message → requirement → ticket → PR and their order. Plain retrieval over the same text gets you the documents, but not which version is current or which PR implements which version.
+
+### Ablation: switch the graph off, piece by piece
+
+`python -m benchmark.ablation` reruns the whole pipeline on a throwaway graph with one graph capability disabled at a time, then scores it against the answer key. It's deterministic, uses the heuristic extractor and needs no LLM or API key, so the graph structure is the only thing that changes between rows.
+
+| Configuration | Msg→feature P / R | Changes P / R | Drift (requirement) P / R | Stale PRs P / R |
+|---|---|---|---|---|
+| **Full graph** | 1.00 / 0.92 | 1.00 / 1.00 | **1.00 / 1.00** | **1.00 / 1.00** |
+| − thread structure (`REPLY_TO`) | 1.00 / **0.77** | 1.00 / 1.00 | 1.00 / 1.00 | 1.00 / 1.00 |
+| − person/time proximity for PRs | 1.00 / 0.92 | 1.00 / 1.00 | 1.00 / 1.00 | 1.00 / 1.00 |
+| − version reasoning (`SUPERSEDES` / `IMPLEMENTS`) | 1.00 / 0.92 | 1.00 / 1.00 | **0.50** / 1.00 | **0.67** / 1.00 |
+| Ticket IDs only (no threads, proximity or semantic) | 1.00 / **0.33** | 1.00 / **0.50** | 1.00 / **0.00** | 1.00 / **0.00** |
+
+What breaks:
+- **Without version reasoning, half the alerts are false.** The 09-15 assignee change and the dark-mode toggle change were both written back into their tickets, but without `SUPERSEDES` there's no way to know the ticket caught up, so both are flagged, and PR #12 is wrongly called stale.
+- **With ticket IDs only, both real drifts are missed.** The decisive messages (Maya's 09-22 export decision, the 09-17 SLA decision) never mention a ticket ID. They're reachable only through the thread they sit in and what the thread is about.
+- **Without threads,** replies like "How far back do they need?" and "👍 will raise it at standup" lose their feature.
+- **Person/time proximity made no difference here:** PR #7's text alone is enough to find BD-102 on this dataset. I'm reporting that as-is; it's a safety net for vaguer PR descriptions.
+
+The LLM benchmark ([Benchmark](#benchmark)) runs the same 15 questions with and without the graph, using the same model and the same data.
 
 ## Architecture
 
@@ -47,7 +67,7 @@ flowchart LR
 
 | Folder | What's in it |
 |---|---|
-| [`connectors/`](connectors/) | Slack, Discord, GitHub and mock-ticket connectors, plus a scenario replay. They all emit one `Event` format |
+| [`connectors/`](connectors/) | Slack, Discord, GitHub, mock-ticket and docs (Markdown PRDs and design notes) connectors, plus a scenario replay. They all emit one `Event` format |
 | [`pipeline/`](pipeline/) | `ingest` (base graph), `extract` (DeepSeek / oracle), `resolve` (entity resolution + requirement graph), `live` (single-message drift monitor) |
 | [`graph/`](graph/) | Connection, writer (idempotent MERGEs), [`queries.py`](graph/queries.py) with every Cypher query the product uses |
 | [`agent/`](agent/) | Graph tools, Q&A agent, retro report, spec generator |
@@ -63,6 +83,9 @@ graph LR
   Person -->|POSTED| Message
   Person -->|AUTHORED| Ticket
   Person -->|AUTHORED| PullRequest
+  Person -->|AUTHORED| Document
+  Document -->|MENTIONS| Ticket
+  Document -->|ABOUT| Feature
   Person -->|MADE| Decision
   Ticket -->|ASSIGNED_TO| Person
   Message -->|REPLY_TO| Message
@@ -90,6 +113,7 @@ graph LR
 | `Message` | `id`, `source` (slack/discord), `channel`, `text`, `ts`, `ts_ms`, `url` |
 | `Ticket` | `id`, `title`, `description`, `state`, `versions[]`, `version_times[]`, `desc_updated_ms` |
 | `PullRequest` | `id`, `number`, `title`, `body`, `created_ms`, `merged_ms`, `url` |
+| `Document` | `id`, `title`, `text`, `created_ms`, `updated_ms`, `url` (PRDs, design notes, RFCs) |
 | `Feature` | `id`, `name` |
 | `Requirement` | `id`, `text`, `at_ms`, `origin` (ticket/chat), `ticket`, `confidence` |
 | `Decision` | `id`, `text`, `at_ms` |
@@ -107,6 +131,8 @@ Every node is MERGEd on `id`, so re-ingesting creates no duplicates. Times are s
 Requirement changes come from DeepSeek, which classifies each message as decision / requirement_change / request / rejected_proposal / reaffirmation / status / question / other. Only the first two create a `Requirement`, so requests, rejected ideas and reaffirmations don't. Each PR gets `IMPLEMENTS` edges to the requirement versions it actually delivers.
 
 ## Cypher queries the product depends on
+
+Full reference with every query, its purpose and its call sites: [`docs/QUERIES.md`](docs/QUERIES.md), generated from the code by `python -m scripts.export_queries`.
 
 All of these live in [`graph/queries.py`](graph/queries.py).
 
@@ -141,7 +167,7 @@ The `SUPERSEDES` chain is built per ticket in time order ([`supersession_pairs`]
 
 ## The synthetic company
 
-Everything is synthetic or owned by the author. See [`data/scenario/company.md`](data/scenario/company.md): **Brightdesk**, a helpdesk SaaS with 8 people and 2 sprints.
+Everything is synthetic or owned by the author. See [`data/scenario/company.md`](data/scenario/company.md): **Brightdesk**, a helpdesk SaaS with 8 people and 2 sprints, 300 messages, 15 tickets, 12 PRs and 4 product docs ([`data/docs/`](data/docs/)). Two docs go stale when chat changes the requirement (the export PRD and the SLA design note), the theming RFC is updated minutes after its decision and stays current, and one doc is unrelated.
 
 | Feature | Planted outcome |
 |---|---|

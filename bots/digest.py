@@ -28,7 +28,8 @@ def build(g=None) -> str:
         lines += [
             f"• *{d['feature_name']}* / {d['ticket']}: {d['changed_by']} decided “{d['requirement_text']}” "
             f"on {d['changed_at'][:10]} ({d['source']} #{d['channel']}). Ticket still says “{d['ticket_text']}”. "
-            f"Shipped old version: {stale}.",
+            f"Shipped old version: {stale}."
+            + (f" Stale docs: {', '.join(x['title'] for x in d['stale_docs'])}." if d["stale_docs"] else ""),
             f"   `{drift_path(d)}`",
         ]
     if risk or orphans or done_no_pr:

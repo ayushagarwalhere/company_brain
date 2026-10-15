@@ -57,9 +57,17 @@ def score(g) -> dict:
     found = drift(g)
     pred_dr = {(fmap.get(d["feature"], d["feature"]), d["ticket"]) for d in found}
     out["drift"] = prf(pred_dr, gold_dr)
+    # per requirement: which chat messages' changes are flagged (catches false alarms that land on an already-drifted ticket)
+    origin_msg = {r["id"]: r["origin"]["id"] for r in KEY["requirements"] if r["origin"]["kind"] == "message"}
+    gold_req = {origin_msg[d["requirement"]] for d in KEY["expected_drift"]}
+    pred_req = {d["message"] for d in found}
+    out["drift_requirements"] = prf(pred_req, gold_req)
     gold_stale = {(d["ticket"], n) for d in KEY["expected_drift"] for n in d["stale_prs"]}
     pred_stale = {(d["ticket"], p["pr"]) for d in found for p in d["stale_prs"] if p["pr"] is not None}
     out["drift_stale_prs"] = prf(pred_stale, gold_stale)
+    gold_docs = {(d["ticket"], x) for d in KEY["expected_drift"] for x in d.get("stale_docs", [])}
+    pred_docs = {(d["ticket"], x["id"]) for d in found for x in d["stale_docs"]}
+    out["drift_stale_docs"] = prf(pred_docs, gold_docs)
     return out
 
 

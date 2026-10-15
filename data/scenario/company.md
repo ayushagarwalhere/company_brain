@@ -6,6 +6,7 @@
 - Chat: Slack (`#product`, `#engineering`, `#support-escalations`) and Discord (`#engineering`, `#design`, `#random`)
 - Tickets: Linear-style, IDs `BD-101` to `BD-115`
 - Code: one public GitHub repo, with PRs that refer to tickets inconsistently (on purpose)
+- Docs: 4 Markdown product docs in [`data/docs/`](../docs/): the export PRD (`DOC-1`, last updated 09-15), the SLA design note (`DOC-2`, never updated), the theming RFC (`DOC-3`, updated 10-02 06:10, right after the toggle decision) and an unrelated onboarding copy guide (`DOC-4`)
 
 ## People
 
@@ -43,3 +44,4 @@ Every PR is opened from the repo owner's real GitHub account. The fictional auth
 - **Reaffirmation (feat_dark, 09-29):** "should we drop System?" answered with "no, keep it". No change.
 - **PR with no ticket reference:** PR #7 (export button) never mentions BD-102. It has to be linked by author, timing and topic.
 - **Cross-platform:** the SLA decision happened on Discord, but the ticket and PR live elsewhere.
+- **Stale vs. current docs:** DOC-1 and DOC-2 still describe the old behaviour after the decisions; DOC-3 was updated minutes after its decision and must not be flagged.

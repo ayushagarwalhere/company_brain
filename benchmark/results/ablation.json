@@ -1,0 +1,589 @@
+[
+ {
+  "config": "Full graph",
+  "ablate": [],
+  "scores": {
+   "ticket_to_feature": {
+    "precision": 1.0,
+    "recall": 1.0,
+    "f1": 1.0,
+    "tp": 9,
+    "fp": [],
+    "fn": []
+   },
+   "message_to_feature": {
+    "precision": 1.0,
+    "recall": 0.923,
+    "f1": 0.96,
+    "tp": 36,
+    "fp": [],
+    "fn": [
+     [
+      "m_sla_03",
+      "feat_sla"
+     ],
+     [
+      "m_sla_06",
+      "feat_sla"
+     ],
+     [
+      "m_sla_07",
+      "feat_sla"
+     ]
+    ]
+   },
+   "pr_to_ticket": {
+    "precision": 1.0,
+    "recall": 1.0,
+    "f1": 1.0,
+    "tp": 11,
+    "fp": [],
+    "fn": []
+   },
+   "requirement_changes": {
+    "precision": 1.0,
+    "recall": 1.0,
+    "f1": 1.0,
+    "tp": 4,
+    "fp": [],
+    "fn": []
+   },
+   "drift": {
+    "precision": 1.0,
+    "recall": 1.0,
+    "f1": 1.0,
+    "tp": 2,
+    "fp": [],
+    "fn": []
+   },
+   "drift_requirements": {
+    "precision": 1.0,
+    "recall": 1.0,
+    "f1": 1.0,
+    "tp": 2,
+    "fp": [],
+    "fn": []
+   },
+   "drift_stale_prs": {
+    "precision": 1.0,
+    "recall": 1.0,
+    "f1": 1.0,
+    "tp": 2,
+    "fp": [],
+    "fn": []
+   },
+   "drift_stale_docs": {
+    "precision": 1.0,
+    "recall": 1.0,
+    "f1": 1.0,
+    "tp": 2,
+    "fp": [],
+    "fn": []
+   }
+  }
+ },
+ {
+  "config": "\u2212 thread structure (REPLY_TO)",
+  "ablate": [
+   "threads"
+  ],
+  "scores": {
+   "ticket_to_feature": {
+    "precision": 1.0,
+    "recall": 1.0,
+    "f1": 1.0,
+    "tp": 9,
+    "fp": [],
+    "fn": []
+   },
+   "message_to_feature": {
+    "precision": 1.0,
+    "recall": 0.769,
+    "f1": 0.87,
+    "tp": 30,
+    "fp": [],
+    "fn": [
+     [
+      "m_dark_06",
+      "feat_dark"
+     ],
+     [
+      "m_exp_10",
+      "feat_export"
+     ],
+     [
+      "m_exp_11",
+      "feat_export"
+     ],
+     [
+      "m_exp_13",
+      "feat_export"
+     ],
+     [
+      "m_exp_17",
+      "feat_export"
+     ],
+     [
+      "m_sla_03",
+      "feat_sla"
+     ],
+     [
+      "m_sla_06",
+      "feat_sla"
+     ],
+     [
+      "m_sla_07",
+      "feat_sla"
+     ],
+     [
+      "m_sla_12",
+      "feat_sla"
+     ]
+    ]
+   },
+   "pr_to_ticket": {
+    "precision": 1.0,
+    "recall": 1.0,
+    "f1": 1.0,
+    "tp": 11,
+    "fp": [],
+    "fn": []
+   },
+   "requirement_changes": {
+    "precision": 1.0,
+    "recall": 1.0,
+    "f1": 1.0,
+    "tp": 4,
+    "fp": [],
+    "fn": []
+   },
+   "drift": {
+    "precision": 1.0,
+    "recall": 1.0,
+    "f1": 1.0,
+    "tp": 2,
+    "fp": [],
+    "fn": []
+   },
+   "drift_requirements": {
+    "precision": 1.0,
+    "recall": 1.0,
+    "f1": 1.0,
+    "tp": 2,
+    "fp": [],
+    "fn": []
+   },
+   "drift_stale_prs": {
+    "precision": 1.0,
+    "recall": 1.0,
+    "f1": 1.0,
+    "tp": 2,
+    "fp": [],
+    "fn": []
+   },
+   "drift_stale_docs": {
+    "precision": 1.0,
+    "recall": 1.0,
+    "f1": 1.0,
+    "tp": 2,
+    "fp": [],
+    "fn": []
+   }
+  }
+ },
+ {
+  "config": "\u2212 person/time proximity for PRs",
+  "ablate": [
+   "pr_proximity"
+  ],
+  "scores": {
+   "ticket_to_feature": {
+    "precision": 1.0,
+    "recall": 1.0,
+    "f1": 1.0,
+    "tp": 9,
+    "fp": [],
+    "fn": []
+   },
+   "message_to_feature": {
+    "precision": 1.0,
+    "recall": 0.923,
+    "f1": 0.96,
+    "tp": 36,
+    "fp": [],
+    "fn": [
+     [
+      "m_sla_03",
+      "feat_sla"
+     ],
+     [
+      "m_sla_06",
+      "feat_sla"
+     ],
+     [
+      "m_sla_07",
+      "feat_sla"
+     ]
+    ]
+   },
+   "pr_to_ticket": {
+    "precision": 1.0,
+    "recall": 1.0,
+    "f1": 1.0,
+    "tp": 11,
+    "fp": [],
+    "fn": []
+   },
+   "requirement_changes": {
+    "precision": 1.0,
+    "recall": 1.0,
+    "f1": 1.0,
+    "tp": 4,
+    "fp": [],
+    "fn": []
+   },
+   "drift": {
+    "precision": 1.0,
+    "recall": 1.0,
+    "f1": 1.0,
+    "tp": 2,
+    "fp": [],
+    "fn": []
+   },
+   "drift_requirements": {
+    "precision": 1.0,
+    "recall": 1.0,
+    "f1": 1.0,
+    "tp": 2,
+    "fp": [],
+    "fn": []
+   },
+   "drift_stale_prs": {
+    "precision": 1.0,
+    "recall": 1.0,
+    "f1": 1.0,
+    "tp": 2,
+    "fp": [],
+    "fn": []
+   },
+   "drift_stale_docs": {
+    "precision": 1.0,
+    "recall": 1.0,
+    "f1": 1.0,
+    "tp": 2,
+    "fp": [],
+    "fn": []
+   }
+  }
+ },
+ {
+  "config": "\u2212 version reasoning (SUPERSEDES / IMPLEMENTS)",
+  "ablate": [
+   "supersession"
+  ],
+  "scores": {
+   "ticket_to_feature": {
+    "precision": 1.0,
+    "recall": 1.0,
+    "f1": 1.0,
+    "tp": 9,
+    "fp": [],
+    "fn": []
+   },
+   "message_to_feature": {
+    "precision": 1.0,
+    "recall": 0.923,
+    "f1": 0.96,
+    "tp": 36,
+    "fp": [],
+    "fn": [
+     [
+      "m_sla_03",
+      "feat_sla"
+     ],
+     [
+      "m_sla_06",
+      "feat_sla"
+     ],
+     [
+      "m_sla_07",
+      "feat_sla"
+     ]
+    ]
+   },
+   "pr_to_ticket": {
+    "precision": 1.0,
+    "recall": 1.0,
+    "f1": 1.0,
+    "tp": 11,
+    "fp": [],
+    "fn": []
+   },
+   "requirement_changes": {
+    "precision": 1.0,
+    "recall": 1.0,
+    "f1": 1.0,
+    "tp": 4,
+    "fp": [],
+    "fn": []
+   },
+   "drift": {
+    "precision": 0.667,
+    "recall": 1.0,
+    "f1": 0.8,
+    "tp": 2,
+    "fp": [
+     [
+      "feat_dark",
+      "BD-105"
+     ]
+    ],
+    "fn": []
+   },
+   "drift_requirements": {
+    "precision": 0.5,
+    "recall": 1.0,
+    "f1": 0.667,
+    "tp": 2,
+    "fp": [
+     "m_dark_05",
+     "m_exp_06"
+    ],
+    "fn": []
+   },
+   "drift_stale_prs": {
+    "precision": 0.667,
+    "recall": 1.0,
+    "f1": 0.8,
+    "tp": 2,
+    "fp": [
+     [
+      "BD-105",
+      12
+     ]
+    ],
+    "fn": []
+   },
+   "drift_stale_docs": {
+    "precision": 1.0,
+    "recall": 1.0,
+    "f1": 1.0,
+    "tp": 2,
+    "fp": [],
+    "fn": []
+   }
+  }
+ },
+ {
+  "config": "Ticket IDs only (no threads, proximity or semantic)",
+  "ablate": [
+   "pr_proximity",
+   "semantic",
+   "threads"
+  ],
+  "scores": {
+   "ticket_to_feature": {
+    "precision": 1.0,
+    "recall": 1.0,
+    "f1": 1.0,
+    "tp": 9,
+    "fp": [],
+    "fn": []
+   },
+   "message_to_feature": {
+    "precision": 1.0,
+    "recall": 0.333,
+    "f1": 0.5,
+    "tp": 13,
+    "fp": [],
+    "fn": [
+     [
+      "m_dark_03",
+      "feat_dark"
+     ],
+     [
+      "m_dark_06",
+      "feat_dark"
+     ],
+     [
+      "m_dark_07",
+      "feat_dark"
+     ],
+     [
+      "m_dark_08",
+      "feat_dark"
+     ],
+     [
+      "m_exp_04",
+      "feat_export"
+     ],
+     [
+      "m_exp_05",
+      "feat_export"
+     ],
+     [
+      "m_exp_08",
+      "feat_export"
+     ],
+     [
+      "m_exp_09",
+      "feat_export"
+     ],
+     [
+      "m_exp_10",
+      "feat_export"
+     ],
+     [
+      "m_exp_11",
+      "feat_export"
+     ],
+     [
+      "m_exp_12",
+      "feat_export"
+     ],
+     [
+      "m_exp_13",
+      "feat_export"
+     ],
+     [
+      "m_exp_14",
+      "feat_export"
+     ],
+     [
+      "m_exp_15",
+      "feat_export"
+     ],
+     [
+      "m_exp_16",
+      "feat_export"
+     ],
+     [
+      "m_exp_17",
+      "feat_export"
+     ],
+     [
+      "m_exp_18",
+      "feat_export"
+     ],
+     [
+      "m_exp_19",
+      "feat_export"
+     ],
+     [
+      "m_sla_03",
+      "feat_sla"
+     ],
+     [
+      "m_sla_04",
+      "feat_sla"
+     ],
+     [
+      "m_sla_05",
+      "feat_sla"
+     ],
+     [
+      "m_sla_06",
+      "feat_sla"
+     ],
+     [
+      "m_sla_07",
+      "feat_sla"
+     ],
+     [
+      "m_sla_08",
+      "feat_sla"
+     ],
+     [
+      "m_sla_10",
+      "feat_sla"
+     ],
+     [
+      "m_sla_12",
+      "feat_sla"
+     ]
+    ]
+   },
+   "pr_to_ticket": {
+    "precision": 1.0,
+    "recall": 1.0,
+    "f1": 1.0,
+    "tp": 11,
+    "fp": [],
+    "fn": []
+   },
+   "requirement_changes": {
+    "precision": 1.0,
+    "recall": 0.5,
+    "f1": 0.667,
+    "tp": 2,
+    "fp": [],
+    "fn": [
+     "m_exp_12",
+     "m_sla_05"
+    ]
+   },
+   "drift": {
+    "precision": 1.0,
+    "recall": 0.0,
+    "f1": 0.0,
+    "tp": 0,
+    "fp": [],
+    "fn": [
+     [
+      "feat_export",
+      "BD-101"
+     ],
+     [
+      "feat_sla",
+      "BD-103"
+     ]
+    ]
+   },
+   "drift_requirements": {
+    "precision": 1.0,
+    "recall": 0.0,
+    "f1": 0.0,
+    "tp": 0,
+    "fp": [],
+    "fn": [
+     "m_exp_12",
+     "m_sla_05"
+    ]
+   },
+   "drift_stale_prs": {
+    "precision": 1.0,
+    "recall": 0.0,
+    "f1": 0.0,
+    "tp": 0,
+    "fp": [],
+    "fn": [
+     [
+      "BD-101",
+      6
+     ],
+     [
+      "BD-103",
+      5
+     ]
+    ]
+   },
+   "drift_stale_docs": {
+    "precision": 1.0,
+    "recall": 0.0,
+    "f1": 0.0,
+    "tp": 0,
+    "fp": [],
+    "fn": [
+     [
+      "BD-101",
+      "DOC-1"
+     ],
+     [
+      "BD-103",
+      "DOC-2"
+     ]
+    ]
+   }
+  }
+ }
+]

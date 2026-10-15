@@ -20,6 +20,8 @@ def drift_path(d: dict) -> str:
         p += " ; " + " ; ".join(f"(PullRequest #{x['pr']})-[:REFERENCES]->(Ticket {d['ticket']})"
                                 + (f", IMPLEMENTS older \"{x['implements']}\"" if x.get("implements") else ", implements nothing current")
                                 for x in stale)
+    for doc in d.get("stale_docs", []):
+        p += f" ; (Document {doc['id']} \"{doc['title']}\", updated {(doc['updated'] or '')[:10]})-[:MENTIONS]->(Ticket {d['ticket']}), older than the change"
     return p
 
 

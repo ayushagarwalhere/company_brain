@@ -57,7 +57,7 @@ def test_pr_without_ticket_id_is_resolved_by_proximity(g):
 def test_resolution_scores(g):
     from benchmark.score_resolution import score
     s = score(g)
-    for k in ("ticket_to_feature", "pr_to_ticket", "requirement_changes", "drift", "drift_stale_prs"):
+    for k in ("ticket_to_feature", "pr_to_ticket", "requirement_changes", "drift", "drift_stale_prs", "drift_stale_docs"):
         assert s[k]["f1"] == 1.0, (k, s[k])
     assert s["message_to_feature"]["precision"] == 1.0
 
@@ -144,3 +144,23 @@ def test_search_profile_and_neighbors(g):
     assert {t["ticket"] for t in p["owns"]} >= {"BD-101"} and any(x["pr"] == 6 for x in p["prs"])
     nb = neighbors(g, "BD-101")
     assert any(n["id"] == "PR-6" for n in nb["nodes"]) and any(e["rel"] == "REFERENCES" for e in nb["edges"])
+
+
+def test_ablation_without_version_reasoning_raises_false_alarms():
+    """Evidence the graph does real work: removing SUPERSEDES/IMPLEMENTS flags changes that were already handled."""
+    from benchmark.score_resolution import score
+    from pipeline.ingest import ingest
+    from pipeline.resolve import resolve
+    name = GRAPH + "_ablation"
+    out = {}
+    for label, ablate in (("full", frozenset()), ("flat", frozenset({"supersession"})), ("ids", frozenset({"threads", "pr_proximity", "semantic"}))):
+        ingest(reset=True, graph_name=name)
+        g2 = get_graph(name)
+        try:
+            resolve(g2, "heuristic", log=lambda *_: None, ablate=ablate)
+            out[label] = score(g2)["drift_requirements"]
+        finally:
+            g2.delete()
+    assert out["full"]["f1"] == 1.0
+    assert out["flat"]["precision"] == 0.5 and set(out["flat"]["fp"]) == {"m_exp_06", "m_dark_05"}
+    assert out["ids"]["recall"] == 0.0

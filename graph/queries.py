@@ -6,10 +6,12 @@ Drift definition (time-ordered path query):
     - R is still current:    nothing SUPERSEDES R (no newer ticket version or chat change for that ticket)
     - no PR delivers it:     NOT (PullRequest)-[:IMPLEMENTS]->(R)
     - nobody dismissed it:   NOT (Decision)-[:DISMISSES]->(R)   ("keep the old scope")
-  Evidence = the message path, the stale ticket text, and PRs on the same ticket
-  (which, by the last condition, implement an older requirement or none).
+  Evidence = the message path, the stale ticket text, PRs on the same ticket
+  (which, by the last condition, implement an older requirement or none), and docs
+  mentioning the ticket that were last updated before the change (stale docs).
 """
 
+# The core query: chat-originated requirements that are still current, unimplemented and not dismissed, with evidence.
 DRIFT = """
 MATCH (m:Message)-[:CHANGES]->(r:Requirement)-[:AMENDS]->(t:Ticket)-[:ABOUT]->(f:Feature)
 WHERE NOT (r)<-[:SUPERSEDES]-(:Requirement)
@@ -22,6 +24,7 @@ OPTIONAL MATCH (r)-[:SUPERSEDES]->(prev:Requirement)
 OPTIONAL MATCH (d:Decision)-[:CHANGES]->(r)
 OPTIONAL MATCH (pr:PullRequest)-[:REFERENCES]->(t)
 OPTIONAL MATCH (pr)-[:IMPLEMENTS]->(old:Requirement)
+OPTIONAL MATCH (doc:Document)-[:MENTIONS]->(t) WHERE doc.updated_ms < r.at_ms
 RETURN f.id AS feature, f.name AS feature_name, t.id AS ticket, t.title AS ticket_title, t.url AS ticket_url,
        t.description AS ticket_text, t.desc_updated_ms AS ticket_updated_ms,
        r.id AS requirement, r.text AS requirement_text, r.at AS changed_at,
@@ -30,7 +33,8 @@ RETURN f.id AS feature, f.name AS feature_name, t.id AS ticket, t.title AS ticke
        prev.text AS previous_requirement,
        r.at_ms AS changed_ms,
        collect(DISTINCT {pr: pr.number, title: pr.title, url: pr.url, merged: pr.merged,
-                         implements: old.text}) AS stale_prs
+                         implements: old.text}) AS stale_prs,
+       collect(DISTINCT {id: doc.id, title: doc.title, updated: doc.updated, url: doc.url}) AS stale_docs
 ORDER BY changed_ms
 """
 
@@ -53,6 +57,7 @@ RETURN d.id AS decision, disby.id AS dismissed_by, d.text AS text, d.at AS at, p
 ORDER BY at_ms
 """
 
+# Retro: PRs merged in the sprint, their tickets, how each link was resolved, and which requirement they implement
 SPRINT_SHIPPED = """
 MATCH (s:Sprint {id: $sprint})<-[:IN_SPRINT]-(pr:PullRequest)
 WHERE pr.merged_ms IS NOT NULL
@@ -66,6 +71,7 @@ RETURN pr.number AS pr, pr.title AS title, pr.url AS url, pr.merged AS merged, a
 ORDER BY merged_ms
 """
 
+# Chronological messages, tickets, PRs and requirements attached to a feature
 FEATURE_TIMELINE = """
 MATCH (f:Feature {id: $feature})
 MATCH (x)-[:ABOUT]->(f)
@@ -77,6 +83,7 @@ RETURN labels(x)[0] AS type, x.id AS id, coalesce(x.text, x.title) AS text, at,
 ORDER BY at
 """
 
+# How a feature's requirements evolved: each version, its source (ticket or chat), what it supersedes, which PRs implement it
 DECISION_HISTORY = """
 MATCH (f:Feature {id: $feature})<-[:ABOUT]-(t:Ticket)
 MATCH (r:Requirement {ticket: t.id})
@@ -122,19 +129,21 @@ RETURN [n IN nodes(p) | {id: n.id, type: labels(n)[0]}] AS nodes, [r IN relation
 ORDER BY hops LIMIT 1
 """
 
-# ---- Coverage: where the graph has holes (Company Brain hygiene) ----
+# Coverage: merged work that no ticket explains
 ORPHAN_PRS = """
 MATCH (a:Person)-[:AUTHORED]->(pr:PullRequest)
 WHERE NOT (pr)-[:REFERENCES]->(:Ticket)
 RETURN pr.number AS pr, pr.title AS title, pr.url AS url, a.id AS author, pr.merged AS merged ORDER BY pr
 """
 
+# Coverage: tickets closed as Done with no PR referencing them
 DONE_WITHOUT_PR = """
 MATCH (t:Ticket) WHERE t.state = 'Done' AND NOT (:PullRequest)-[:REFERENCES]->(t)
 OPTIONAL MATCH (t)-[:ASSIGNED_TO]->(p:Person)
 RETURN t.id AS ticket, t.title AS title, p.id AS owner ORDER BY ticket
 """
 
+# Coverage: tickets no chat message ever mentions
 UNDISCUSSED_TICKETS = """
 MATCH (t:Ticket) WHERE NOT (:Message)-[:MENTIONS]->(t)
 OPTIONAL MATCH (t)-[:ABOUT]->(f:Feature)
@@ -167,6 +176,10 @@ CALL {
   RETURN 'chat' AS lane, r.id AS id, r.at_ms AS at, m.source + ' #' + m.channel AS title, r.text AS text, r.ticket AS ref, p.id AS who
   UNION
   WITH f
+  MATCH (d:Document)-[:ABOUT]->(f), (a:Person)-[:AUTHORED]->(d)
+  RETURN 'doc' AS lane, d.id AS id, d.updated_ms AS at, d.title AS title, d.text AS text, d.id AS ref, a.id AS who
+  UNION
+  WITH f
   MATCH (pr:PullRequest)-[:ABOUT]->(f), (a:Person)-[:AUTHORED]->(pr)
   RETURN 'pr' AS lane, pr.id AS id, coalesce(pr.merged_ms, pr.created_ms) AS at, 'PR #' + toString(pr.number) AS title,
          pr.title AS text, null AS ref, a.id AS who
@@ -181,4 +194,7 @@ def rows(g, query: str, **params) -> list[dict]:
 
 
 def drift(g, feature: str | None = None, ticket: str | None = None) -> list[dict]:
-    return rows(g, DRIFT, feature=feature, ticket=ticket)
+    out = rows(g, DRIFT, feature=feature, ticket=ticket)
+    for d in out:  # OPTIONAL MATCH with no hit collects a map of nulls
+        d["stale_docs"] = [x for x in d["stale_docs"] if x["id"] is not None]
+    return out

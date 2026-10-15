@@ -7,7 +7,7 @@ from pipeline.events import Event, find_ticket_refs, to_ms
 
 
 def apply_schema(g) -> None:
-    for label in ("Person", "Message", "Ticket", "PullRequest", "Feature", "Requirement", "Decision", "Sprint"):
+    for label in ("Person", "Message", "Ticket", "PullRequest", "Document", "Feature", "Requirement", "Decision", "Sprint"):
         try:
             g.query(f"CREATE INDEX FOR (n:{label}) ON (n.id)")
         except Exception as e:  # index already exists
@@ -27,6 +27,7 @@ FULLTEXT = {
     "Ticket": ("title", "description"),
     "PullRequest": ("title", "body"),
     "Person": ("name", "role"),
+    "Document": ("title", "text"),
 }
 
 
@@ -158,3 +159,22 @@ def write_pull_requests(g, events: list[Event]) -> None:
                MERGE (pr)-[:IN_SPRINT]->(s)""",
             {"id": e.id},
         )
+
+
+def write_documents(g, events: list[Event]) -> None:
+    """Docs (PRDs, design notes): Person -AUTHORED-> Document -MENTIONS-> Ticket."""
+    for e in events:
+        _ensure_person(g, e.author)
+        g.query(
+            """MERGE (d:Document {id: $id})
+               SET d.title = $title, d.text = $text, d.url = $url, d.created = $created, d.created_ms = $created_ms,
+                   d.updated = $updated, d.updated_ms = $updated_ms
+               WITH d
+               MATCH (a:Person {id: $author})
+               MERGE (a)-[:AUTHORED]->(d)""",
+            {"id": e.id, "title": e.extra["title"], "text": e.text, "url": e.url, "created": e.ts,
+             "created_ms": to_ms(e.ts), "updated": e.extra["updated"], "updated_ms": to_ms(e.extra["updated"]),
+             "author": e.author},
+        )
+        g.query("""UNWIND $refs AS ref MATCH (d:Document {id: $id}), (t:Ticket {id: ref})
+                   MERGE (d)-[:MENTIONS]->(t)""", {"id": e.id, "refs": e.extra["tickets"]})

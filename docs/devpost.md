@@ -10,7 +10,7 @@ Catches the moment a decision made in Slack or Discord stops matching the ticket
 Every team I've seen loses work the same way. A requirement changes in a chat thread ("let's do 12 months, not 30 days"), everyone in the thread agrees, and the ticket is never updated. Two weeks later a PR ships the old version, and nobody notices until a customer does. The information existed; it was just spread across three tools that don't know about each other.
 
 ## What it does
-It builds a **context graph** (FalkorDB) that links chat messages, tickets and GitHub pull requests to the same feature and the same requirement, then:
+It builds a **context graph** (FalkorDB) that links chat messages, product docs, tickets and GitHub pull requests to the same feature and the same requirement, then:
 
 - **Live drift alerts:** when a new Slack or Discord message changes a requirement that the ticket or PRs don't reflect, the bot replies in the thread with the evidence, for example: *Maya's message → changes requirement → amends BD-101 → PR #6 implements the older version*.
 - **Sprint retro:** what we decided, what we shipped, and where they diverge, with a source link on every line.
@@ -20,6 +20,9 @@ It builds a **context graph** (FalkorDB) that links chat messages, tickets and G
 - **Close the loop:** one click writes the decided requirement into the ticket as its next version, or records a "keep the old scope" decision. Both are stored in the graph, and the drift clears.
 - **Feature timeline:** ticket versions, chat changes and PRs on one time axis, with the stretch where the ticket and PRs never caught up shaded in.
 - **Dashboard:** drift cards with before/after diffs, an interactive feature graph, the retro, and a "simulate a message" box that runs the live monitor.
+
+## Does the graph do real work?
+An ablation study (`python -m benchmark.ablation`, deterministic, no LLM) switches graph capabilities off one at a time and scores against the answer key. Without version reasoning (`SUPERSEDES`/`IMPLEMENTS`) **half the drift alerts are false**: changes that were already written back into tickets get flagged. With ticket IDs only (no thread structure or semantic linking) **both real drifts are missed**, because the decisive messages never mention a ticket ID. Without threads, message linking recall drops from 0.92 to 0.77. Person/time proximity made no difference on this dataset, and I report that as-is.
 
 ## How we built it
 - **Connectors** (Python) for Slack, Discord, the GitHub REST API and Linear-style ticket JSON all emit one common event format.
@@ -38,7 +41,7 @@ It builds a **context graph** (FalkorDB) that links chat messages, tickets and G
 ## Accomplishments that we're proud of
 - Every alert and answer comes with an explainable graph path, not just a score.
 - With a rule-based extractor (no LLM, no answer key) the pipeline finds exactly the planted drifts and their stale PRs on the synthetic dataset (precision and recall 1.00), leaves the clean feature alone, and links the PR that has no ticket ID. *(I wrote the rules while looking at this dataset, so that's an upper bound; the LLM extractor is the general path.)*
-- 16 tests (unit and end-to-end on a throwaway graph), and re-ingesting is idempotent.
+- 22 tests (unit and end-to-end on a throwaway graph), and re-ingesting is idempotent.
 
 ## What we learned
 Most of the hard part is the data model, not the LLM. Once requirements are versioned nodes with `SUPERSEDES` and `IMPLEMENTS` edges, "did we ship what we decided?" becomes a short query, while plain retrieval over the same text finds the documents but can't tell which version is current.

@@ -3,7 +3,7 @@ const esc = (s) => String(s ?? "").replace(/[&<>"]/g, (c) => ({ "&": "&amp;", "<
 const link = (url, text) => (url && !url.startsWith("scenario://") ? `<a href="${esc(url)}" target="_blank" rel="noopener">${esc(text)}</a>` : esc(text));
 const css = (v) => getComputedStyle(document.documentElement).getPropertyValue(v).trim();
 let cy, currentFeature, driftCount = null;
-const TYPES = { Feature: "--n-feature", Ticket: "--n-ticket", Requirement: "--n-req", Message: "--n-msg", PullRequest: "--n-pr", Person: "--n-person", Decision: "--accent" };
+const TYPES = { Feature: "--n-feature", Ticket: "--n-ticket", Requirement: "--n-req", Message: "--n-msg", PullRequest: "--n-pr", Person: "--n-person", Decision: "--accent", Document: "--n-doc" };
 
 async function api(path, body) {
   const res = await fetch(path, body ? { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(body) } : {});
@@ -105,6 +105,7 @@ async function loadDrift() {
         <div class="now"><span class="mono">Decided in chat</span><p>${esc(d.requirement_text)}</p></div>
       </div>
       ${d.stale_prs.length ? `<div class="stale">Shipped the old version: ${d.stale_prs.map((p) => link(p.url, `#${p.pr} ${p.title}`)).join(", ")}</div>` : ""}
+      ${d.stale_docs.length ? `<div class="stale">Docs still describing the old version: ${d.stale_docs.map((x) => `${esc(x.title)} <span class="muted">(updated ${esc((x.updated || "").slice(0, 10))})</span>`).join(", ")}</div>` : ""}
       <div class="mono kicker">Evidence path</div>
       ${renderPath(d.path)}
       <div class="actions">
@@ -119,7 +120,7 @@ async function loadDrift() {
 
 /* ---------- graph ---------- */
 function renderLegend() {
-  const items = ["Feature", "Ticket", "Requirement", "Message", "PullRequest", "Person"];
+  const items = ["Feature", "Ticket", "Requirement", "Message", "PullRequest", "Document", "Person"];
   $("#legend").innerHTML = items.map((t) => `<span><i style="background:${css(TYPES[t])}"></i>${t}</span>`).join("") +
     `<span><i style="background:${css("--accent")}"></i>Drift</span>`;
 }
@@ -150,6 +151,8 @@ async function showGraph(feature) {
           "border-width": 1, "border-color": css("--line") } },
       { selector: "node[type='Ticket']", style: { shape: "round-rectangle", width: 18, height: 12 } },
       { selector: "node[type='PullRequest']", style: { shape: "diamond", width: 16, height: 16 } },
+      { selector: "node[type='Document']", style: { shape: "tag", width: 16, height: 16 } },
+      { selector: "node[?stale]", style: { "border-width": 2, "border-color": css("--accent"), "border-style": "dashed" } },
       { selector: "node[?drift]", style: { width: 22, height: 22, "border-width": 6, "border-color": css("--accent"), "border-opacity": 0.25, color: css("--accent") } },
       { selector: "edge", style: { width: 1, "line-color": css("--line"), "target-arrow-color": css("--line"), "target-arrow-shape": "triangle", "arrow-scale": 0.7,
           "curve-style": "bezier", "font-family": "Geist Mono, monospace", "font-size": 6.5, color: css("--note"), "text-rotation": "autorotate",
@@ -160,7 +163,7 @@ async function showGraph(feature) {
       { selector: ":selected", style: { "border-width": 2, "border-color": css("--ink") } },
     ],
     layout: { name: "concentric", animate: false, padding: 30, minNodeSpacing: 26, startAngle: -Math.PI / 2,
-              concentric: (n) => ({ Feature: 5, Ticket: 4, Requirement: 3, Message: 2, PullRequest: 2, Person: 1 }[n.data("type")] || 1),
+              concentric: (n) => ({ Feature: 5, Ticket: 4, Requirement: 3, Message: 2, PullRequest: 2, Document: 2, Person: 1 }[n.data("type")] || 1),
               levelWidth: () => 1 },
     minZoom: 0.4, maxZoom: 2.2,
   });
@@ -210,10 +213,10 @@ async function loadTimeline(feature) {
   const ticks = [];
   for (let t = Math.ceil(t0 / DAY) * DAY; t <= t1; t += DAY * Math.max(1, Math.round(span / DAY / 8))) ticks.push(t);
   const fmt = (t) => new Date(t).toISOString().slice(5, 10);
-  const lanes = [["chat", "Chat"], ["ticket", "Tickets"], ["pr", "PRs"]];
+  const lanes = [["chat", "Chat"], ["ticket", "Tickets"], ["doc", "Docs"], ["pr", "PRs"]];
   let k = 0;
   const drift = evs.find((e) => e.drift);
-  const gap = (label) => (drift ? `<div class="tl__gap" style="left:${x(drift.at)};right:0">${label ? "<span>ticket + PRs never caught up</span>" : ""}</div>` : "");
+  const gap = (label) => (drift ? `<div class="tl__gap" style="left:${x(drift.at)};right:0">${label ? "<span>ticket, docs + PRs never caught up</span>" : ""}</div>` : "");
   $("#timeline").innerHTML = `
     <div class="tl__axis">${ticks.map((t) => `<span class="tl__tick" style="left:${x(t)}">${fmt(t)}</span>`).join("")}</div>
     ${lanes.map(([lane, label]) => `<div class="tl__lane" data-label="${label}">${gap(lane === "pr")}
@@ -226,7 +229,7 @@ async function loadTimeline(feature) {
     el.classList.add("sel");
     $("#tl-detail").innerHTML = `
       <div><dt>When</dt><dd>${esc(e.iso.replace("T", " ").slice(0, 16))} UTC</dd></div>
-      <div><dt>${esc(e.lane === "pr" ? "Pull request" : e.lane === "chat" ? "Chat change" : "Ticket version")}</dt><dd>${esc(e.title)}${e.who ? ` · ${esc(e.who)}` : ""}${e.ref && e.lane === "chat" ? ` → amends ${esc(e.ref)}` : ""}</dd></div>
+      <div><dt>${esc({ pr: "Pull request", chat: "Chat change", doc: "Doc (last updated)", ticket: "Ticket version" }[e.lane])}</dt><dd>${esc(e.title)}${e.who ? ` · ${esc(e.who)}` : ""}${e.ref && e.lane === "chat" ? ` → amends ${esc(e.ref)}` : ""}</dd></div>
       <div><dt>Says</dt><dd>${esc(e.text)}</dd></div>
       <div><dt>Status</dt><dd>${e.drift ? '<span class="warn">drift: newest, unimplemented, ticket never updated</span>' : e.superseded ? "superseded by a later version" : e.lane === "pr" ? "shipped" : "current"}</dd></div>`;
   };
@@ -547,6 +550,8 @@ async function openPerson(pid) {
     <ul>${p.owns.map((t) => `<li><b>${esc(t.ticket)}</b> ${esc(t.title)} <span class="muted">· ${esc(t.state)}${t.feature ? " · " + esc(t.feature) : ""}</span></li>`).join("") || "<li>Nothing assigned</li>"}</ul>
     <div class="mono kicker">Shipped · ${p.prs.length}</div>
     <ul>${p.prs.map((x) => `<li>${link(x.url, "#" + x.pr)} ${esc(x.title)} <span class="muted">· ${esc(x.tickets.join(", ") || "no ticket")}</span></li>`).join("") || "<li>No PRs</li>"}</ul>
+    <div class="mono kicker">Wrote · ${p.docs.length}</div>
+    <ul>${p.docs.map((x) => `<li><b>${esc(x.id)}</b> ${esc(x.title)} <span class="muted">· updated ${esc((x.updated || "").slice(0, 10))} · ${esc(x.tickets.join(", "))}</span></li>`).join("") || "<li>No docs</li>"}</ul>
     <div class="mono kicker">Decided · ${p.decisions.length}</div>
     <ul>${p.decisions.map((d) => `<li><span class="muted">${esc((d.at || "").slice(0, 10))} · ${esc(d.ticket || "")}${d.kind === "dismissal" ? " · dismissal" : ""}</span><br>${esc(d.text)}</li>`).join("") || "<li>No decisions recorded</li>"}</ul>`;
   $("#drawer").hidden = false;
