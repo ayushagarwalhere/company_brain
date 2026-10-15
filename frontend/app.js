@@ -291,44 +291,15 @@ async function ask(q) {
   $("#answer").innerHTML = `<p class="answer thinking">Querying graph tools</p>`;
   try {
     const r = await api("/api/ask", { question: q });
-    $("#answer").innerHTML = `<div class="answer">${esc(r.answer)}</div>
+    const body = r.answer.split("\n\nEvidence:")[0];
+    $("#answer").innerHTML = `${r.engine === "rules" ? `<div class="notice"><b>Rules agent</b>: no LLM key set, so the question is routed to graph tools directly and the answer is assembled from their rows.</div>` : ""}
+      <div class="answer">${esc(body)}</div>
       <div class="mono kicker">Tools called</div>
       <div class="chips" style="margin:6px 0 0">${r.tool_calls.map((t) => `<span class="chip mono">${esc(t.tool)} ${esc(Object.values(t.args).join(", "))}</span>`).join("") || "<span class='mono'>none</span>"}</div>
       ${r.paths.length ? `<div class="mono kicker">Graph paths</div>${r.paths.slice(0, 6).map(renderPath).join("")}` : ""}`;
   } catch (e) {
-    if (!/DEEPSEEK|Service Unavailable/i.test(e.message)) { $("#answer").innerHTML = `<p class="error">${esc(e.message)}</p>`; return; }
-    try { await askOffline(q); } catch (err) { $("#answer").innerHTML = `<p class="error">${esc(err.message)}</p>`; }
+    $("#answer").innerHTML = `<p class="error">${esc(e.message)}</p>`;
   }
-}
-
-/* No LLM configured: run the graph tools directly, so the section still answers from the graph. */
-async function askOffline(q) {
-  const ql = q.toLowerCase();
-  let html = `<div class="notice"><b>LLM not configured</b>: running the graph tools directly. Set DEEPSEEK_API_KEY for written answers.</div>`;
-  const conn = q.match(/([\w:-]+)\s+(?:connected to|to|→)\s+([\w:-]+)\??\s*$/i);
-  const norm = (x) => (/^(pr|bd)-\d+$/i.test(x) ? x.toUpperCase() : x.toLowerCase());
-  if (conn && /connect|→/.test(ql)) {
-    const r = await api(`/api/connect?a=${encodeURIComponent(norm(conn[1]))}&b=${encodeURIComponent(norm(conn[2]))}`);
-    html += `<div class="mono kicker">how_connected(${esc(norm(conn[1]))}, ${esc(norm(conn[2]))})</div>` + (r.paths.map(renderPath).join("") || "<p class='muted'>No path within 7 hops.</p>");
-  } else {
-    const fs = await api("/api/features");
-    const f = fs.find((x) => (ql.includes("sla") && x.id.includes("sla")) || (ql.includes("export") && x.id.includes("export"))
-      || (ql.includes("dark") && x.id.includes("dark")) || x.tickets.some((t) => ql.includes(t.toLowerCase())));
-    if (/who|know|expert/.test(ql) && f) {
-      const ex = await api(`/api/features/${f.id}/experts`);
-      html += `<div class="mono kicker">who_knows(${esc(f.id)})</div><ol class="experts">${ex.map((p) => `<li><b>${esc(p.name)}</b> <span class="muted">${esc(p.role)} · score ${p.score} · ${p.items} items</span></li>`).join("")}</ol>`;
-    } else if (f) {
-      const [d, h] = await Promise.all([api(`/api/drift?feature=${f.id}`), api(`/api/features/${f.id}/history`)]);
-      html += `<div class="mono kicker">drift_for_feature(${esc(f.id)})</div>` + (d.length
-        ? d.map((x) => `<p class="answer">⚠ ${esc(x.requirement_text)} ${esc(x.ticket)} still says “${esc(x.ticket_text)}”.</p>` + renderPath(x.path)).join("")
-        : `<p class="answer">No open drift on ${esc(f.name)}.</p>`);
-      html += `<div class="mono kicker">decision_history(${esc(f.id)})</div>` + h.paths.slice(0, 6).map(renderPath).join("");
-    } else {
-      const d = await api("/api/drift");
-      html += `<div class="mono kicker">drift_for_feature()</div>` + d.map((x) => `<p class="answer">⚠ <b>${esc(x.feature_name)}</b>: ${esc(x.requirement_text)}</p>` + renderPath(x.path)).join("");
-    }
-  }
-  $("#answer").innerHTML = html;
 }
 
 function countUp(only) {

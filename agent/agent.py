@@ -24,6 +24,10 @@ def _compact(result: dict) -> str:
 
 
 def ask(question: str) -> dict:
+    """LLM agent when DEEPSEEK_API_KEY is set; otherwise the rules-based router over the same graph tools."""
+    if not settings.deepseek_api_key:
+        from agent.router import ask as rules_ask
+        return rules_ask(question)
     client = _client()
     messages = [{"role": "system", "content": SYSTEM}, {"role": "user", "content": question}]
     trace, paths = [], []
@@ -32,7 +36,7 @@ def ask(question: str) -> dict:
                                               tools=tools.openai_schema(), temperature=0)
         msg = resp.choices[0].message
         if not msg.tool_calls:
-            return {"answer": msg.content, "tool_calls": trace, "paths": paths}
+            return {"answer": msg.content, "tool_calls": trace, "paths": paths, "engine": "deepseek"}
         messages.append({"role": "assistant", "content": msg.content or "",
                          "tool_calls": [tc.model_dump() for tc in msg.tool_calls]})
         for tc in msg.tool_calls:
@@ -44,7 +48,7 @@ def ask(question: str) -> dict:
             trace.append({"tool": tc.function.name, "args": args, "rows": len(result.get("rows", []))})
             paths += [p for p in result.get("paths", []) if p not in paths]
             messages.append({"role": "tool", "tool_call_id": tc.id, "content": _compact(result)})
-    return {"answer": "I couldn't finish within the step limit.", "tool_calls": trace, "paths": paths}
+    return {"answer": "I couldn't finish within the step limit.", "tool_calls": trace, "paths": paths, "engine": "deepseek"}
 
 
 if __name__ == "__main__":

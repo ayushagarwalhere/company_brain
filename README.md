@@ -10,7 +10,7 @@ This project builds a **context graph in FalkorDB** that ties Slack and Discord 
 
 1. **Live drift alerts.** When a chat message changes a requirement that the ticket or PRs don't reflect, the bot replies in Slack or Discord with the **graph path** as evidence.
 2. **Sprint retro.** Shows what we decided, what we shipped and where they diverge, with a source link on every line.
-3. **Cited Q&A.** A DeepSeek agent picks from 8 graph tools, and every answer shows the graph paths it used.
+3. **Cited Q&A.** A DeepSeek agent picks from 9 graph tools, and every answer shows the graph paths it used. Without a key, a **rules agent** ([`agent/router.py`](agent/router.py)) routes the question to the same tools by intent (connect, who-knows, PRs, drift, decided/shipped, impact) and builds the answer from their rows. The API, the bots and the dashboard all work either way.
 4. **Spec generation.** Turns a drifted feature's graph context into an agent-ready spec. It stops at the spec: nothing executes it.
 5. **Coverage and risk.** Finds PRs with no ticket, tickets closed with no code, tickets nobody discussed, and features where one person holds most of the knowledge ("bus factor 1").
 6. **Feature timeline.** Puts ticket versions, chat changes and PRs on one time axis and shades the stretch where the ticket and PRs never caught up.
@@ -197,6 +197,14 @@ Neither Slack, Discord nor GitHub lets you backdate content. The seeders therefo
 
 Bot commands: `ask <question>`, `retro s1`, `drift`, `spec feat_export` (`@bot …` in Slack, `!brain …` in Discord).
 
+Daily digest (open drift with graph paths, plus coverage risks), for cron or any scheduler:
+
+```bash
+python -m bots.digest --dry-run              # print it
+python -m bots.digest --slack C0123456789    # post to Slack
+python -m bots.digest --discord 1234567890   # post to Discord (REST, no gateway connection)
+```
+
 ## Benchmark
 
 | | What it measures |
@@ -234,6 +242,7 @@ _DeepSeek extraction scores and the graph vs. no-graph results go here once the 
 ## Limitations
 
 - **Synthetic, small dataset.** It has 300 messages, 15 tickets and 12 PRs, so it can't show behaviour at company scale.
+- **I tried expanding each feature's TF-IDF document with its already-linked chat to catch paraphrases. It didn't help:** any threshold low enough to recover the missed SLA thread also linked 6 noise messages (precision 0.80–0.85), so I reverted it.
 - **TF-IDF semantic fallback misses paraphrases.** For example, "email *at* breach is too late" doesn't link to the SLA feature without the LLM. That's why message→feature recall is 0.92 in the table above.
 - **Supersession depends on one LLM judgment.** Whether a ticket edit reflects a chat change is a single DeepSeek call per pair, so a wrong "yes" hides drift.
 - **Same-ticket scope.** Stale PRs are those that reference the amended ticket. A PR on a sibling ticket of the same feature isn't flagged.

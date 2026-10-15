@@ -116,3 +116,17 @@ def test_write_to_ticket_and_dismiss_close_the_loop(g):
                    "RETURN r.id AS r") == [{"r": exp}]
     remaining = {d["ticket"] for d in drift(g)}
     assert "BD-103" not in remaining and "BD-101" not in remaining
+
+
+def test_rules_agent_answers_from_graph(g, monkeypatch):
+    """Without an LLM key, ask() routes to graph tools and still answers with paths."""
+    from agent import router
+    monkeypatch.setattr(router, "get_graph", lambda: g)
+    import agent.tools as tools
+    monkeypatch.setattr(tools, "_g", lambda: g)
+    r = router.ask("Which PR added the export button, and which ticket does it belong to?")
+    assert "#7" in r["answer"] and "BD-102" in r["answer"] and "proximity" in r["answer"]
+    r = router.ask("Who owns BD-103?")
+    assert "Dev Patel" in r["answer"]
+    r = router.ask("How is liam connected to PR-6?")
+    assert r["paths"] and r["paths"][0].startswith("(Person liam)")

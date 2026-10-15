@@ -92,6 +92,17 @@ def how_connected(a: str, b: str) -> dict:
         paths.append("".join(parts))
     return {"rows": rows, "paths": paths}
 
+def feature_prs(feature: str) -> dict:
+    """PRs about a feature: their ticket, how the link was made, author, merge date, what they implement."""
+    rows = Q.rows(_g(), """MATCH (pr:PullRequest)-[:ABOUT]->(:Feature {id: $f}) MATCH (a:Person)-[:AUTHORED]->(pr)
+                           OPTIONAL MATCH (pr)-[ref:REFERENCES]->(t:Ticket)
+                           OPTIONAL MATCH (pr)-[:IMPLEMENTS]->(r:Requirement)
+                           RETURN pr.number AS pr, pr.title AS title, pr.url AS url, a.id AS author, pr.merged AS merged,
+                                  collect(DISTINCT t.id) AS tickets, collect(DISTINCT coalesce(ref.how, 'hard')) AS link,
+                                  collect(DISTINCT r.id) AS implements, pr.number AS n ORDER BY n""", f=feature)
+    return {"rows": rows, "paths": [f"(PullRequest #{r['pr']})-[:REFERENCES {{via: {', '.join(r['link'])}}}]->(Ticket {', '.join(r['tickets']) or '?'})"
+                                    for r in rows]}
+
 TOOLS = {
     "list_features": (list_features, "List all features with their tickets. Call first to find feature ids.", {}),
     "drift_for_feature": (drift_for_feature, "Requirements changed in chat that the ticket/PRs don't reflect. Omit feature for all.",
@@ -104,6 +115,8 @@ TOOLS = {
                   {"feature": {"type": "string"}}),
     "list_decisions": (list_decisions, "Decisions made in chat, optionally for one feature, with who made them and where.",
                        {"feature": {"type": "string", "description": "feature id, optional"}}),
+    "feature_prs": (feature_prs, "Pull requests for a feature: ticket, how the link was resolved (hard id vs. proximity), author, merge date, implemented requirement.",
+                    {"feature": {"type": "string"}}),
     "how_connected": (how_connected, "Shortest causal chain linking two things, e.g. a person and a PR ('liam', 'PR-6') or a message and a ticket. Ids: person ids, message ids, BD-xxx, PR-n, dec:<message id>.",
                       {"a": {"type": "string"}, "b": {"type": "string"}}),
     "decision_impact": (decision_impact, "Downstream impact of a decision: ticket, owner, PRs, related tickets.",
