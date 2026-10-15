@@ -16,6 +16,8 @@ It builds a **context graph** (FalkorDB) that links chat messages, tickets and G
 - **Sprint retro:** what we decided, what we shipped, and where they diverge, with a source link on every line.
 - **Ask the graph:** an LLM agent answers questions using 8 graph tools (drift, decision history, timeline, who-knows, impact, how-connected…), and every answer lists the graph paths it used.
 - **Spec generation:** turns a drifted feature's graph context into an agent-ready spec (it stops at the spec; nothing auto-executes).
+- **Coverage and risk:** PRs with no ticket, tickets closed without code, tickets nobody discussed, and features where one person holds most of the knowledge.
+- **Feature timeline:** ticket versions, chat changes and PRs on one time axis, with the stretch where the ticket and PRs never caught up shaded in.
 - **Dashboard:** drift cards with before/after diffs, an interactive feature graph, the retro, and a "simulate a message" box that runs the live monitor.
 
 ## How we built it
@@ -34,8 +36,8 @@ It builds a **context graph** (FalkorDB) that links chat messages, tickets and G
 
 ## Accomplishments that we're proud of
 - Every alert and answer comes with an explainable graph path, not just a score.
-- On the synthetic dataset, the resolution and drift logic finds exactly the planted drifts and their stale PRs (precision and recall 1.00), correctly leaves the clean feature alone, and links the PR that has no ticket ID. *(These numbers come from the answer-key test harness, which checks the graph logic; LLM-extraction scores are in the README once run.)*
-- 15 tests (unit and end-to-end on a throwaway graph), and re-ingesting is idempotent.
+- With a rule-based extractor (no LLM, no answer key) the pipeline finds exactly the planted drifts and their stale PRs on the synthetic dataset (precision and recall 1.00), leaves the clean feature alone, and links the PR that has no ticket ID. *(I wrote the rules while looking at this dataset, so that's an upper bound; the LLM extractor is the general path.)*
+- 16 tests (unit and end-to-end on a throwaway graph), and re-ingesting is idempotent.
 
 ## What we learned
 Most of the hard part is the data model, not the LLM. Once requirements are versioned nodes with `SUPERSEDES` and `IMPLEMENTS` edges, "did we ship what we decided?" becomes a short query, while plain retrieval over the same text finds the documents but can't tell which version is current.

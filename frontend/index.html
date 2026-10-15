@@ -27,6 +27,7 @@
       <a href="#ask">[03] Ask</a>
       <a href="#retro-sec">[04] Retro</a>
       <a href="#simulate">[05] Simulate</a>
+      <a href="#coverage">[06] Risk</a>
     </div>
     <button class="theme-toggle mono" id="theme-toggle" aria-label="Toggle theme">◐</button>
   </nav>
@@ -77,10 +78,15 @@
         <h2>Feature graph</h2>
         <p>Tickets, requirement versions, the messages that changed them, and the PRs that implement them.</p>
         <select id="feature-select" class="field" aria-label="Feature"></select>
+        <div class="tabs mono view-tabs" role="tablist">
+          <button class="active" data-view="graph" role="tab">Graph</button>
+          <button data-view="timeline" role="tab">Timeline</button>
+        </div>
         <div class="legend mono" id="legend"></div>
       </div>
       <div class="sec__body">
-        <div class="canvas">
+        <div class="timeline" id="timeline" hidden></div>
+        <div class="canvas" id="canvas">
           <div id="graph"></div>
           <div class="canvas__coords mono" id="coords">X:0000 Y:0000</div>
           <div class="canvas__tag mono" id="canvas-tag"></div>
@@ -141,9 +147,18 @@
       </div>
     </section>
 
-    <section class="sec" id="spec-sec" hidden>
+    <section class="sec" id="coverage">
       <div class="sec__label">
         <span class="mono idx">[06]</span>
+        <h2>Coverage &amp; risk</h2>
+        <p>Where the company brain has holes: work nobody linked, tickets nobody discussed, knowledge held by one person.</p>
+      </div>
+      <div class="sec__body" id="coverage-body"></div>
+    </section>
+
+    <section class="sec" id="spec-sec" hidden>
+      <div class="sec__label">
+        <span class="mono idx">[07]</span>
         <h2>Agent-ready spec</h2>
         <p id="spec-engine">Built from graph context only. Not executed.</p>
       </div>

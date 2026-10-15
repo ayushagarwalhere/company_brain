@@ -12,6 +12,8 @@ This project builds a **context graph in FalkorDB** that ties Slack and Discord 
 2. **Sprint retro.** Shows what we decided, what we shipped and where they diverge, with a source link on every line.
 3. **Cited Q&A.** A DeepSeek agent picks from 8 graph tools, and every answer shows the graph paths it used.
 4. **Spec generation.** Turns a drifted feature's graph context into an agent-ready spec. It stops at the spec: nothing executes it.
+5. **Coverage and risk.** Finds PRs with no ticket, tickets closed with no code, tickets nobody discussed, and features where one person holds most of the knowledge ("bus factor 1").
+6. **Feature timeline.** Puts ticket versions, chat changes and PRs on one time axis and shades the stretch where the ticket and PRs never caught up.
 
 ```
 (Person maya)-[:POSTED]->(Message @ slack#support-escalations, 2026-09-22)
@@ -125,6 +127,9 @@ RETURN f, t, r, m, author, collect({pr: pr.number, implements: old.text}) AS sta
 | `FEATURE_TIMELINE` | chronological messages, tickets, PRs, requirements for a feature |
 | `WHO_KNOWS` | expertise: people ranked by weighted paths to a feature (decision 5, PR 4, ticket 3, message 1) |
 | `DECISION_IMPACT` | downstream of a decision: requirement → ticket → owner, PRs, related tickets |
+| `ORPHAN_PRS`, `DONE_WITHOUT_PR`, `UNDISCUSSED_TICKETS` | coverage: shipped work with no ticket, closed tickets with no code, tickets no message mentions |
+| `KNOWLEDGE_RISK` | per feature, the share of weighted involvement held by the top person (bus factor) |
+| `FEATURE_EVENTS` | one `CALL { … UNION … }` subquery that puts ticket versions, chat changes and PRs on a single time axis for the timeline |
 | `CONNECTION` | shortest causal chain between any two ids, e.g. `liam` → `PR-6`. This is a bounded undirected search, because FalkorDB's `shortestPath` is directed-only, and it skips the Feature hub so the chain actually explains something |
 
 The `SUPERSEDES` chain is built per ticket in time order ([`supersession_pairs`](pipeline/resolve.py)). A chat change supersedes whatever is current. A later ticket version supersedes earlier ticket versions, but it supersedes a chat change **only if its text actually reflects that change** (DeepSeek `reflects` check). That way an unrelated ticket edit, like a typo fix, can't hide drift. A live change supersedes whichever requirements for that ticket currently have nothing superseding them.
@@ -166,7 +171,13 @@ python -m pytest -q                           # unit + end-to-end graph tests (g
 uvicorn api.main:app --port 8000              # dashboard on http://localhost:8000 (add ?theme=light or ?theme=dark)
 ```
 
-Without a DeepSeek key, `python -m pipeline.build --extractor oracle` uses the answer key for the *language* judgments only (classification, PR→requirement). That's a test harness for the resolution and drift logic, and its scores are never reported as model results.
+Three extractors make the language judgments (feature grouping, message classification, which requirement a PR implements, and whether a ticket edit reflects a chat change):
+
+| `--extractor` | What it is |
+|---|---|
+| `deepseek` (default) | LLM calls with JSON output, cached in `data/llm_cache/` |
+| `heuristic` | Rules only, with no LLM and no answer key: ticket labels for grouping, sentence-level decision phrasing (questions, rejections and short acks are excluded), number-aware text match for PR→requirement, and the words a ticket edit *added* for "reflects". This is the fallback when there's no key |
+| `oracle` | Reads the answer key. A test harness for the graph logic only, never reported as a result |
 
 ### Real Slack, Discord and GitHub
 
@@ -192,7 +203,20 @@ Bot commands: `ask <question>`, `retro s1`, `drift`, `spec feat_export` (`@bot �
 
 Results are saved in `benchmark/results/latest.json`.
 
-**Resolution and drift logic with oracle language judgments** (no model in the loop; this tests the graph logic only):
+**Heuristic extractor (no LLM, no answer key)**: `python -m pipeline.build --extractor heuristic && python -m benchmark.score_resolution`
+
+| Metric | P | R |
+|---|---|---|
+| ticket → feature | 1.00 | 1.00 |
+| message → feature | 1.00 | 0.92 |
+| PR → ticket (incl. PR #7 with no ticket id) | 1.00 | 1.00 |
+| requirement changes from chat | 1.00 | 1.00 |
+| drift detection | 1.00 | 1.00 |
+| stale PRs | 1.00 | 1.00 |
+
+Caveat: I wrote these rules while looking at this synthetic dataset, so treat the numbers as an upper bound, not as generalisation. The rules are listed above so you can judge them yourself.
+
+**Oracle language judgments** (tests the graph logic in isolation):
 
 | Metric | P | R |
 |---|---|---|
@@ -210,7 +234,7 @@ _DeepSeek extraction scores and the graph vs. no-graph results go here once the 
 - **TF-IDF semantic fallback misses paraphrases.** For example, "email *at* breach is too late" doesn't link to the SLA feature without the LLM. That's why message→feature recall is 0.92 in the table above.
 - **Supersession depends on one LLM judgment.** Whether a ticket edit reflects a chat change is a single DeepSeek call per pair, so a wrong "yes" hides drift.
 - **Same-ticket scope.** Stale PRs are those that reference the amended ticket. A PR on a sibling ticket of the same feature isn't flagged.
-- **Live alerts depend on DeepSeek.** Without a key, the live monitor falls back to a deliberately simple keyword heuristic.
+- **The heuristic extractor is phrase-based.** It catches "Decision: …", "let's change …" and "we'll now …", but not a change implied without that phrasing. That's what the DeepSeek extractor is for.
 - **Seeded timestamps.** Platform timestamps can't be backdated (see above).
 
 ## Future work (out of scope)

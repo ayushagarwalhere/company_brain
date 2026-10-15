@@ -51,7 +51,8 @@ async function loadStats() {
   const total = (xs) => xs.reduce((a, x) => a + x.n, 0);
   $("#spec-graph").textContent = `${total(s.nodes)} nodes · ${total(s.relationships)} relationships · ${s.nodes.length} labels`;
   $("#spec-build").innerHTML = s.build
-    ? (s.build.extractor === "oracle" ? `<span class="warn">answer-key oracle (demo mode)</span>` : esc(s.build.extractor))
+    ? ({ oracle: `<span class="warn">answer-key oracle (test mode)</span>`, heuristic: "rule-based heuristics · no LLM",
+         deepseek: "DeepSeek LLM" }[s.build.extractor] || esc(s.build.extractor))
     : "not recorded";
   const log = [
     ["001", `Ingest ${s.nodes.find((n) => n.label === "Message")?.n ?? 0} messages`],
@@ -182,6 +183,74 @@ $("#graph").addEventListener("mousemove", (e) => {
   $("#coords").textContent = `X:${String(Math.round(e.clientX - r.left)).padStart(4, "0")} Y:${String(Math.round(e.clientY - r.top)).padStart(4, "0")}`;
 });
 
+/* ---------- timeline ---------- */
+let view = "graph";
+function setView(v) {
+  view = v;
+  document.querySelectorAll("[data-view]").forEach((b) => b.classList.toggle("active", b.dataset.view === v));
+  $("#timeline").hidden = v !== "timeline";
+  $("#canvas").hidden = v !== "graph";
+  $("#node-detail").hidden = v !== "graph";
+  if (v === "timeline" && currentFeature) loadTimeline(currentFeature);
+  if (v === "graph" && cy) cy.resize().fit(undefined, 30);
+}
+
+async function loadTimeline(feature) {
+  const evs = await api(`/api/features/${encodeURIComponent(feature)}/timeline`);
+  if (!evs.length) { $("#timeline").innerHTML = `<p class="muted">No events.</p>`; return; }
+  const t0 = evs[0].at, t1 = evs[evs.length - 1].at, span = Math.max(1, t1 - t0);
+  const pad = 0.04;
+  const x = (t) => `${(pad + (1 - 2 * pad) * ((t - t0) / span)) * 100}%`;
+  const DAY = 86400000;
+  const ticks = [];
+  for (let t = Math.ceil(t0 / DAY) * DAY; t <= t1; t += DAY * Math.max(1, Math.round(span / DAY / 8))) ticks.push(t);
+  const fmt = (t) => new Date(t).toISOString().slice(5, 10);
+  const lanes = [["chat", "Chat"], ["ticket", "Tickets"], ["pr", "PRs"]];
+  let k = 0;
+  const drift = evs.find((e) => e.drift);
+  const gap = (label) => (drift ? `<div class="tl__gap" style="left:${x(drift.at)};right:0">${label ? "<span>ticket + PRs never caught up</span>" : ""}</div>` : "");
+  $("#timeline").innerHTML = `
+    <div class="tl__axis">${ticks.map((t) => `<span class="tl__tick" style="left:${x(t)}">${fmt(t)}</span>`).join("")}</div>
+    ${lanes.map(([lane, label]) => `<div class="tl__lane" data-label="${label}">${gap(lane === "pr")}
+      ${evs.map((e, i) => e.lane !== lane ? "" : `<button class="tl__ev tl__ev--${lane}${e.drift ? " tl__ev--drift" : ""}${e.superseded ? " tl__ev--super" : ""}"
+         style="left:${x(e.at)};--k:${k++}" data-ev="${i}" aria-label="${esc(e.title)}"></button>`).join("")}</div>`).join("")}
+    <dl class="spec tl__detail" id="tl-detail"><div><dt>Event</dt><dd>Hover or click a marker. Faded markers were superseded by a later version.</dd></div></dl>`;
+  const show = (el) => {
+    const e = evs[+el.dataset.ev];
+    document.querySelectorAll(".tl__ev.sel").forEach((n) => n.classList.remove("sel"));
+    el.classList.add("sel");
+    $("#tl-detail").innerHTML = `
+      <div><dt>When</dt><dd>${esc(e.iso.replace("T", " ").slice(0, 16))} UTC</dd></div>
+      <div><dt>${esc(e.lane === "pr" ? "Pull request" : e.lane === "chat" ? "Chat change" : "Ticket version")}</dt><dd>${esc(e.title)}${e.who ? ` · ${esc(e.who)}` : ""}${e.ref && e.lane === "chat" ? ` → amends ${esc(e.ref)}` : ""}</dd></div>
+      <div><dt>Says</dt><dd>${esc(e.text)}</dd></div>
+      <div><dt>Status</dt><dd>${e.drift ? '<span class="warn">drift: newest, unimplemented, ticket never updated</span>' : e.superseded ? "superseded by a later version" : e.lane === "pr" ? "shipped" : "current"}</dd></div>`;
+  };
+  document.querySelectorAll(".tl__ev").forEach((el) => { el.addEventListener("mouseenter", () => show(el)); el.addEventListener("click", () => show(el)); });
+  const first = document.querySelector(".tl__ev--drift") || document.querySelector(".tl__ev");
+  if (first) show(first);
+}
+
+/* ---------- coverage & risk ---------- */
+async function loadCoverage() {
+  const c = await api("/api/coverage");
+  const card = (title, list, sub, fmt) => `<div class="cov__card reveal"><span class="mono">${esc(title)}</span><b class="big">${list.length}</b>
+    <small class="muted">${esc(sub)}</small><ul>${list.slice(0, 5).map((x) => `<li>${fmt(x)}</li>`).join("")}</ul></div>`;
+  $("#coverage-body").innerHTML = `
+    <div class="cov">
+      ${card("PRs with no ticket", c.orphan_prs, "shipped work nobody can trace", (x) => `${link(x.url, "#" + x.pr)} ${esc(x.title)} <span class="muted">· ${esc(x.author)}</span>`)}
+      ${card("Done, no PR", c.done_without_pr, "closed tickets with no linked code", (x) => `${esc(x.ticket)} ${esc(x.title)}`)}
+      ${card("Never discussed", c.undiscussed_tickets, "tickets no message mentions", (x) => `${esc(x.ticket)} ${esc(x.title)} <span class="muted">· ${esc(x.state)}</span>`)}
+    </div>
+    <div class="mono kicker">Knowledge concentration · share of a feature's involvement held by one person</div>
+    ${c.knowledge_risk.map((r) => `<div class="risk__row">
+        <div><b>${esc(r.name)}</b><div class="muted" style="font-size:13px">${esc(r.top_person)} · ${r.people} people involved</div></div>
+        <div class="risk__bar"><span class="${r.top_share >= 0.5 ? "hot" : ""}" data-w="${Math.round(r.top_share * 100)}"></span></div>
+        <span class="mono">${Math.round(r.top_share * 100)}%${r.top_share >= 0.5 ? " · bus factor 1" : ""}</span>
+      </div>`).join("")}`;
+  requestAnimationFrame(() => setTimeout(() => document.querySelectorAll(".risk__bar span").forEach((b) => (b.style.width = b.dataset.w + "%")), 120));
+  observeReveals();
+}
+
 /* ---------- ask ---------- */
 async function ask(q) {
   $("#ask-input").value = q;
@@ -310,7 +379,7 @@ async function simulate(e) {
         <span>classified <b>${esc(r.classification?.kind)}</b></span></div>
       ${r.path ? renderPath(r.path) : ""}
       ${r.alert ? `<div class="alertbox">${esc(r.alert.replace(/:warning:\s*/g, "⚠ ").replace(/\*/g, ""))}</div>` : ""}`;
-    if (r.status === "drift") { loadDrift(); loadStats(); if (r.feature) showGraph(r.feature); }
+    if (r.status === "drift") { loadDrift(); loadStats(); loadCoverage(); if (r.feature) { showGraph(r.feature); if (view === "timeline") loadTimeline(r.feature); } }
   } catch (err) {
     $("#sim-result").innerHTML = `<p class="error">${esc(err.message)}</p>`;
   } finally { btn.disabled = false; }
@@ -327,21 +396,22 @@ document.querySelectorAll(".sec__label, .sec__body").forEach((el) => el.classLis
 
 /* ---------- wiring ---------- */
 document.addEventListener("click", (e) => {
-  const t = e.target.closest("[data-graph],[data-spec],[data-q],[data-sprint]");
+  const t = e.target.closest("[data-graph],[data-spec],[data-q],[data-sprint],[data-view]");
   if (!t) return;
+  if (t.dataset.view) setView(t.dataset.view);
   if (t.dataset.graph) { showGraph(t.dataset.graph); $("#graph-sec").scrollIntoView({ behavior: "smooth" }); }
   if (t.dataset.spec) spec(t.dataset.spec, t);
   if (t.dataset.q) ask(t.dataset.q);
   if (t.dataset.sprint) loadRetro(t.dataset.sprint);
 });
-$("#feature-select").addEventListener("change", (e) => showGraph(e.target.value));
+$("#feature-select").addEventListener("change", (e) => { showGraph(e.target.value); if (view === "timeline") loadTimeline(e.target.value); });
 $("#ask-form").addEventListener("submit", (e) => { e.preventDefault(); const q = $("#ask-input").value.trim(); if (q) ask(q); });
 $("#sim-form").addEventListener("submit", simulate);
 ["maya", "arjun", "sofia", "dev", "kenji", "priya", "liam", "zara"].forEach((p) => $("#sim-author").insertAdjacentHTML("beforeend", `<option>${p}</option>`));
 
 /* loader tracks real data loading */
 (async () => {
-  const tasks = [loadStats(), loadDrift(), loadFeatures(), loadSprints()];
+  const tasks = [loadStats(), loadDrift(), loadFeatures(), loadSprints(), loadCoverage()];
   let done = 0;
   const tick = () => { done++; const p = Math.round((done / tasks.length) * 100); $("#loader-pct").textContent = `${p}%`; $("#loader-bar").style.width = `${p}%`; };
   await Promise.allSettled(tasks.map((t) => t.then(tick, tick)));
@@ -353,4 +423,9 @@ $("#sim-form").addEventListener("submit", simulate);
 if (new URLSearchParams(location.search).has("static")) {
   document.documentElement.classList.add("static");
   document.querySelectorAll(".reveal").forEach((el) => el.classList.add("in"));
+}
+
+/* ?view=timeline deep link */
+if (new URLSearchParams(location.search).get("view") === "timeline") {
+  const wait = setInterval(() => { if (currentFeature) { clearInterval(wait); setView("timeline"); } }, 100);
 }

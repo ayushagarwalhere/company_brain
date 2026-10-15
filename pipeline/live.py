@@ -11,7 +11,6 @@ Guards against spam and false positives:
   * per-ticket cooldown so a heated thread doesn't post five alerts
   * messages from the bot itself are ignored by the bot adapters
 """
-import re
 import time
 
 from agent.tools import drift_path
@@ -19,27 +18,12 @@ from graph import queries as Q
 from graph.db import get_graph
 from graph.writer import write_messages
 from pipeline.events import Event
-from pipeline.extract import CHANGE_KINDS
+from pipeline.extract import CHANGE_KINDS, HeuristicExtractor  # noqa: F401 - re-exported for tests
 from pipeline.textsim import TfIdf
 
 MIN_CONFIDENCE = 0.6
 TICKET_COOLDOWN_S = 300
 _last_alert: dict[str, float] = {}
-
-
-class HeuristicExtractor:
-    """No-API fallback so the monitor can be demoed without a DeepSeek key. Deliberately simple."""
-    name = "heuristic"
-    DECISION = re.compile(r"\b(decision:|let'?s change|we('ll| will) (now )?(do|send|support|use)|agreed[,:.]|instead of|"
-                          r"must (now )?(support|include|be)|from now on|change of plan)", re.I)
-
-    def classify(self, items, features):
-        out = {}
-        for it in items:
-            hit = self.DECISION.search(it["text"])
-            out[it["id"]] = {"kind": "decision" if hit else "other", "feature": None, "ticket": None,
-                             "requirement": it["text"].strip() if hit else None, "confidence": 0.7 if hit else 0.0}
-        return out
 
 
 def _extractor():

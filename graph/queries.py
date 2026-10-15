@@ -118,6 +118,58 @@ RETURN [n IN nodes(p) | {id: n.id, type: labels(n)[0]}] AS nodes, [r IN relation
 ORDER BY hops LIMIT 1
 """
 
+# ---- Coverage: where the graph has holes (Company Brain hygiene) ----
+ORPHAN_PRS = """
+MATCH (a:Person)-[:AUTHORED]->(pr:PullRequest)
+WHERE NOT (pr)-[:REFERENCES]->(:Ticket)
+RETURN pr.number AS pr, pr.title AS title, pr.url AS url, a.id AS author, pr.merged AS merged ORDER BY pr
+"""
+
+DONE_WITHOUT_PR = """
+MATCH (t:Ticket) WHERE t.state = 'Done' AND NOT (:PullRequest)-[:REFERENCES]->(t)
+OPTIONAL MATCH (t)-[:ASSIGNED_TO]->(p:Person)
+RETURN t.id AS ticket, t.title AS title, p.id AS owner ORDER BY ticket
+"""
+
+UNDISCUSSED_TICKETS = """
+MATCH (t:Ticket) WHERE NOT (:Message)-[:MENTIONS]->(t)
+OPTIONAL MATCH (t)-[:ABOUT]->(f:Feature)
+RETURN t.id AS ticket, t.title AS title, t.state AS state, f.name AS feature ORDER BY ticket
+"""
+
+# Knowledge concentration ("bus factor"): share of a feature's weighted involvement held by its top person
+KNOWLEDGE_RISK = """
+MATCH (f:Feature)
+MATCH (p:Person)-[:POSTED|AUTHORED|MADE]->(x)
+WHERE (x)-[:ABOUT]->(f) OR (x)-[:CHANGES]->(:Requirement)-[:ABOUT]->(f)
+WITH f, p, sum(CASE WHEN x:Decision THEN 5 WHEN x:PullRequest THEN 4 WHEN x:Ticket THEN 3 ELSE 1 END) AS w
+ORDER BY w DESC
+WITH f, collect({person: p.id, name: p.name, w: w}) AS people, sum(w) AS total
+RETURN f.id AS feature, f.name AS name, people[0].name AS top_person, people[0].w * 1.0 / total AS top_share,
+       size(people) AS people, total
+ORDER BY top_share DESC
+"""
+
+# Everything on a feature's time axis: requirement versions (ticket + chat) and PRs
+FEATURE_EVENTS = """
+MATCH (f:Feature {id: $feature})
+CALL {
+  WITH f
+  MATCH (t:Ticket)-[:ABOUT]->(f), (t)-[:STATES]->(r:Requirement)
+  RETURN 'ticket' AS lane, r.id AS id, r.at_ms AS at, t.id + ' updated' AS title, r.text AS text, t.id AS ref, null AS who
+  UNION
+  WITH f
+  MATCH (m:Message)-[:CHANGES]->(r:Requirement)-[:ABOUT]->(f), (p:Person)-[:POSTED]->(m)
+  RETURN 'chat' AS lane, r.id AS id, r.at_ms AS at, m.source + ' #' + m.channel AS title, r.text AS text, r.ticket AS ref, p.id AS who
+  UNION
+  WITH f
+  MATCH (pr:PullRequest)-[:ABOUT]->(f), (a:Person)-[:AUTHORED]->(pr)
+  RETURN 'pr' AS lane, pr.id AS id, coalesce(pr.merged_ms, pr.created_ms) AS at, 'PR #' + toString(pr.number) AS title,
+         pr.title AS text, null AS ref, a.id AS who
+}
+RETURN lane, id, at, title, text, ref, who ORDER BY at
+"""
+
 def rows(g, query: str, **params) -> list[dict]:
     res = g.query(query, params)
     cols = [c[1] if isinstance(c, (list, tuple)) else c for c in res.header]

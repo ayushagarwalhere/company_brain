@@ -36,7 +36,7 @@ def _rows(g, q, params=None):
 def load_tickets(g):
     return _rows(g, """MATCH (t:Ticket) OPTIONAL MATCH (t)-[:ASSIGNED_TO]->(p:Person)
                        RETURN t.id AS id, t.title AS title, t.description AS description,
-                              t.versions AS versions, t.version_times AS version_times,
+                              t.versions AS versions, t.version_times AS version_times, t.labels AS labels,
                               t.created_ms AS created_ms, t.completed_ms AS completed_ms, p.id AS assignee
                        ORDER BY t.id""")
 
@@ -68,8 +68,11 @@ def supersession_pairs(chain: list[dict], reflects) -> list[dict]:
     earlier ticket versions, but a chat change only if its text actually reflects it,
     so an unrelated ticket edit (typo fix, new label) can't silently hide drift.
     """
-    pairs, heads = [], []
+    pairs, heads, last_ticket_text = [], [], ""
     for r in chain:
+        if r["origin"] == "ticket":
+            r = {**r, "prev_text": last_ticket_text}  # lets reflects() look at what this edit added
+            last_ticket_text = r["text"]
         if r["origin"] == "chat" or not heads:
             pairs += [{"new": r["id"], "old": h["id"]} for h in heads]
             heads = [r]
@@ -99,7 +102,8 @@ def resolve(g, extractor_name: str = "deepseek", semantic: str | None = None, lo
     tix = {t["id"]: t for t in tickets}
 
     # 1. Features from tickets ------------------------------------------------
-    features = ex.group_tickets([{"id": t["id"], "title": t["title"], "description": t["description"]} for t in tickets])
+    features = ex.group_tickets([{"id": t["id"], "title": t["title"], "description": t["description"],
+                                  "labels": t["labels"] or []} for t in tickets])
     feat_of_ticket = {}
     for f in features:
         f["tickets"] = [t for t in f["tickets"] if t in tix]

@@ -164,6 +164,30 @@ def feature_graph(feature: str):
     return {"nodes": list(nodes.values()), "edges": [{"from": a, "rel": r, "to": b} for a, r, b in edges]}
 
 
+@app.get("/api/coverage")
+def coverage():
+    """Holes in the company's knowledge: unlinked work, undiscussed tickets, concentrated expertise."""
+    g = get_graph()
+    return {
+        "orphan_prs": Q.rows(g, Q.ORPHAN_PRS),
+        "done_without_pr": Q.rows(g, Q.DONE_WITHOUT_PR),
+        "undiscussed_tickets": Q.rows(g, Q.UNDISCUSSED_TICKETS),
+        "knowledge_risk": Q.rows(g, Q.KNOWLEDGE_RISK),
+    }
+
+
+@app.get("/api/features/{feature}/timeline")
+def timeline(feature: str):
+    g = get_graph()
+    events = Q.rows(g, Q.FEATURE_EVENTS, feature=feature)
+    drifted = {d["requirement"] for d in Q.drift(g, feature=feature)}
+    superseded = {r["id"] for r in Q.rows(g, "MATCH (:Requirement)-[:SUPERSEDES]->(r:Requirement) RETURN r.id AS id")}
+    for e in events:
+        e["iso"] = from_ms(e["at"])
+        e["drift"] = e["id"] in drifted
+        e["superseded"] = e["id"] in superseded
+    return events
+
 @app.get("/api/connect")
 def connect(a: str, b: str):
     return tools.how_connected(a, b)

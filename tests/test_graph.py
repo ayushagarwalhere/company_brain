@@ -81,3 +81,20 @@ def test_small_talk_is_ignored(g):
     r = process_message(Event("slack", "message", "test:live2", "arjun", "2026-10-12T06:05:00Z", "lol nice weekend",
                               channel="engineering"), g=g, extractor=HeuristicExtractor())
     assert r["status"] == "ok" and r["feature"] is None
+
+
+def test_heuristic_extractor_finds_planted_drift_without_llm():
+    """The rule-based extractor (no LLM, no answer key) must reproduce the planted outcome."""
+    from benchmark.score_resolution import score
+    from pipeline.ingest import ingest
+    from pipeline.resolve import resolve
+    name = GRAPH + "_heuristic"
+    ingest(reset=True, graph_name=name)
+    g2 = get_graph(name)
+    try:
+        resolve(g2, "heuristic", log=lambda *_: None)
+        s = score(g2)
+        assert s["drift"]["f1"] == 1.0 and s["drift_stale_prs"]["f1"] == 1.0, s["drift"]
+        assert s["requirement_changes"]["precision"] == 1.0
+    finally:
+        g2.delete()

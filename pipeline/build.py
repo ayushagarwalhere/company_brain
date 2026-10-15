@@ -1,6 +1,7 @@
 """Full build: ingest -> resolve -> report drift.
 
     python -m pipeline.build                        # DeepSeek extraction
+    python -m pipeline.build --extractor heuristic  # rule-based extraction, no LLM
     python -m pipeline.build --extractor oracle     # answer-key extraction (tests resolution + drift only)
 """
 import argparse
@@ -20,7 +21,7 @@ def mark_build(g, extractor: str) -> None:
 
 def main():
     ap = argparse.ArgumentParser()
-    ap.add_argument("--extractor", default="deepseek", choices=["deepseek", "oracle"])
+    ap.add_argument("--extractor", default="deepseek", choices=["deepseek", "heuristic", "oracle"])
     ap.add_argument("--semantic", choices=["llm", "tfidf"])
     ap.add_argument("--live", action="store_true")
     ap.add_argument("--graph")

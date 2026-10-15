@@ -1,12 +1,14 @@
 """Extraction: the judgments that need language understanding.
 
-Two interchangeable extractors:
-  * DeepSeekExtractor: the real one, LLM calls with JSON output.
+Three interchangeable extractors:
+  * DeepSeekExtractor:  the real one, LLM calls with JSON output.
+  * HeuristicExtractor: rules only (labels, decision phrasing, text diffs). No LLM, no
+                        answer key: the honest fallback and the baseline for the LLM.
   * OracleExtractor:   reads the answer key. Test harness only: it lets resolution
                        and drift logic be tested in isolation. Never used for
                        reported scores.
 
-Both answer the same four questions:
+All answer the same four questions:
   1. group_tickets:  which tickets belong to the same product feature?
   2. classify:       does this chat message change a requirement? to what?
   3. implements:     which requirement versions does this PR actually implement?
@@ -153,5 +155,82 @@ class OracleExtractor:
         seen = (r or {}).get("reflected_in_ticket")
         return bool(seen) and ticket_req["at_ms"] >= to_ms(seen["at"])
 
+class HeuristicExtractor:
+    """Rule-based extractor: no LLM, no answer key. Every rule is explainable, which makes
+    it the honest fallback when no DeepSeek key is configured, and a baseline for the LLM."""
+    name = "heuristic"
+
+    GENERIC_LABELS = {"backend", "frontend", "bug", "tests", "tech-debt", "docs", "security", "performance",
+                      "notifications", "reporting", "profile", "search"}
+    DECISION = re.compile(r"\bdecision\b|\blet'?s (change|add|do|make|switch|drop|move|use)\b|\bagreed\b|"
+                          r"\bwe('ll| will) (now )?(do|send|support|use|switch|drop)\b|\binstead of\b|"
+                          r"\bmust (now )?(support|include|be)\b|\bfrom now on\b|\bchange of plan\b", re.I)
+    REJECT = re.compile(r"not this quarter|\bpark\b|let'?s not|\bno, keep\b|\bkeep it as is\b|\bwon'?t do\b", re.I)
+    LEAD = re.compile(r"^(decision( after [^:]*)?:|agreed\.?|good call\.?)\s*", re.I)
+    NUM = re.compile(r"\d+")
+
+    def group_tickets(self, tickets):
+        from pipeline.textsim import tokens
+        topic = {}
+        for t in tickets:
+            labels = [l for l in t.get("labels") or [] if l not in self.GENERIC_LABELS]
+            if labels:
+                topic[t["id"]] = labels[0]
+        counts = {}
+        for lab in topic.values():
+            counts[lab] = counts.get(lab, 0) + 1
+        groups = {lab: [] for lab, c in counts.items() if c >= 2}
+        for t in tickets:
+            lab = topic.get(t["id"])
+            if lab in groups:
+                groups[lab].append(t)
+                continue
+            # no topic label: join the feature whose label appears in the ticket's own text
+            words = set(tokens(f"{t['title']} {t['description']}"))
+            hit = next((g for g in groups if g in words), None)
+            if hit:
+                groups[hit].append(t)
+        out = []
+        for lab, ts in groups.items():
+            first = min(ts, key=lambda x: x["id"])
+            out.append({"id": slug(first["title"]), "name": first["title"], "tickets": [x["id"] for x in ts]})
+        return out
+
+    def classify(self, items, features):
+        from pipeline.textsim import tokens
+        out = {}
+        for it in items:
+            text = it["text"].strip()
+            sentences = [x.strip() for x in re.split(r"(?<=[.!?])\s+", text) if x.strip()]
+            # the sentence carrying the decision must be a statement, not a question
+            hit = next((x for x in sentences if self.DECISION.search(x)), None)
+            is_change = (hit is not None and not hit.endswith("?") and not self.REJECT.search(text)
+                         and len(tokens(text)) >= 6)
+            req = None
+            if is_change:
+                kept = [self.LEAD.sub("", x) for x in sentences if not x.endswith("?")]
+                req = " ".join(x for x in kept if len(tokens(x)) >= 3) or self.LEAD.sub("", text)
+            out[it["id"]] = {"kind": "decision" if is_change else "other", "feature": None, "ticket": None,
+                             "requirement": req, "confidence": 0.7 if is_change else 0.0}
+        return out
+
+    def implements(self, pr, candidates):
+        from pipeline.textsim import TfIdf
+        from pipeline.events import TICKET_REF
+        nums = lambda s: set(self.NUM.findall(TICKET_REF.sub("", s)))  # noqa: E731 - ticket ids aren't requirements
+        text = f"{pr['title']} {pr['body']}"
+        # a requirement whose numbers (30 days, 12 months, 15 minutes) aren't in the PR isn't what it implements
+        ok = [c for c in candidates if nums(c["text"]) <= nums(text)]
+        if not ok:
+            return []
+        best, score = TfIdf({c["id"]: c["text"] for c in ok}).best(text)
+        return [best] if best and score >= 0.2 else []
+
+    def reflects(self, ticket_req, chat_req):
+        from pipeline.textsim import tokens
+        added = set(tokens(ticket_req["text"])) - set(tokens(ticket_req.get("prev_text") or ""))
+        return bool(added & set(tokens(chat_req["text"])))
+
+
 def get_extractor(name: str):
-    return {"deepseek": DeepSeekExtractor, "oracle": OracleExtractor}[name]()
+    return {"deepseek": DeepSeekExtractor, "oracle": OracleExtractor, "heuristic": HeuristicExtractor}[name]()

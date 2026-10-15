@@ -4,8 +4,8 @@
 
 Extraction uses DeepSeek when DEEPSEEK_API_KEY is set. Cached LLM results in
 data/llm_cache/ are reused, so a committed cache reproduces the published run
-without a key. With neither, it falls back to the answer-key oracle, and the
-dashboard says so.
+without a key. With neither, it falls back to the rule-based heuristic extractor,
+and the dashboard says which one built the graph.
 """
 import os
 import time
@@ -41,7 +41,7 @@ def ensure_graph():
     from pipeline.ingest import ingest
     from pipeline.resolve import resolve
     has_cache = CACHE_DIR.exists() and any(CACHE_DIR.glob("*.json"))
-    extractor = "deepseek" if (settings.deepseek_api_key or has_cache) else "oracle"
+    extractor = "deepseek" if (settings.deepseek_api_key or has_cache) else "heuristic"
     print(f"building graph with {extractor} extraction ...")
     ingest(reset=True)
     resolve(get_graph(), extractor)
