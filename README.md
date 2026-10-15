@@ -62,7 +62,7 @@ flowchart LR
   F --> Q[graph/queries.py<br/>drift · retro · history · experts]
   Q --> A[agent/ tools + DeepSeek]
   Q --> B[bots/ Slack + Discord<br/>live drift monitor]
-  Q --> API[api/ FastAPI] --> UI[frontend/ dashboard]
+  Q --> API[api/ FastAPI] --> UI[web/ React dashboard]
 ```
 
 | Folder | What's in it |
@@ -72,7 +72,7 @@ flowchart LR
 | [`graph/`](graph/) | Connection, writer (idempotent MERGEs), [`queries.py`](graph/queries.py) with every Cypher query the product uses |
 | [`agent/`](agent/) | Graph tools, Q&A agent, retro report, spec generator |
 | [`bots/`](bots/) | Slack (Socket Mode) and Discord bots |
-| [`api/`](api/), [`frontend/`](frontend/) | FastAPI backend and a plain HTML/JS dashboard (Cytoscape for the graph view) |
+| [`api/`](api/), [`web/`](web/) | FastAPI backend and a **React + TypeScript** dashboard (Vite, Framer Motion, Cytoscape.js). FastAPI serves the built app |
 | [`data/`](data/) | Synthetic scenario, 15 mock tickets, 300 messages, 12 PR specs, **answer key** |
 | [`benchmark/`](benchmark/) | Resolution scorer and the graph vs. no-graph benchmark |
 
@@ -199,8 +199,14 @@ python -m scripts.check_setup      # PASS/FAIL for FalkorDB, Slack, Discord, Git
 python -m pipeline.build                      # ingest + extraction + resolution, prints drift (extractor: auto)
 python -m benchmark.score_resolution          # precision/recall vs. the answer key
 python -m pytest -q                           # unit + end-to-end graph tests (graph tests skip if FalkorDB is down)
-uvicorn api.main:app --port 8000              # dashboard on http://localhost:8000 (add ?theme=light or ?theme=dark)
+
+cd web && npm install && npm run build && cd ..   # React dashboard -> web/dist (Node 18+)
+uvicorn api.main:app --port 8000              # dashboard + API on http://localhost:8000
 ```
+
+Dashboard URL options: `?theme=light|dark`, `?view=timeline`, `?person=sofia`, `?q=breach`, and `?static` (no entrance animations, for screenshots and projectors). For frontend development, run `npm run dev` in `web/` (Vite on :5173, proxying `/api` to `API_URL`, default `http://localhost:8010`).
+
+The dashboard is React 18 + TypeScript, built with Vite: Framer Motion for motion (split-text hero, scroll reveals, the orbit diagram drawing in, count-ups, drift-card exit animations) and Cytoscape.js for the graph. State lives in one small context ([`web/src/lib/brain.tsx`](web/src/lib/brain.tsx)), and every API shape is typed in [`web/src/lib/api.ts`](web/src/lib/api.ts).
 
 **The LLM is optional.** The code checks whether DeepSeek actually answers (key set *and* a 1-token call succeeds, cached for 5 minutes; see `llm.available()` in [`pipeline/llm.py`](pipeline/llm.py)). If it doesn't, because there's no key, the key is invalid, the balance is zero or the network is down, every feature falls back instead of failing: the build uses the heuristic extractor, Ask uses the rules agent, specs use the template, and the live monitor uses heuristics. The dashboard's spec sheet shows `LLM: online` or `offline (reason)`, and Ask answers say why they came from the rules agent. As soon as the key works, the same commands use DeepSeek.
 

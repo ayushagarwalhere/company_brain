@@ -1,0 +1,109 @@
+import { AnimatePresence, motion, useScroll, useSpring } from "framer-motion";
+import { useEffect, useState } from "react";
+import { api } from "../lib/api";
+import { useBrain } from "../lib/brain";
+import { useStaticMode } from "../lib/ui";
+
+const SECTIONS = [["drift", "Drift"], ["graph-sec", "Graph"], ["ask", "Ask"], ["retro-sec", "Retro"], ["simulate", "Simulate"], ["coverage", "Risk"]];
+const THEME_KEY = "drift-theme";
+
+export function Loader() {
+  const { loaded, total } = useBrain();
+  const pct = Math.round((loaded / total) * 100);
+  const still = useStaticMode();
+  const [gone, setGone] = useState(still);
+  useEffect(() => { if (pct >= 100) { const t = setTimeout(() => setGone(true), 350); return () => clearTimeout(t); } }, [pct]);
+  return (
+    <AnimatePresence>
+      {!gone && (
+        <motion.div className="loader" exit={{ opacity: 0 }} transition={{ duration: 0.6 }} aria-hidden>
+          <div className="loader__inner">
+            <div className="mono loader__label"><i className="sq sq--violet" />Initializing context graph</div>
+            <div className="loader__pct">{pct}%</div>
+            <div className="loader__bar"><span style={{ width: `${pct}%` }} /></div>
+          </div>
+        </motion.div>
+      )}
+    </AnimatePresence>
+  );
+}
+
+function useTheme() {
+  const initial = new URLSearchParams(location.search).get("theme") || (() => { try { return localStorage.getItem(THEME_KEY); } catch { return null; } })();
+  const [theme, setTheme] = useState<string | null>(initial);
+  useEffect(() => {
+    if (theme) document.documentElement.dataset.theme = theme; else delete document.documentElement.dataset.theme;
+  }, [theme]);
+  const toggle = () => {
+    const dark = getComputedStyle(document.documentElement).colorScheme !== "light";
+    const next = dark ? "light" : "dark";
+    try { localStorage.setItem(THEME_KEY, next); } catch { /* storage blocked */ }
+    setTheme(next);
+    window.dispatchEvent(new Event("themechange"));
+  };
+  return toggle;
+}
+
+export function Nav() {
+  const { setPaletteOpen } = useBrain();
+  const toggleTheme = useTheme();
+  const [solid, setSolid] = useState(false);
+  const [active, setActive] = useState("");
+  const { scrollYProgress } = useScroll();
+  const scaleX = useSpring(scrollYProgress, { stiffness: 140, damping: 30 });
+
+  useEffect(() => {
+    const onScroll = () => setSolid(window.scrollY > 40);
+    onScroll();
+    addEventListener("scroll", onScroll, { passive: true });
+    const io = new IntersectionObserver((es) => es.forEach((e) => e.isIntersecting && setActive(e.target.id)), { rootMargin: "-45% 0px -50% 0px" });
+    const t = setTimeout(() => SECTIONS.forEach(([id]) => { const el = document.getElementById(id); if (el) io.observe(el); }), 800);
+    return () => { removeEventListener("scroll", onScroll); io.disconnect(); clearTimeout(t); };
+  }, []);
+
+  return (
+    <>
+      <motion.div className="progress" style={{ scaleX, width: "100%" }} />
+      <nav className={`nav ${solid ? "nav--solid" : ""}`}>
+        <a className="brand" href="#top" aria-label="Drift Monitor home"><span className="brand__mark" /><span className="brand__word">DRIFT</span></a>
+        <div className="nav__links mono">
+          {SECTIONS.map(([id, label]) => <a key={id} href={`#${id}`} className={active === id ? "active" : ""}>{label}</a>)}
+        </div>
+        <div className="nav__right">
+          <button className="btn btn--sm" onClick={() => setPaletteOpen(true)} aria-label="Search the graph">
+            <span className="search-label">Search</span><kbd style={{ margin: 0, color: "inherit", borderColor: "currentColor" }}>/</kbd>
+          </button>
+          <button className="icon-btn mono" onClick={toggleTheme} aria-label="Toggle theme">◐</button>
+        </div>
+      </nav>
+    </>
+  );
+}
+
+export function Footer() {
+  const { refresh } = useBrain();
+  const [busy, setBusy] = useState(false);
+  const reset = async () => {
+    setBusy(true);
+    try { await api.resetDemo(); await refresh(); } finally { setBusy(false); }
+  };
+  return (
+    <footer className="foot">
+      <div className="foot__cols mono">
+        <div><span className="foot__h">Product</span><a href="#drift">Open drift</a><a href="#graph-sec">Feature graph</a><a href="#ask">Ask the graph</a></div>
+        <div><span className="foot__h">Brain</span><a href="#retro-sec">Sprint retro</a><a href="#coverage">Coverage &amp; risk</a><a href="#simulate">Live monitor</a></div>
+        <div>
+          <span className="foot__h">Demo</span>
+          <button className="foot__link" onClick={reset} disabled={busy} title="Rebuild the graph from source data (undoes simulated messages and drift actions)">
+            {busy ? "Rebuilding graph…" : "Reset demo data"}
+          </button>
+          <span>Graph Hacks · Company Brain</span>
+        </div>
+      </div>
+      <div className="foot__legal mono"><span>Every alert and answer is backed by a graph path</span><span>Built on FalkorDB</span></div>
+      <motion.div className="wordmark" aria-hidden initial={{ y: "30%" }} whileInView={{ y: 0 }} viewport={{ once: true }} transition={{ duration: 1.2, ease: [0.2, 0.7, 0.1, 1] }}>
+        DRIFT
+      </motion.div>
+    </footer>
+  );
+}

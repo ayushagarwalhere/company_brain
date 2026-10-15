@@ -17,7 +17,7 @@ from graph import queries as Q
 from graph.db import get_graph
 from pipeline.events import Event, from_ms
 
-FRONTEND = Path(__file__).resolve().parent.parent / "frontend"
+WEB_DIST = Path(__file__).resolve().parent.parent / "web" / "dist"  # React app: `cd web && npm run build`
 app = FastAPI(title="Context Graph Drift Monitor")
 
 
@@ -300,7 +300,11 @@ def demo_reset():
 
 @app.get("/")
 def index():
-    return FileResponse(FRONTEND / "index.html")
+    page = WEB_DIST / "index.html"
+    if not page.exists():
+        raise HTTPException(503, "Frontend not built: run `npm install && npm run build` in web/")
+    return FileResponse(page)
 
 
-app.mount("/static", StaticFiles(directory=FRONTEND), name="static")
+if (WEB_DIST / "assets").exists():
+    app.mount("/assets", StaticFiles(directory=WEB_DIST / "assets"), name="assets")
