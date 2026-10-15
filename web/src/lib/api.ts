@@ -56,6 +56,9 @@ export type Person = {
   drift_caused: Drift[]; stale_work: Drift[];
 };
 export type SpecResult = { feature: string; markdown: string; engine: string };
+export type TicketRow = { id: string; title: string; description: string; state: string; feature: string | null };
+export type TicketUpdate = { status: string; ticket: string; version?: string; resolved?: string[]; still_drifting?: string[]; new_drift?: string[] };
+export type LiveEvent = { type: "drift" | "message" | "resolved" | "ticket" | "pr" | "rebuild"; at: number; [k: string]: unknown };
 
 async function req<T>(path: string, body?: unknown): Promise<T> {
   const res = await fetch(path, body === undefined ? undefined : {
@@ -87,4 +90,6 @@ export const api = {
   driftAction: (act: "write-to-ticket" | "dismiss", requirement: string, actor: string) =>
     req<{ status: string; ticket?: string; version?: string; by?: string }>(`/api/drift/${act}`, { requirement, actor }),
   resetDemo: () => req<{ rebuilt_with: string }>("/api/demo/reset", {}),
+  tickets: () => req<TicketRow[]>("/api/tickets"),
+  updateTicket: (ticket: string, description: string, actor: string) => req<TicketUpdate>("/api/ingest/ticket", { ticket, description, actor }),
 };

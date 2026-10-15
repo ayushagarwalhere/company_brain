@@ -1,6 +1,10 @@
 # Context Graph Drift Monitor
 
-![Dashboard](docs/screenshot-hero.png)
+![Dashboard: 3D hero](docs/screenshot-hero.png)
+
+| How drift happens | Open drift with evidence paths | What's in the graph |
+|---|---|---|
+| ![Orbit diagram](docs/screenshot-chain.png) | ![Drift cards](docs/screenshot-drift.png) | ![Stats](docs/screenshot-stats.png) |
 
 > **Graph Hacks: Context for AI Agents** (WeMakeDevs × FalkorDB). Track: **Company Brain**.
 
@@ -206,6 +210,8 @@ uvicorn api.main:app --port 8000              # dashboard + API on http://localh
 
 Dashboard URL options: `?theme=light|dark`, `?view=timeline`, `?person=sofia`, `?q=breach`, and `?static` (no entrance animations, for screenshots and projectors). For frontend development, run `npm run dev` in `web/` (Vite on :5173, proxying `/api` to `API_URL`, default `http://localhost:8010`).
 
+The hero is a **real-time 3D scene** ([`web/src/components/Planet3D.tsx`](web/src/components/Planet3D.tsx), three.js through React Three Fiber, written as custom GLSL shaders with no external models). It shows a procedurally shaded planet with a fresnel atmosphere, and the context graph in orbit around it: message, ticket, requirement, PR and doc nodes on tilted orbits, with a red drift link pulsing between a message and the ticket it never reached. It's lazy-loaded, pauses when off-screen, follows the theme, respects reduced motion, and falls back to a CSS planet without WebGL.
+
 The dashboard is React 18 + TypeScript, built with Vite: Framer Motion for motion (split-text hero, scroll reveals, the orbit diagram drawing in, count-ups, drift-card exit animations) and Cytoscape.js for the graph. State lives in one small context ([`web/src/lib/brain.tsx`](web/src/lib/brain.tsx)), and every API shape is typed in [`web/src/lib/api.ts`](web/src/lib/api.ts).
 
 **The LLM is optional.** The code checks whether DeepSeek actually answers (key set *and* a 1-token call succeeds, cached for 5 minutes; see `llm.available()` in [`pipeline/llm.py`](pipeline/llm.py)). If it doesn't, because there's no key, the key is invalid, the balance is zero or the network is down, every feature falls back instead of failing: the build uses the heuristic extractor, Ask uses the rules agent, specs use the template, and the live monitor uses heuristics. The dashboard's spec sheet shows `LLM: online` or `offline (reason)`, and Ask answers say why they came from the rules agent. As soon as the key works, the same commands use DeepSeek.
@@ -241,6 +247,20 @@ python -m bots.digest --dry-run              # print it
 python -m bots.digest --slack C0123456789    # post to Slack
 python -m bots.digest --discord 1234567890   # post to Discord (REST, no gateway connection)
 ```
+
+### Keeping the graph current: webhooks and live updates
+
+| Endpoint | What it does |
+|---|---|
+| `POST /api/ingest/ticket` `{ticket, description, actor}` | Ticket-tracker webhook (Linear/Jira-style). Adds the new description as a `Requirement` version (`STATES`) and recomputes that ticket's `SUPERSEDES` chain with the `reflects` check. An edit that carries the chat decision resolves the drift; a cosmetic edit ("typo fixed") doesn't. The response lists `resolved`, `still_drifting` and `new_drift`. |
+| `POST /api/ingest/github` | GitHub `pull_request` webhook. Verifies `X-Hub-Signature-256` when `GITHUB_WEBHOOK_SECRET` is set, links the PR to the tickets it names, decides which requirement version it `IMPLEMENTS`, and re-checks drift. A PR that delivers the latest decision clears it. |
+| `GET /api/events` | **Server-Sent Events**: `drift`, `resolved`, `ticket`, `pr` and `rebuild` events are pushed to every open dashboard, which shows a toast and refreshes. A thread-safe in-process bus ([`api/bus.py`](api/bus.py)) connects the sync request handlers to the async stream. |
+
+The dashboard's **Simulate the team** section drives both: post a chat message, or edit a ticket the way the tracker webhook would.
+
+## Tests and CI
+
+`python -m pytest -q` runs 29 tests: units, end-to-end graph tests on throwaway graphs, and HTTP tests of the API, including both webhooks, the signature check and the SSE bus. None of them need an LLM or API keys. [`.github/workflows/ci.yml`](.github/workflows/ci.yml) runs the same suite on every push against a FalkorDB service container, reruns the ablation study, checks that `docs/QUERIES.md` matches the code, and type-checks and builds the React app.
 
 ## Benchmark
 
@@ -285,6 +305,7 @@ _DeepSeek extraction scores and the graph vs. no-graph results go here once the 
 - **Same-ticket scope.** Stale PRs are those that reference the amended ticket. A PR on a sibling ticket of the same feature isn't flagged.
 - **The heuristic extractor is phrase-based.** It catches "Decision: …", "let's change …" and "we'll now …", but not a change implied without that phrasing. That's what the DeepSeek extractor is for.
 - **Seeded timestamps.** Platform timestamps can't be backdated (see above).
+- **Single-process event bus.** Live events reach dashboards connected to the same API process. The Slack and Discord bots run as separate processes and don't publish to it yet; a Redis pub/sub (FalkorDB speaks Redis) would connect them.
 
 ## Future work (out of scope)
 

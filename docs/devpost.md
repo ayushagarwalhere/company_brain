@@ -19,7 +19,8 @@ It builds a **context graph** (FalkorDB) that links chat messages, product docs,
 - **Coverage and risk:** PRs with no ticket, tickets closed without code, tickets nobody discussed, and features where one person holds most of the knowledge.
 - **Close the loop:** one click writes the decided requirement into the ticket as its next version, or records a "keep the old scope" decision. Both are stored in the graph, and the drift clears.
 - **Feature timeline:** ticket versions, chat changes and PRs on one time axis, with the stretch where the ticket and PRs never caught up shaded in.
-- **Dashboard:** drift cards with before/after diffs, an interactive feature graph, the retro, and a "simulate a message" box that runs the live monitor.
+- **Stays current on its own:** a ticket-tracker webhook and a signed GitHub PR webhook update the graph as work changes. A ticket edit that carries the decision clears the drift; a cosmetic edit doesn't. Every open dashboard gets the change instantly over Server-Sent Events.
+- **Dashboard:** a React app with a real-time 3D hero (the context graph orbiting a planet), drift cards with before/after diffs and one-click fixes, an interactive feature graph and timeline, full-text search, person profiles, the retro, and a simulator for chat messages and ticket edits.
 
 ## Does the graph do real work?
 An ablation study (`python -m benchmark.ablation`, deterministic, no LLM) switches graph capabilities off one at a time and scores against the answer key. Without version reasoning (`SUPERSEDES`/`IMPLEMENTS`) **half the drift alerts are false**: changes that were already written back into tickets get flagged. With ticket IDs only (no thread structure or semantic linking) **both real drifts are missed**, because the decisive messages never mention a ticket ID. Without threads, message linking recall drops from 0.92 to 0.77. Person/time proximity made no difference on this dataset, and I report that as-is.
@@ -29,7 +30,7 @@ An ablation study (`python -m benchmark.ablation`, deterministic, no LLM) switch
 - **Graph model in FalkorDB:** Person, Message, Ticket, PullRequest, Feature, Requirement, Decision, Sprint, Alert. The key relationships are `CHANGES`, `AMENDS`, `STATES`, `SUPERSEDES` and `IMPLEMENTS`. Each ticket description version is its own Requirement node, so drift is judged against what the ticket said *at that time*.
 - **Entity resolution in three steps**, and each link records how it was made: (1) hard links like "Fixes BD-101", (2) graph proximity (thread replies; a PR matched to tickets owned by its author that were open at that time), (3) semantic matching (LLM, with a TF-IDF fallback).
 - **Drift is a time-ordered path query:** a requirement that came from chat, that nothing newer supersedes, and that no PR implements. A ticket edit only counts as superseding a chat change if its text actually reflects that change, so unrelated edits can't hide drift.
-- **Stack:** DeepSeek (OpenAI-compatible API) for extraction and the tool-calling agent; FastAPI backend; plain HTML/JS dashboard with Cytoscape.js; Slack Bolt (Socket Mode) and discord.py bots; pytest.
+- **Stack:** FalkorDB (Cypher, full-text indexes); Python + FastAPI (REST, webhooks, Server-Sent Events); DeepSeek (OpenAI-compatible) for extraction and the tool-calling agent, with a rule-based extractor and rules agent as automatic fallbacks; React 18 + TypeScript + Vite, Framer Motion, three.js / React Three Fiber with custom GLSL shaders, Cytoscape.js; Slack Bolt (Socket Mode) and discord.py bots; pytest + GitHub Actions CI with a FalkorDB service container.
 - **Data:** a fully synthetic company (Brightdesk: 8 people, 2 sprints, 300 messages, 15 tickets, 12 PRs) with two planted drifts, one clean control feature, and deliberate traps: a change that *was* written back into the ticket, a rejected proposal, a "keep it as is" reaffirmation, and a PR with no ticket reference. An answer key records every expected link, and all scoring uses it.
 
 ## Challenges we ran into
@@ -41,7 +42,7 @@ An ablation study (`python -m benchmark.ablation`, deterministic, no LLM) switch
 ## Accomplishments that we're proud of
 - Every alert and answer comes with an explainable graph path, not just a score.
 - With a rule-based extractor (no LLM, no answer key) the pipeline finds exactly the planted drifts and their stale PRs on the synthetic dataset (precision and recall 1.00), leaves the clean feature alone, and links the PR that has no ticket ID. *(I wrote the rules while looking at this dataset, so that's an upper bound; the LLM extractor is the general path.)*
-- 22 tests (unit and end-to-end on a throwaway graph), and re-ingesting is idempotent.
+- 29 tests (unit, end-to-end graph and HTTP API, including both webhooks) run in CI against a FalkorDB service container, and re-ingesting is idempotent.
 
 ## What we learned
 Most of the hard part is the data model, not the LLM. Once requirements are versioned nodes with `SUPERSEDES` and `IMPLEMENTS` edges, "did we ship what we decided?" becomes a short query, while plain retrieval over the same text finds the documents but can't tell which version is current.
@@ -50,7 +51,7 @@ Most of the hard part is the data model, not the LLM. Once requirements are vers
 Real Linear and Jira connectors, a feedback loop on alerts (confirm or dismiss), vector indexes in FalkorDB for the semantic step, and letting coding agents pick up the generated specs.
 
 ## Built with
-python, falkordb, cypher, deepseek, fastapi, javascript, cytoscape.js, slack-api, discord.py, github-api, pytest
+python, falkordb, cypher, fastapi, server-sent-events, deepseek, react, typescript, vite, three.js, react-three-fiber, glsl, framer-motion, cytoscape.js, slack-api, discord.py, github-webhooks, pytest, github-actions
 
 ## Links
 - Code: https://github.com/ayushagarwalhere/company_brain

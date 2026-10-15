@@ -6,12 +6,13 @@ import uuid
 from datetime import datetime, timezone
 from pathlib import Path
 
-from fastapi import FastAPI, HTTPException
-from fastapi.responses import FileResponse
+from fastapi import FastAPI, Header, HTTPException, Request
+from fastapi.responses import FileResponse, StreamingResponse
 from fastapi.staticfiles import StaticFiles
 from pydantic import BaseModel
 
 from agent import retro as retro_mod
+from api import bus
 from agent import tools
 from graph import queries as Q
 from graph.db import get_graph
@@ -252,6 +253,8 @@ def simulate(body: SimulateIn):
                ts=now, text=body.text, url="", channel=body.channel, thread_of=body.reply_to)
     r = process_message(ev)
     r.pop("drift", None)
+    bus.publish("drift" if r.get("status") == "drift" else "message", status=r.get("status"), feature=r.get("feature"),
+                ticket=r.get("ticket"), author=body.author, text=body.text[:160])
     return r
 
 
@@ -265,37 +268,107 @@ class DriftActionIn(BaseModel):
 def drift_write(body: DriftActionIn):
     from pipeline.actions import write_to_ticket
     try:
-        return write_to_ticket(get_graph(), body.requirement, body.actor)
+        out = write_to_ticket(get_graph(), body.requirement, body.actor)
     except ValueError as e:
         raise HTTPException(409, str(e))
+    bus.publish("resolved", how="written to ticket", ticket=out["ticket"], requirement=body.requirement, by=body.actor)
+    return out
 
 
 @app.post("/api/drift/dismiss")
 def drift_dismiss(body: DriftActionIn):
     from pipeline.actions import dismiss
     try:
-        return dismiss(get_graph(), body.requirement, body.actor, body.reason)
+        out = dismiss(get_graph(), body.requirement, body.actor, body.reason)
     except ValueError as e:
         raise HTTPException(409, str(e))
+    bus.publish("resolved", how="dismissed", requirement=body.requirement, by=body.actor)
+    return out
 
 
 @app.post("/api/demo/reset")
 def demo_reset():
     """Rebuilds the graph from the source data: undoes simulated messages, ticket writes and dismissals."""
-    from config import settings
     from pipeline import live
     from pipeline.build import mark_build
     from pipeline.ingest import ingest
     from pipeline.resolve import resolve
     g = get_graph()
     prev = Q.rows(g, "MATCH (b:Build {id: 'latest'}) RETURN b.extractor AS e")
-    extractor = prev[0]["e"] if prev else ("deepseek" if settings.deepseek_api_key else "heuristic")
+    from pipeline import llm
+    extractor = prev[0]["e"] if prev else ("deepseek" if llm.available() else "heuristic")
+    if extractor == "deepseek" and not llm.available():
+        extractor = "heuristic"  # the key stopped working (no balance, revoked): rebuild without the LLM
     ingest(reset=True)
     g = get_graph()
     resolve(g, extractor, log=lambda *_: None)
     mark_build(g, extractor)
     live._last_alert.clear()
+    bus.publish("rebuild", extractor=extractor)
     return {"rebuilt_with": extractor}
+
+
+# ---------------------------------------------------------------- live updates
+
+@app.get("/api/events")
+async def events():
+    """Server-Sent Events: drift / message / resolved / ticket / pr / rebuild, pushed as they happen."""
+    q = bus.subscribe()
+    return StreamingResponse(bus.stream(q), media_type="text/event-stream",
+                             headers={"Cache-Control": "no-cache", "X-Accel-Buffering": "no"})
+
+
+@app.get("/api/events/recent")
+def recent_events():
+    return list(bus.recent)
+
+
+@app.get("/api/tickets")
+def tickets():
+    return Q.rows(get_graph(), """MATCH (t:Ticket) OPTIONAL MATCH (t)-[:ABOUT]->(f:Feature)
+                                  RETURN t.id AS id, t.title AS title, t.description AS description, t.state AS state,
+                                         f.name AS feature ORDER BY id""")
+
+
+class TicketUpdateIn(BaseModel):
+    ticket: str
+    description: str
+    actor: str = "maya"
+
+
+@app.post("/api/ingest/ticket")
+def ingest_ticket(body: TicketUpdateIn):
+    """Ticket-tracker webhook (Linear/Jira-style): a description changed."""
+    from pipeline.webhooks import ticket_updated
+    try:
+        out = ticket_updated(get_graph(), body.ticket, body.description, body.actor)
+    except ValueError as e:
+        raise HTTPException(404, str(e))
+    if out["status"] == "updated":
+        bus.publish("ticket", ticket=body.ticket, by=body.actor, resolved=out["resolved"], still_drifting=out["still_drifting"])
+    return out
+
+
+@app.post("/api/ingest/github")
+async def ingest_github(request: Request, x_github_event: str | None = Header(default=None),
+                        x_hub_signature_256: str | None = Header(default=None)):
+    """GitHub webhook (pull_request events). Verified with GITHUB_WEBHOOK_SECRET when it is set."""
+    import os
+    from pipeline.webhooks import pr_event, verify_github_signature
+    raw = await request.body()
+    secret = os.getenv("GITHUB_WEBHOOK_SECRET", "")
+    if secret and not verify_github_signature(secret, raw, x_hub_signature_256):
+        raise HTTPException(401, "bad signature")
+    if x_github_event and x_github_event != "pull_request":
+        return {"status": "ignored", "event": x_github_event}
+    import json
+    from starlette.concurrency import run_in_threadpool
+    try:
+        out = await run_in_threadpool(pr_event, get_graph(), json.loads(raw or b"{}"))
+    except ValueError as e:
+        raise HTTPException(400, str(e))
+    bus.publish("pr", pr=out["pr"], tickets=out["tickets"], resolved=out["resolved"])
+    return out
 
 
 @app.get("/")

@@ -1,5 +1,5 @@
 import { createContext, useCallback, useContext, useEffect, useMemo, useState, type ReactNode } from "react";
-import { api, type Coverage, type Drift, type Feature, type SpecResult, type Sprint, type Stats } from "./api";
+import { api, type Coverage, type Drift, type Feature, type LiveEvent, type SpecResult, type Sprint, type Stats } from "./api";
 
 /** App-wide graph state + cross-section actions (open a person, focus a feature, generate a spec). */
 type Brain = {
@@ -13,6 +13,7 @@ type Brain = {
   spec: SpecResult | null; specFor: (feature: string) => Promise<void>;
   actor: string; setActor: (a: string) => void;
   paletteOpen: boolean; setPaletteOpen: (o: boolean) => void;
+  toasts: (LiveEvent & { id: number })[]; dismissToast: (id: number) => void; live: boolean;
 };
 
 const Ctx = createContext<Brain | null>(null);
@@ -37,6 +38,8 @@ export function BrainProvider({ children }: { children: ReactNode }) {
   const [spec, setSpec] = useState<SpecResult | null>(null);
   const [actor, setActor] = useState("maya");
   const [paletteOpen, setPaletteOpen] = useState(false);
+  const [toasts, setToasts] = useState<(LiveEvent & { id: number })[]>([]);
+  const [live, setLive] = useState(false);
   const total = 5;
 
   const refresh = useCallback(async () => {
@@ -50,6 +53,28 @@ export function BrainProvider({ children }: { children: ReactNode }) {
   }, []);
 
   useEffect(() => { void refresh(); }, [refresh]);
+
+  // Live updates: the API pushes drift / resolution / ticket / PR / rebuild events over SSE
+  useEffect(() => {
+    if (typeof EventSource === "undefined") return;
+    const es = new EventSource("/api/events");
+    let timer: ReturnType<typeof setTimeout> | undefined;
+    const onEvent = (e: MessageEvent) => {
+      const evt = JSON.parse(e.data) as LiveEvent;
+      if (evt.type !== "message") {
+        const id = Date.now() + Math.random();
+        setToasts((t) => [...t.slice(-3), { ...evt, id }]);
+        setTimeout(() => setToasts((t) => t.filter((x) => x.id !== id)), 7000);
+      }
+      clearTimeout(timer);
+      timer = setTimeout(() => void refresh(), 250);  // coalesce bursts
+    };
+    for (const type of ["drift", "message", "resolved", "ticket", "pr", "rebuild"]) es.addEventListener(type, onEvent as EventListener);
+    es.onopen = () => setLive(true);
+    es.onerror = () => setLive(false);
+    return () => { es.close(); clearTimeout(timer); };
+  }, [refresh]);
+  const dismissToast = useCallback((id: number) => setToasts((t) => t.filter((x) => x.id !== id)), []);
   useEffect(() => {
     if (!feature && features.length) setFeature((features.find((f) => f.drift) || features[0]).id);
   }, [features, feature]);
@@ -69,8 +94,8 @@ export function BrainProvider({ children }: { children: ReactNode }) {
 
   const value = useMemo<Brain>(() => ({
     stats, drift, features, sprints, coverage, loaded, total, version, refresh, feature, setFeature, focus, focusOn,
-    view, setView, person, openPerson, spec, specFor, actor, setActor, paletteOpen, setPaletteOpen,
-  }), [stats, drift, features, sprints, coverage, loaded, version, refresh, feature, focus, focusOn, view, person, spec, specFor, actor, paletteOpen]);
+    view, setView, person, openPerson, spec, specFor, actor, setActor, paletteOpen, setPaletteOpen, toasts, dismissToast, live,
+  }), [stats, drift, features, sprints, coverage, loaded, version, refresh, feature, focus, focusOn, view, person, spec, specFor, actor, paletteOpen, toasts, dismissToast, live]);
 
   return <Ctx.Provider value={value}>{children}</Ctx.Provider>;
 }

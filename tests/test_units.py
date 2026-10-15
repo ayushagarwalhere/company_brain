@@ -96,3 +96,13 @@ def test_llm_failure_is_cached_as_unavailable(monkeypatch):
     llm._status.update(ok=None, reason="", at=0.0)
     assert llm.available() is False and llm.unavailable_reason() == "insufficient balance"
     llm._status.update(ok=None, reason="", at=0.0)
+
+
+def test_heuristic_reflects_ignores_edit_chatter_and_requires_numbers():
+    from pipeline.extract import HeuristicExtractor
+    ex = HeuristicExtractor()
+    chat = {"text": "the export must support any custom date range up to 12 months (not a fixed 30 days)"}
+    prev = "Admins can export tickets created in the last 30 days as a CSV file."
+    assert not ex.reflects({"text": prev + " (typo fixed)", "prev_text": prev}, chat)
+    assert ex.reflects({"text": "Export any custom date range up to 12 months as CSV.", "prev_text": prev}, chat)
+    assert ex.reflects({"text": prev + " Columns: assignee.", "prev_text": prev}, {"text": "Let's add an assignee column, BD-101."})

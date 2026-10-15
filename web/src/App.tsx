@@ -5,6 +5,7 @@ import { GraphSection } from "./components/GraphSection";
 import { Hero, OrbitBand, Stats } from "./components/Hero";
 import { CommandPalette, PersonDrawer } from "./components/Overlays";
 import { AskSection, CoverageSection, RetroSection, SimulateSection, SpecSection } from "./components/Panels";
+import { Toasts } from "./components/Toasts";
 
 export default function App() {
   return (
@@ -26,6 +27,7 @@ export default function App() {
       <Footer />
       <CommandPalette />
       <PersonDrawer />
+      <Toasts />
     </BrainProvider>
   );
 }

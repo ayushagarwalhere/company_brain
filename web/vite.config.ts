@@ -13,7 +13,7 @@ export default defineConfig({
     outDir: "dist",
     sourcemap: false,
     rollupOptions: {
-      output: { manualChunks: { react: ["react", "react-dom"], motion: ["framer-motion"], graph: ["cytoscape"] } },
+      output: { manualChunks: { react: ["react", "react-dom"], motion: ["framer-motion"], graph: ["cytoscape"], three: ["three", "@react-three/fiber"] } },
     },
   },
 });

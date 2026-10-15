@@ -344,3 +344,29 @@ kbd { font: 10px var(--mono); border: 1px solid var(--line); padding: 1px 5px; m
 .static [style*="translateY"] { transform: none !important; }
 .static .loader { display: none; }
 :root[data-theme="light"] .hero__title .accent .ch { background-image: linear-gradient(100deg, #6d28d9, #9f67fa 45%, #4c1d95 85%); }
+
+/* 3D hero (React Three Fiber). The CSS planet stays as the no-WebGL fallback. */
+.planet3d-fade, .planet3d { position: absolute; inset: 0; z-index: -1; }
+.planet3d canvas { display: block; }
+.hero--3d .atmosphere, .hero--3d .stars { display: none; }
+.hero--3d::after { content: ""; position: absolute; left: 0; right: 0; bottom: 0; height: 120px; z-index: -1; pointer-events: none;
+  background: linear-gradient(transparent, color-mix(in srgb, var(--bg) 70%, transparent)); }
+.hero__center { position: relative; }
+.hero--3d .hero__center::before { content: ""; position: absolute; left: 50%; top: 50%; width: min(1100px, 92vw); height: 130%; transform: translate(-50%, -50%);
+  background: radial-gradient(closest-side, color-mix(in srgb, var(--bg) 62%, transparent), transparent); z-index: -1; pointer-events: none; }
+
+/* live updates */
+.toasts { position: fixed; right: var(--gut); bottom: 24px; z-index: 75; display: flex; flex-direction: column; gap: 10px; width: min(380px, calc(100vw - 32px)); }
+.toast { text-align: left; display: grid; gap: 6px; padding: 14px 16px; background: var(--card); border: 1px solid var(--line); border-left: 3px solid var(--violet); cursor: pointer;
+         box-shadow: 0 24px 60px -30px rgba(0, 0, 0, .8); color: var(--ink); }
+.toast--warn { border-left-color: var(--accent); }
+.toast--ok { border-left-color: var(--ok); }
+.toast__title { font-size: 11px; display: flex; align-items: center; }
+.toast__title .sq { width: 8px; height: 8px; margin-right: 10px; }
+.toast__body { font-size: 13.5px; color: var(--soft); }
+.live-dot { display: inline-flex; align-items: center; gap: 7px; font-size: 10.5px; color: var(--note); margin-right: 6px; }
+.live-dot::before { content: ""; width: 7px; height: 7px; border-radius: 50%; background: var(--note); }
+.live-dot.on { color: var(--ok); }
+.live-dot.on::before { background: var(--ok); box-shadow: 0 0 0 0 var(--ok); animation: ping 2s ease-out infinite; }
+@keyframes ping { 0% { box-shadow: 0 0 0 0 color-mix(in srgb, var(--ok) 60%, transparent); } 100% { box-shadow: 0 0 0 8px transparent; } }
+.ok { color: var(--ok); }

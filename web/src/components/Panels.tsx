@@ -1,6 +1,6 @@
 import { AnimatePresence, motion } from "framer-motion";
 import { useEffect, useState } from "react";
-import { api, type AskResult, type Retro, type SimResult } from "../lib/api";
+import { api, type AskResult, type Retro, type SimResult, type TicketRow, type TicketUpdate } from "../lib/api";
 import { useBrain } from "../lib/brain";
 import { day, isExternal, PEOPLE } from "../lib/ui";
 import { PathChips } from "./PathChips";
@@ -102,8 +102,12 @@ export function SimulateSection() {
       if (r.status === "drift") { await refresh(); if (r.feature) focusOn(r.feature); }
     } catch (e) { setErr((e as Error).message); } finally { setBusy(false); }
   };
+  const [mode, setMode] = useState<"chat" | "ticket">("chat");
   return (
-    <Section id="simulate" index="008" kicker="Live monitor" title="Simulate a message" intro="Post as a teammate. The live monitor writes it to the graph, resolves it and runs the drift query.">
+    <Section id="simulate" index="008" kicker="Live monitor" title="Simulate the team"
+      intro="Post a chat message, or edit a ticket the way a tracker webhook would. The graph updates, the drift query re-runs, and every open dashboard gets the event live."
+      aside={<div className="tabs">{(["chat", "ticket"] as const).map((m) => <button key={m} className={mode === m ? "active" : ""} onClick={() => setMode(m)}>{m === "chat" ? "Chat message" : "Ticket edit"}</button>)}</div>}>
+      {mode === "ticket" ? <TicketEditor /> : <>
       <form className="sim" onSubmit={(e) => { e.preventDefault(); void post(); }}>
         <div className="sim__row">
           <label className="mono">Author<select className="field" value={actor} onChange={(e) => setActor(e.target.value)}>{PEOPLE.map((p) => <option key={p}>{p}</option>)}</select></label>
@@ -126,7 +130,51 @@ export function SimulateSection() {
           {res.alert && <div className="alertbox">{res.alert.replace(/:warning:\s*/g, "⚠ ").replace(/\*/g, "")}</div>}
         </motion.div>
       )}
+      </>}
     </Section>
+  );
+}
+
+/** Ticket edit = the ticket-tracker webhook (POST /api/ingest/ticket). */
+function TicketEditor() {
+  const { actor, drift } = useBrain();
+  const [tickets, setTickets] = useState<TicketRow[]>([]);
+  const [id, setId] = useState("BD-101");
+  const [text, setText] = useState("");
+  const [busy, setBusy] = useState(false);
+  const [res, setRes] = useState<TicketUpdate | null>(null);
+  const [err, setErr] = useState<string | null>(null);
+  useEffect(() => { void api.tickets().then(setTickets); }, []);
+  useEffect(() => { const t = tickets.find((x) => x.id === id); if (t) setText(t.description); setRes(null); }, [id, tickets]);
+  const drifted = new Set(drift.map((d) => d.ticket));
+  const save = async () => {
+    setBusy(true); setErr(null);
+    try { setRes(await api.updateTicket(id, text, actor)); void api.tickets().then(setTickets); } catch (e) { setErr((e as Error).message); } finally { setBusy(false); }
+  };
+  return (
+    <form className="sim" onSubmit={(e) => { e.preventDefault(); void save(); }}>
+      <div className="sim__row">
+        <label className="mono">Ticket<select className="field" value={id} onChange={(e) => setId(e.target.value)}>
+          {tickets.map((t) => <option key={t.id} value={t.id}>{t.id} · {t.title}{drifted.has(t.id) ? "  · drift" : ""}</option>)}</select></label>
+        <label className="mono">Editor<input className="field" value={actor} readOnly /></label>
+        <label className="mono">Source<input className="field" value="tracker webhook" readOnly /></label>
+      </div>
+      <textarea className="field" rows={4} value={text} onChange={(e) => setText(e.target.value)} />
+      <p className="muted" style={{ fontSize: 13.5, margin: "0 0 14px" }}>
+        Try a cosmetic edit first (it must <b>not</b> clear the drift), then write the decided requirement in. The “reflects” check decides which edits count.
+      </p>
+      <button className="btn" disabled={busy}>{busy ? "Updating graph…" : "Save ticket"}</button>
+      {err && <p className="warn">{err}</p>}
+      {res && (
+        <motion.div className="result-line" initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }}>
+          <span className={`badge ${res.resolved?.length ? "badge--ok" : res.still_drifting?.length ? "badge--warn" : ""}`}>{res.status}</span>
+          {res.version && <span>new version <b>{res.version}</b></span>}
+          {!!res.resolved?.length && <span className="ok">resolves {res.resolved.join(", ")}</span>}
+          {!!res.still_drifting?.length && <span className="warn">still drifting: {res.still_drifting.join(", ")}</span>}
+          {!res.resolved?.length && !res.still_drifting?.length && res.status === "updated" && <span>no drift on this ticket</span>}
+        </motion.div>
+      )}
+    </form>
   );
 }
 

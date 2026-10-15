@@ -226,10 +226,22 @@ class HeuristicExtractor:
         best, score = TfIdf({c["id"]: c["text"] for c in ok}).best(text)
         return [best] if best and score >= 0.2 else []
 
+    EDIT_NOISE = {"typo", "fix", "fixed", "fixes", "wording", "reword", "reworded", "clarify", "clarified", "format",
+                  "formatting", "minor", "cleanup", "update", "updated", "updating", "edit", "edited", "note"}
+
     def reflects(self, ticket_req, chat_req):
+        """A ticket edit reflects a chat change if the words it ADDED carry that change's content:
+        at least one shared content word (edit chatter like "typo fixed" doesn't count), and, when the
+        change states numbers (12 months, 15 minutes), at least one of those numbers."""
+        from pipeline.events import TICKET_REF
         from pipeline.textsim import tokens
         added = set(tokens(ticket_req["text"])) - set(tokens(ticket_req.get("prev_text") or ""))
-        return bool(added & set(tokens(chat_req["text"])))
+        chat_text = TICKET_REF.sub("", chat_req["text"])
+        content = set(tokens(chat_text)) - self.EDIT_NOISE
+        if not added & content:
+            return False
+        nums = set(self.NUM.findall(chat_text))
+        return not nums or bool(nums & added)
 
 
 def get_extractor(name: str):

@@ -1,17 +1,53 @@
 import { motion, useReducedMotion, useScroll, useTransform } from "framer-motion";
-import { useRef } from "react";
+import { lazy, Suspense, useEffect, useRef, useState } from "react";
 import { useBrain } from "../lib/brain";
 import { day, useStaticMode } from "../lib/ui";
 import { CountUp, EASE, Reveal, SplitText } from "./Motion";
 
+const Planet3D = lazy(() => import("./Planet3D"));
+
+function webglOK() {
+  try {
+    const c = document.createElement("canvas");
+    return !!(c.getContext("webgl2") || c.getContext("webgl"));
+  } catch { return false; }
+}
+
+/** Tracks the effective theme: explicit data-theme wins, otherwise the OS preference. */
+function useLightTheme() {
+  const read = () => {
+    const t = document.documentElement.dataset.theme;
+    return t ? t === "light" : window.matchMedia("(prefers-color-scheme: light)").matches;
+  };
+  const [light, setLight] = useState(read);
+  useEffect(() => {
+    const update = () => setLight(read());
+    const mo = new MutationObserver(update);
+    mo.observe(document.documentElement, { attributes: true, attributeFilter: ["data-theme"] });
+    const mq = window.matchMedia("(prefers-color-scheme: light)");
+    mq.addEventListener("change", update);
+    update();
+    return () => { mo.disconnect(); mq.removeEventListener("change", update); };
+  }, []);
+  return light;
+}
+
 export function Hero() {
+  const [gl] = useState(webglOK);
+  const [ready, setReady] = useState(false);
+  const light = useLightTheme();
   const { setPaletteOpen } = useBrain();
   const ref = useRef<HTMLElement>(null);
   const { scrollYProgress } = useScroll({ target: ref, offset: ["start start", "end start"] });
   const planetY = useTransform(scrollYProgress, [0, 1], ["0%", "18%"]);
   const starsY = useTransform(scrollYProgress, [0, 1], ["0%", "8%"]);
   return (
-    <header className="hero" id="top" ref={ref}>
+    <header className={`hero ${gl && ready ? "hero--3d" : ""}`} id="top" ref={ref}>
+      {gl && (
+        <Suspense fallback={null}>
+          <Planet3DReady key={light ? "light" : "dark"} light={light} onReady={() => setReady(true)} />
+        </Suspense>
+      )}
       <div className="sky" aria-hidden>
         <motion.span className="stars" style={{ y: starsY }} />
         <motion.span className="stars stars--2" style={{ y: starsY }} />
@@ -36,6 +72,11 @@ export function Hero() {
       </Reveal>
     </header>
   );
+}
+
+function Planet3DReady({ light, onReady }: { light: boolean; onReady: () => void }) {
+  useEffect(() => { onReady(); }, [onReady]);
+  return <motion.div className="planet3d-fade" initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ duration: 1.6 }}><Planet3D light={light} /></motion.div>;
 }
 
 /** 002: orbit diagram of how drift happens + live spec sheet. */

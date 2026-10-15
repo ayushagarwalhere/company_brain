@@ -3,6 +3,7 @@ import { useEffect, useState } from "react";
 import { api } from "../lib/api";
 import { useBrain } from "../lib/brain";
 import { useStaticMode } from "../lib/ui";
+import { LiveDot } from "./Toasts";
 
 const SECTIONS = [["drift", "Drift"], ["graph-sec", "Graph"], ["ask", "Ask"], ["retro-sec", "Retro"], ["simulate", "Simulate"], ["coverage", "Risk"]];
 const THEME_KEY = "drift-theme";
@@ -70,6 +71,7 @@ export function Nav() {
           {SECTIONS.map(([id, label]) => <a key={id} href={`#${id}`} className={active === id ? "active" : ""}>{label}</a>)}
         </div>
         <div className="nav__right">
+          <LiveDot />
           <button className="btn btn--sm" onClick={() => setPaletteOpen(true)} aria-label="Search the graph">
             <span className="search-label">Search</span><kbd style={{ margin: 0, color: "inherit", borderColor: "currentColor" }}>/</kbd>
           </button>
