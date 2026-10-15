@@ -33,7 +33,7 @@
 
   <header class="hero" id="top">
     <div class="hero__eyebrow mono reveal">Company Brain · FalkorDB context graph</div>
-    <h1 class="hero__title reveal">Decided in chat.<br><span class="accent-text">Never shipped.</span></h1>
+    <h1 class="hero__title" id="hero-title" aria-label="Decided in chat. Never shipped."><span class="line" data-split>Decided in chat.</span><span class="line accent-text" data-split>Never shipped.</span></h1>
     <div class="hero__grid">
       <p class="hero__lede reveal">Requirements change in Slack and Discord threads. Tickets don't follow, and PRs ship the old version.
         This graph links every message, ticket and pull request to the same feature, and shows you the exact path where they split.</p>
@@ -45,8 +45,21 @@
         <div><dt>Extraction</dt><dd id="spec-build">…</dd></div>
       </dl>
     </div>
+    <figure class="chain reveal" aria-label="How drift happens">
+      <div class="chain__node"><span class="mono">[A] Message</span><b>“Make it 12 months, not 30 days.”</b><em class="mono">slack #support · 09-22</em></div>
+      <div class="chain__edge"><span class="mono">CHANGES</span></div>
+      <div class="chain__node chain__node--hot"><span class="mono">[B] Requirement</span><b>12-month range + custom fields</b><em class="mono">newest · not superseded</em></div>
+      <div class="chain__edge"><span class="mono">AMENDS</span></div>
+      <div class="chain__node"><span class="mono">[C] Ticket BD-101</span><b>“Last 30 days as CSV”</b><em class="mono">never updated</em></div>
+      <div class="chain__edge chain__edge--broken"><span class="mono">IMPLEMENTS ✕</span></div>
+      <div class="chain__node"><span class="mono">[D] PR #6</span><b>Shipped the 30-day export</b><em class="mono">merged 09-25</em></div>
+      <figcaption class="mono">Drift = [B] has no newer version and nothing implements it</figcaption>
+    </figure>
     <ol class="syslog mono reveal" id="syslog"></ol>
   </header>
+
+  <div class="ticker mono" aria-hidden="true"><div class="ticker__track" id="ticker"></div></div>
+  <section class="metrics" id="metrics" aria-label="Graph metrics"></section>
 
   <main>
     <section class="sec" id="drift">

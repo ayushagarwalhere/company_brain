@@ -2,7 +2,7 @@ const $ = (s) => document.querySelector(s);
 const esc = (s) => String(s ?? "").replace(/[&<>"]/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" }[c]));
 const link = (url, text) => (url && !url.startsWith("scenario://") ? `<a href="${esc(url)}" target="_blank" rel="noopener">${esc(text)}</a>` : esc(text));
 const css = (v) => getComputedStyle(document.documentElement).getPropertyValue(v).trim();
-let cy, currentFeature;
+let cy, currentFeature, driftCount = null;
 const TYPES = { Feature: "--n-feature", Ticket: "--n-ticket", Requirement: "--n-req", Message: "--n-msg", PullRequest: "--n-pr", Person: "--n-person", Decision: "--accent" };
 
 async function api(path, body) {
@@ -29,17 +29,18 @@ $("#theme-toggle").addEventListener("click", () => {
 
 /* ---------- graph path strings -> chips ---------- */
 function renderPath(str) {
+  let k = 0;
   const tokens = str.split(/(<-\[:[A-Z_|]+\]-|-\[:[A-Z_|]+\]->|\s;\s)/);
   return `<div class="path">${tokens.map((t) => {
     if (!t) return "";
     if (t.trim() === ";") return `<span class="sep"></span>`;
     const rel = t.match(/^(<-|-)\[:([A-Z_|]+)\](->|-)$/);
-    if (rel) return `<span class="r">${rel[1] === "<-" ? "←" : ""}${esc(rel[2])}${rel[3] === "->" ? "→" : ""}</span>`;
+    if (rel) return `<span class="r" style="--k:${k++}">${rel[1] === "<-" ? "←" : ""}${esc(rel[2])}${rel[3] === "->" ? "→" : ""}</span>`;
     return t.split(/(\([^)]*\))/).map((part) => {
       const m = part.match(/^\((\w+)\s+([\s\S]*)\)$/);
-      if (m) return `<span class="n" style="color:${css(TYPES[m[1]] || "--muted")}" title="${esc(m[2])}"><b>${esc(m[1])}</b>${esc(m[2])}</span>`;
+      if (m) return `<span class="n" style="--k:${k++};color:${css(TYPES[m[1]] || "--muted")}" title="${esc(m[2])}"><b>${esc(m[1])}</b>${esc(m[2])}</span>`;
       const txt = part.trim().replace(/^,\s*/, "");
-      return txt ? `<span class="t">${esc(txt)}</span>` : "";
+      return txt ? `<span class="t" style="--k:${k++}">${esc(txt)}</span>` : "";
     }).join("");
   }).join("")}</div>`;
 }
@@ -60,6 +61,19 @@ async function loadStats() {
     ["005", `Record ${s.nodes.find((n) => n.label === "Decision")?.n ?? 0} decisions`],
     ["006", "Run drift query"],
   ];
+  const n = (l) => s.nodes.find((x) => x.label === l)?.n ?? 0;
+  const metrics = [
+    ["Messages", n("Message"), "Slack + Discord"], ["Tickets", n("Ticket"), "Linear-style"], ["Pull requests", n("PullRequest"), "GitHub"],
+    ["Decisions", n("Decision"), "found in chat"], ["Open drift", driftCount ?? 0, "requirements", true],
+  ];
+  $("#metrics").innerHTML = metrics.map(([k, v, sub, hot]) => `<div class="metric${hot ? " metric--hot" : ""}"><span class="mono">${esc(k)}</span>
+    <b data-count="${v}"${hot ? ' id="metric-drift"' : ""}>${v}</b><small>${esc(sub)}</small></div>`).join("");
+  const tick = [
+    ["NODES", total(s.nodes)], ["RELATIONSHIPS", total(s.relationships)],
+    ...s.relationships.slice(0, 10).map((r) => [r.type, r.n]),
+  ].map(([k, v]) => `<span><b>${esc(k)}</b>${esc(v)}</span>`).join("");
+  $("#ticker").innerHTML = tick + tick;
+  countUp();
   $("#syslog").innerHTML = log.map(([i, t]) => `<li><b>${i}</b>${esc(t)}</li>`).join("");
   [...document.querySelectorAll("#syslog li")].forEach((li, i) => setTimeout(() => li.classList.add("on"), 250 + i * 140));
 }
@@ -70,6 +84,9 @@ async function loadDrift() {
   $("#spec-drift").innerHTML = rows.length
     ? `<span class="warn">${rows.length} requirement${rows.length > 1 ? "s" : ""} · ${[...new Set(rows.map((d) => d.feature_name))].join(", ")}</span>`
     : "none";
+  driftCount = rows.length;
+  const md = $("#metric-drift");
+  if (md) { md.dataset.count = rows.length; countUp(md); }
   if (!rows.length) { $("#drift-list").innerHTML = `<p class="empty">No open drift. Tickets and PRs match the latest decisions.</p>`; return; }
   $("#drift-list").innerHTML = rows.map((d, i) => `
     <article class="violation reveal">
@@ -141,6 +158,13 @@ async function showGraph(feature) {
               levelWidth: () => 1 },
     minZoom: 0.4, maxZoom: 2.2,
   });
+  const hot = cy.nodes("[?drift]");
+  const pulse = () => {
+    if (!cy || cy.destroyed() || !hot.length) return;
+    hot.animate({ style: { "border-opacity": 0.6, "border-width": 10 } }, { duration: 900, easing: "ease-in-out-sine",
+      complete: () => hot.animate({ style: { "border-opacity": 0.15, "border-width": 4 } }, { duration: 900, easing: "ease-in-out-sine", complete: pulse }) });
+  };
+  if (!document.documentElement.classList.contains("static")) pulse();
   cy.on("mouseover", "node", (e) => e.target.connectedEdges().addClass("hover"));
   cy.on("mouseout", "node", (e) => e.target.connectedEdges().removeClass("hover"));
   cy.on("tap", "node", (e) => {
@@ -169,8 +193,71 @@ async function ask(q) {
       <div class="chips" style="margin:6px 0 0">${r.tool_calls.map((t) => `<span class="chip mono">${esc(t.tool)} ${esc(Object.values(t.args).join(", "))}</span>`).join("") || "<span class='mono'>none</span>"}</div>
       ${r.paths.length ? `<div class="mono kicker">Graph paths</div>${r.paths.slice(0, 6).map(renderPath).join("")}` : ""}`;
   } catch (e) {
-    $("#answer").innerHTML = `<p class="error">${esc(e.message)}</p>`;
+    if (!/DEEPSEEK|Service Unavailable/i.test(e.message)) { $("#answer").innerHTML = `<p class="error">${esc(e.message)}</p>`; return; }
+    try { await askOffline(q); } catch (err) { $("#answer").innerHTML = `<p class="error">${esc(err.message)}</p>`; }
   }
+}
+
+/* No LLM configured: run the graph tools directly, so the section still answers from the graph. */
+async function askOffline(q) {
+  const ql = q.toLowerCase();
+  let html = `<div class="notice"><b>LLM not configured</b>: running the graph tools directly. Set DEEPSEEK_API_KEY for written answers.</div>`;
+  const conn = q.match(/([\w:-]+)\s+(?:connected to|to|→)\s+([\w:-]+)\??\s*$/i);
+  const norm = (x) => (/^(pr|bd)-\d+$/i.test(x) ? x.toUpperCase() : x.toLowerCase());
+  if (conn && /connect|→/.test(ql)) {
+    const r = await api(`/api/connect?a=${encodeURIComponent(norm(conn[1]))}&b=${encodeURIComponent(norm(conn[2]))}`);
+    html += `<div class="mono kicker">how_connected(${esc(norm(conn[1]))}, ${esc(norm(conn[2]))})</div>` + (r.paths.map(renderPath).join("") || "<p class='muted'>No path within 7 hops.</p>");
+  } else {
+    const fs = await api("/api/features");
+    const f = fs.find((x) => (ql.includes("sla") && x.id.includes("sla")) || (ql.includes("export") && x.id.includes("export"))
+      || (ql.includes("dark") && x.id.includes("dark")) || x.tickets.some((t) => ql.includes(t.toLowerCase())));
+    if (/who|know|expert/.test(ql) && f) {
+      const ex = await api(`/api/features/${f.id}/experts`);
+      html += `<div class="mono kicker">who_knows(${esc(f.id)})</div><ol class="experts">${ex.map((p) => `<li><b>${esc(p.name)}</b> <span class="muted">${esc(p.role)} · score ${p.score} · ${p.items} items</span></li>`).join("")}</ol>`;
+    } else if (f) {
+      const [d, h] = await Promise.all([api(`/api/drift?feature=${f.id}`), api(`/api/features/${f.id}/history`)]);
+      html += `<div class="mono kicker">drift_for_feature(${esc(f.id)})</div>` + (d.length
+        ? d.map((x) => `<p class="answer">⚠ ${esc(x.requirement_text)} ${esc(x.ticket)} still says “${esc(x.ticket_text)}”.</p>` + renderPath(x.path)).join("")
+        : `<p class="answer">No open drift on ${esc(f.name)}.</p>`);
+      html += `<div class="mono kicker">decision_history(${esc(f.id)})</div>` + h.paths.slice(0, 6).map(renderPath).join("");
+    } else {
+      const d = await api("/api/drift");
+      html += `<div class="mono kicker">drift_for_feature()</div>` + d.map((x) => `<p class="answer">⚠ <b>${esc(x.feature_name)}</b>: ${esc(x.requirement_text)}</p>` + renderPath(x.path)).join("");
+    }
+  }
+  $("#answer").innerHTML = html;
+}
+
+function countUp(only) {
+  const els = only ? [only] : [...document.querySelectorAll("[data-count]")];
+  els.forEach((el) => {
+    const target = Number(el.dataset.count);
+    if (!Number.isFinite(target)) return;
+    if (document.documentElement.classList.contains("static")) { el.textContent = target; return; }
+    const t0 = performance.now();
+    const step = (t) => { const p = Math.min(1, (t - t0) / 1100); el.textContent = Math.round(target * (1 - Math.pow(1 - p, 3))); if (p < 1) requestAnimationFrame(step); };
+    requestAnimationFrame(step);
+  });
+}
+
+/* split hero headline into characters */
+document.querySelectorAll("[data-split]").forEach((line, li) => {
+  let i = li * 16;
+  line.innerHTML = [...line.textContent].map((c) => (c === " " ? `<span class="sp"></span>` : `<span class="ch" style="--i:${i++}">${esc(c)}</span>`)).join("");
+});
+
+/* nav: highlight the section in view; scroll progress bar */
+document.body.insertAdjacentHTML("afterbegin", `<div class="progress" id="progress"></div>`);
+addEventListener("scroll", () => {
+  const h = document.documentElement;
+  $("#progress").style.width = `${(h.scrollTop / Math.max(1, h.scrollHeight - h.clientHeight)) * 100}%`;
+}, { passive: true });
+if ("IntersectionObserver" in window) {
+  const links = [...document.querySelectorAll(".nav__links a")];
+  const nio = new IntersectionObserver((es) => es.forEach((x) => {
+    if (x.isIntersecting) links.forEach((a) => a.classList.toggle("active", a.getAttribute("href") === `#${x.target.id}`));
+  }), { rootMargin: "-45% 0px -50% 0px" });
+  document.querySelectorAll("main .sec").forEach((sec) => nio.observe(sec));
 }
 
 /* ---------- retro ---------- */
@@ -179,12 +266,13 @@ async function loadRetro(sprint) {
   const r = await api(`/api/retro/${sprint}`);
   const status = (d) => d.shipped_in.length ? `<span class="badge ok">shipped ${d.shipped_in.map((n) => "#" + n).join(", ")}</span>`
     : d.superseded_by === "ticket" ? `<span class="badge">in ticket</span>` : `<span class="badge warn">not shipped</span>`;
+  let k = 0;
   $("#retro").innerHTML = `<div class="retro-cols">
-    <div><h3>Decided · ${r.decided.length}</h3><ol>${r.decided.map((d) => `<li>${esc(d.text)} ${status(d)}
+    <div><h3>Decided · ${r.decided.length}</h3><ol>${r.decided.map((d) => `<li style="--k:${k++}">${esc(d.text)} ${status(d)}
       <span class="src">${esc(d.by)} · ${esc(d.at.slice(0, 10))} · ${esc(d.ticket)} · ${link(d.source, `${d.platform} #${d.channel}`)}</span></li>`).join("") || "<li>No decisions in chat</li>"}</ol></div>
-    <div><h3>Shipped · ${r.shipped.length}</h3><ol>${r.shipped.map((p) => `<li>${link(p.url, `#${p.pr}`)} ${esc(p.title)}
+    <div><h3>Shipped · ${r.shipped.length}</h3><ol>${r.shipped.map((p) => `<li style="--k:${k++}">${link(p.url, `#${p.pr}`)} ${esc(p.title)}
       <span class="src">${esc(p.author)} · ${esc(p.tickets.join(", ") || "no ticket")}${p.link.includes("hard") ? "" : " · linked by " + esc(p.link.join(", "))}</span></li>`).join("")}</ol></div>
-    <div><h3>Diverged · ${r.diverged.length}</h3><ol>${r.diverged.map((d) => `<li><b>${esc(d.feature_name)}</b>: decided “${esc(d.requirement_text)}”
+    <div><h3>Diverged · ${r.diverged.length}</h3><ol>${r.diverged.map((d) => `<li style="--k:${k++}"><b>${esc(d.feature_name)}</b>: decided “${esc(d.requirement_text)}”
       <span class="src">${esc(d.ticket)} still says “${esc(d.ticket_text)}”${d.stale_prs.length ? ` · ${d.stale_prs.map((p) => "#" + p.pr).join(", ")} shipped old version` : ""}</span></li>`).join("") || "<li>Nothing diverged</li>"}</ol></div>
   </div>`;
 }
@@ -262,4 +350,7 @@ $("#sim-form").addEventListener("submit", simulate);
 })();
 
 /* ?static: no animations (screenshots, slow machines) */
-if (new URLSearchParams(location.search).has("static")) document.documentElement.classList.add("static");
+if (new URLSearchParams(location.search).has("static")) {
+  document.documentElement.classList.add("static");
+  document.querySelectorAll(".reveal").forEach((el) => el.classList.add("in"));
+}
