@@ -49,7 +49,8 @@ def _rows_paged(g, q, params=None, page: int = PAGE):
 
 def load_tickets(g):
     return _rows(g, """MATCH (t:Ticket) OPTIONAL MATCH (t)-[:ASSIGNED_TO]->(p:Person)
-                       RETURN t.id AS id, t.title AS title, t.description AS description,
+                       OPTIONAL MATCH (c:Person)-[:AUTHORED]->(t)
+                       RETURN t.id AS id, c.id AS creator, t.title AS title, t.description AS description,
                               t.versions AS versions, t.version_times AS version_times, t.labels AS labels,
                               t.created_ms AS created_ms, t.completed_ms AS completed_ms, p.id AS assignee
                        ORDER BY t.id""")
@@ -111,10 +112,18 @@ def reset_derived(g):
 ABLATIONS = {"threads", "pr_proximity", "semantic", "supersession"}
 
 
+def has_decision_rights(author: str | None, ticket: dict) -> bool:
+    """Only a ticket's owners can change its requirement from chat: whoever created it (AUTHORED)
+    or is assigned to it (ASSIGNED_TO). Status updates, review remarks, proposals and customer requests
+    from anyone else stay plain messages. Measured in benchmark/noise.py."""
+    return author is not None and author in (ticket.get("creator"), ticket.get("assignee"))
+
+
 def resolve(g, extractor_name: str = "deepseek", semantic: str | None = None, log=print,
-            ablate: frozenset = frozenset()) -> dict:
+            ablate: frozenset = frozenset(), decision_rights: bool = True) -> dict:
     """`ablate` switches off graph capabilities one at a time (benchmark/ablation.py):
-    threads (REPLY_TO), pr_proximity (author + time window), semantic, supersession (SUPERSEDES/IMPLEMENTS)."""
+    threads (REPLY_TO), pr_proximity (author + time window), semantic, supersession (SUPERSEDES/IMPLEMENTS).
+    `decision_rights=False` lets anyone's chat message change any ticket (the behaviour before benchmark/noise.py)."""
     assert set(ablate) <= ABLATIONS, ablate
     ex = get_extractor(extractor_name)
     semantic = semantic or ("llm" if extractor_name == "deepseek" else "tfidf")
@@ -265,7 +274,7 @@ def resolve(g, extractor_name: str = "deepseek", semantic: str | None = None, lo
         ticket = ticket or next((t for t in m["mentions"] + thread_mentions if t in f_tickets), None)
         if not ticket and f_tickets:
             ticket, _ = ticket_sim.best(f"{c['requirement']} {m['text']}", among=f_tickets)
-        if not ticket:
+        if not ticket or (decision_rights and not has_decision_rights(m["author"], tix[ticket])):
             continue
         changes.append({"id": f"req:{m['id']}", "msg": m["id"], "author": m["author"], "ticket": ticket,
                         "feature": feat, "text": c["requirement"], "at_ms": m["ts_ms"], "at": m["ts"],

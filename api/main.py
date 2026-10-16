@@ -117,7 +117,7 @@ class SpecIn(BaseModel):
 
 class SimulateIn(BaseModel):
     text: str
-    author: str = "zara"
+    author: str = "maya"
     platform: str = "slack"
     channel: str = "engineering"
     reply_to: str | None = None

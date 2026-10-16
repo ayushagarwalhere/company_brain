@@ -37,12 +37,16 @@ An ablation study (`python -m benchmark.ablation`, deterministic, no LLM) switch
 - **Telling a decision apart from a suggestion.** "Should we also do XLSX?" followed by "not this quarter" must not count as a change, and the scenario plants exactly these traps.
 - **Linking a PR that never mentions its ticket.** We solved it with graph proximity: who wrote the PR, which of their tickets were open then, and what it's about.
 - **Messages can't be backdated** in Slack, Discord or GitHub, so seeding writes a seed map and PR trailers that restore the original author and timestamp.
-- **FalkorDB's `shortestPath` is directed-only**, so the "how are these connected" tool uses a bounded undirected search that skips the Feature hub, which would otherwise make every path trivially short.
+- **FalkorDB's `shortestPath` is directed-only**, so the "how are these connected" tool uses `algo.SPpaths` with `relDirection: 'both'` and skips the Feature hub, which would otherwise make every path trivially short. My first version enumerated every undirected path and timed out at scale.
+- **Real text is much harder than my synthetic company.** On two public GitHub repos the rules extractor's drift flags were all false (0/25 labelled): it mistakes code review, status updates and volunteer proposals for decisions. Injecting 500 noise messages into the demo also hid both real drifts. I added one mitigation, decision rights (only a ticket's creator or assignee can change it from chat). It cut false requirement changes by 71% but didn't recover the hidden drifts. All of this is in the README, numbers included.
 
 ## Accomplishments that we're proud of
 - Every alert and answer comes with an explainable graph path, not just a score.
 - With a rule-based extractor (no LLM, no answer key) the pipeline finds exactly the planted drifts and their stale PRs on the synthetic dataset (precision and recall 1.00), leaves the clean feature alone, and links the PR that has no ticket ID. *(I wrote the rules while looking at this dataset, so that's an upper bound; the LLM extractor is the general path.)*
-- 29 tests (unit, end-to-end graph and HTTP API, including both webhooks) run in CI against a FalkorDB service container, and re-ingesting is idempotent.
+- An ablation that switches graph capabilities off one at a time: without `SUPERSEDES`/`IMPLEMENTS`, half the drift alerts are false; with ticket IDs alone, both real drifts are missed.
+- A stress test at about 60× the demo (20,800 messages): 100/100 planted drifts found, per-ticket drift check about 1 ms.
+- Honest measurement: every number in the README comes with the command that produced it, including the bad ones.
+- 53 tests (unit, end-to-end graph, HTTP API, connector contracts against fake Slack, Discord and GitHub APIs) run in CI against a FalkorDB service container.
 
 ## What we learned
 Most of the hard part is the data model, not the LLM. Once requirements are versioned nodes with `SUPERSEDES` and `IMPLEMENTS` edges, "did we ship what we decided?" becomes a short query, while plain retrieval over the same text finds the documents but can't tell which version is current.

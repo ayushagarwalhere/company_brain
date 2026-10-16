@@ -1,0 +1,16 @@
+{
+ "repo": "excalidraw/excalidraw",
+ "fetched_at": "2026-10-16T08:17:08Z",
+ "extractor": "heuristic (rules, no LLM)",
+ "stats": {
+  "issues": 92,
+  "comments": 99,
+  "prs": 308,
+  "features": 1,
+  "chat_changes": 0,
+  "messages_linked": 2,
+  "implements": 11,
+  "drift_flags": 0
+ },
+ "flags": []
+}

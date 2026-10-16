@@ -131,7 +131,7 @@ export function SimulateSection() {
   const { actor, setActor, refresh, focusOn } = useBrain();
   const [platform, setPlatform] = useState("slack");
   const [channel, setChannel] = useState("engineering");
-  const [text, setText] = useState("Decision: dark mode must also ship a high-contrast theme, BD-105.");
+  const [text, setText] = useState("Decision: the export button must also offer a JSON download, BD-102.");
   const [busy, setBusy] = useState(false);
   const [res, setRes] = useState<SimResult | null>(null);
   const [err, setErr] = useState<string | null>(null);

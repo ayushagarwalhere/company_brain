@@ -1,0 +1,173 @@
+# How the core parts work
+
+This covers four pieces: the drift query, the supersession chain, the connection query and paged reads. For each: what it does, why it's written this way, what breaks without it, and two questions a reviewer might ask.
+
+---
+
+## 1. `DRIFT`: the core query
+
+[`graph/queries.py`](../graph/queries.py)
+
+```cypher
+MATCH (m:Message)-[:CHANGES]->(r:Requirement)-[:AMENDS]->(t:Ticket)-[:ABOUT]->(f:Feature)
+WHERE NOT (r)<-[:SUPERSEDES]-(:Requirement)
+  AND NOT (:PullRequest)-[:IMPLEMENTS]->(r)
+  AND NOT (:Decision)-[:DISMISSES]->(r)
+  AND ($feature IS NULL OR f.id = $feature)
+  AND ($ticket IS NULL OR t.id = $ticket)
+MATCH (author:Person)-[:POSTED]->(m)
+OPTIONAL MATCH (r)-[:SUPERSEDES]->(prev:Requirement)
+OPTIONAL MATCH (pr:PullRequest)-[:REFERENCES]->(t)
+OPTIONAL MATCH (pr)-[:IMPLEMENTS]->(old:Requirement)
+OPTIONAL MATCH (doc:Document)-[:MENTIONS]->(t) WHERE doc.updated_ms < r.at_ms
+RETURN ..., collect(DISTINCT {pr: pr.number, implements: old.text}) AS stale_prs, collect(DISTINCT {...doc}) AS stale_docs
+```
+
+**What it does.** It finds every requirement that came from chat (`Message -CHANGES->`) where all three of these hold:
+- it is still the newest requirement for its ticket (nothing `SUPERSEDES` it);
+- no PR `IMPLEMENTS` it;
+- nobody decided to keep the old scope (`DISMISSES`).
+
+For each one it collects the evidence:
+- who said it and where;
+- what the ticket said before (`prev`);
+- the PRs on that ticket and which older version they implement;
+- docs about the ticket that were last edited before the change.
+
+**Why it's written this way.**
+- **Drift is defined by what's absent.** No newer version and no implementation. That makes it three `NOT` pattern predicates on one requirement node, not a search.
+- **Each ticket version is its own `Requirement` node.** A requirement is current when nothing supersedes it, so the query never compares text or timestamps at read time. That work happens once, when the `SUPERSEDES` chain is built (section 2).
+- **The evidence is `OPTIONAL`.** A drift with no PR yet is still drift.
+- **`collect(DISTINCT …)`** stops one PR × two docs from becoming two rows.
+- **Doc staleness is a time comparison** (`doc.updated_ms < r.at_ms`). A doc edited after the decision isn't stale.
+- **`DRIFT_FOR_TICKET`** is the same query anchored on the `Requirement.ticket` index. The live monitor checks one ticket in about 1 ms instead of scanning every chat requirement (about 32 ms at 20k messages).
+
+**What breaks without it.**
+- **Without the `SUPERSEDES` predicate,** every chat change that was later written into its ticket is still flagged. In the ablation that's half of all alerts (drift precision 0.50; [`benchmark/ablation.py`](../benchmark/ablation.py)).
+- **Without the `IMPLEMENTS` predicate,** a decision that a PR did ship is still reported.
+- **Without `DISMISSES`,** "keep old scope" on a drift card would have no lasting effect.
+
+**Q: Why not store a `status: 'drift'` flag on the requirement and query that?**
+A: Drift depends on edges that arrive from different sources at different times: a ticket webhook adds a version, a GitHub webhook adds `IMPLEMENTS`, a person dismisses. A stored flag has to be recomputed by every writer, and one that forgets leaves it wrong. Deriving drift from the edges means each writer only adds the fact it knows. The flag would only be a cache, and the per-ticket query is already about 1 ms.
+
+**Q: Couldn't a vector search over messages and tickets find this?**
+A: Similarity tells you a message and a ticket are about the same thing. Drift is about order and coverage: is there a *newer* version, and did a PR implement *this* one. Vectors carry neither. In my no-LLM benchmark, retrieval found the right passages for most questions but couldn't say whether BD-103 is still accurate. The graph could (q05).
+
+---
+
+## 2. `supersession_pairs`: building the version chain
+
+[`pipeline/resolve.py`](../pipeline/resolve.py)
+
+```python
+def supersession_pairs(chain, reflects):
+    pairs, heads, last_ticket_text = [], [], ""
+    for r in chain:                                   # one ticket's requirements, in time order
+        if r["origin"] == "ticket":
+            r = {**r, "prev_text": last_ticket_text}  # lets reflects() see what this edit ADDED
+            last_ticket_text = r["text"]
+        if r["origin"] == "chat" or not heads:
+            pairs += [{"new": r["id"], "old": h["id"]} for h in heads]
+            heads = [r]
+            continue
+        keep = []
+        for h in heads:
+            if h["origin"] == "ticket" or reflects(r, h):
+                pairs.append({"new": r["id"], "old": h["id"]})
+            else:
+                keep.append(h)
+        heads = [r] + keep
+    return pairs
+```
+
+**What it does.** It walks one ticket's requirements oldest to newest and keeps the set of current "heads". The rules:
+- **A chat change supersedes every current head.** What was said most recently in chat is the new intent.
+- **A new ticket version always supersedes older ticket versions.**
+- **A new ticket version supersedes a chat change only if `reflects(new_version, chat_change)` is true.** Otherwise the chat change stays a head next to the new version, and the drift query keeps flagging it.
+
+**Why it's written this way.**
+- **Ticket edits happen for unrelated reasons:** typo fixes, labels, formatting. "The ticket was edited after the decision" is the obvious rule and it's wrong. It would let a cosmetic edit silently hide drift.
+- **`prev_text` lets `reflects` judge only the words the edit *added*.** The rules extractor needs the added words to share content with the chat change, ignoring edit chatter like "typo fixed". If the change has numbers ("12 months"), at least one must be among the added words. The DeepSeek extractor makes the same judgment with a prompt.
+- **More than one head at a time** is how "the ticket moved on, but not in the direction chat decided" is represented.
+- **It's a pure function over a list,** so the logic is unit-tested without a database, and the same function is reused by the ticket webhook ([`pipeline/webhooks.py`](../pipeline/webhooks.py)).
+
+**What breaks without it.**
+- **With no chain at all** (the ablation's `supersession` switch), every chat change looks current forever. Drift precision drops to 0.50.
+- **With the naive "any later edit supersedes" rule,** the `(typo fixed)` edit in [`tests/test_api.py`](../tests/test_api.py) would resolve the BD-101 drift. That test exists to stop exactly this.
+- **Known weakness, from [`benchmark/noise.py`](../benchmark/noise.py):** "a chat change supersedes all heads" also means a misread status update hides a real decision. The rule trusts extraction.
+
+**Q: Why should a chat change supersede unconditionally, when a ticket edit has to prove it reflects the change?**
+A: Chat is where the team states new intent. A ticket edit is a claim that the record caught up, and that claim needs checking. The asymmetry is deliberate. The noise benchmark shows its cost: when extraction calls a non-decision a decision, that message wins. The fix belongs in extraction, through better classification and the decision-rights check, not in the chain.
+
+**Q: Isn't `reflects` doing all the real work? What if it's wrong?**
+A: Yes, it's the single judgment the chain depends on, and the Limitations section says so.
+- **A wrong "yes"** hides drift.
+- **A wrong "no"** keeps a resolved drift open. That's the safer failure, because a person can dismiss it.
+
+Keeping it as one injected function means it can be swapped (rules, LLM or oracle) and tested in isolation.
+
+---
+
+## 3. `CONNECTION`: the shortest causal chain between two things
+
+[`graph/queries.py`](../graph/queries.py)
+
+```cypher
+MATCH (a:__LA__ {id: $a}), (b:__LB__ {id: $b})
+CALL algo.SPpaths({sourceNode: a, targetNode: b, relDirection: 'both', maxLen: 7, pathCount: 1,
+                   relTypes: ['POSTED','REPLY_TO','CHANGES','AMENDS','STATES','REFERENCES','IMPLEMENTS','MADE',
+                              'AUTHORED','ASSIGNED_TO','SUPERSEDES','MENTIONS','RECORDED_IN']})
+YIELD path
+RETURN [n IN nodes(path) | {id: n.id, type: labels(n)[0]}] AS nodes, [r IN relationships(path) | type(r)] AS rels, ...
+```
+
+**What it does.** It answers "how is `liam` connected to `PR-6`?" with the shortest path between any two ids, ignoring edge direction. For example: Liam posted a message → a reply → Maya's decision → requirement → BD-101 ← PR #6.
+
+**Why it's written this way.**
+- **`algo.SPpaths` with `relDirection: 'both'`.** Cypher's `shortestPath` in FalkorDB is directed-only, but causal chains go both ways along edges: a PR *references* a ticket, and a person *posted* a message.
+- **`relTypes` leaves out `ABOUT`.** Without that, almost every pair connects in 2 hops through the Feature hub ("both are about export"). That's true but explains nothing.
+- **`maxLen: 7` and `pathCount: 1`** bound the work.
+- **Labelled endpoints.** `__LA__`/`__LB__` are replaced with labels from `label_of()`, which only returns names from a fixed whitelist, so nothing user-supplied reaches the query text. Both endpoints are then found through per-label id indexes. An unlabelled `MATCH (a {id: $a})` scans every node. [`scripts/explain_queries.py`](../scripts/explain_queries.py) fails CI if that comes back.
+- **Placeholder replacement, not `str.format`.** Cypher's own `{…}` braces clash with Python formatting.
+
+**What breaks without it.** The first version enumerated every undirected variable-length path up to 7 hops and then sorted by length. That grows exponentially with node degree. On the 20,800-message stress-test graph it timed out; `SPpaths` answers in about 4 ms (p50). Including `ABOUT` makes the answers useless rather than slow.
+
+**Q: Why not just make every edge bidirectional, or store the reverse edges?**
+A: It doubles the edges and the write cost, and it blurs meaning: `IMPLEMENTS` has a direction that the drift query relies on. Direction is a property of the query here (`relDirection: 'both'`), not of the data, so the same edges serve both directed questions like drift and undirected ones like connection.
+
+**Q: Shortest isn't always most meaningful. How do you stop trivial paths?**
+A: By choosing which edge types count. Leaving out `ABOUT` is the main lever. The rest are causal edges: someone posted it, it changes this, this implements that. A weighted path, for example preferring `CHANGES`/`IMPLEMENTS`, would be the next step. I haven't built it.
+
+---
+
+## 4. Paged reads: `_rows_paged`
+
+[`pipeline/resolve.py`](../pipeline/resolve.py)
+
+```python
+PAGE = 5000
+
+def _rows_paged(g, q, params=None, page=PAGE):
+    out, skip = [], 0
+    while True:
+        batch = _rows(g, q + " SKIP $_skip LIMIT $_limit", {**(params or {}), "_skip": skip, "_limit": page})
+        out += batch
+        if len(batch) < page:
+            return out
+        skip += page
+```
+
+**What it does.** It reads a large result in pages of 5,000 rows until a short page comes back. It's used for messages and requirements, the two reads that grow with company size.
+
+**Why it's written this way.**
+- **The cap.** FalkorDB's Docker image caps result sets (`RESULTSET_SIZE`, 10,000 by default). Past that, a query returns the first 10k rows **without an error**.
+- **Stable order.** The query must end in a stable `ORDER BY` (`ts_ms, id`), or `SKIP` could skip or repeat rows between pages. The `id` tie-breaker matters, because two messages can share a timestamp.
+- **Page size.** 5,000 stays well under the cap and keeps the number of round-trips small.
+
+**What breaks without it.** At 20,800 messages the resolver saw only the first 10,000. Drift recall in the stress test fell from 1.00 to 0.70, and nothing logged an error. That silence is why there is a regression test ([`tests/test_paging.py`](../tests/test_paging.py)): it writes more rows than the cap and checks every one comes back in order.
+
+**Q: Why not raise `RESULTSET_SIZE` in the server config?**
+A: It's a server setting I don't control on FalkorDB Cloud or someone else's deployment, and it exists to protect the server's memory. Paging works under any cap and never holds one huge reply. The cost is a few extra round-trips, which stay small next to resolution time.
+
+**Q: `SKIP` gets slower as the offset grows. Isn't this quadratic?**
+A: In principle each page re-scans up to its offset. At this size it's 5 pages, and resolve takes 2.0 s in total for the whole 20k graph. At much larger scale, keyset pagination (`WHERE (m.ts_ms, m.id) > (last_ts, last_id) … LIMIT n`) on the `Message.ts_ms` index would avoid re-scanning. It's a small change I haven't needed yet.

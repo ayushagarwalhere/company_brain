@@ -106,3 +106,10 @@ def test_heuristic_reflects_ignores_edit_chatter_and_requires_numbers():
     assert not ex.reflects({"text": prev + " (typo fixed)", "prev_text": prev}, chat)
     assert ex.reflects({"text": "Export any custom date range up to 12 months as CSV.", "prev_text": prev}, chat)
     assert ex.reflects({"text": prev + " Columns: assignee.", "prev_text": prev}, {"text": "Let's add an assignee column, BD-101."})
+
+
+def test_decision_rights_are_the_tickets_creator_or_assignee():
+    from pipeline.resolve import has_decision_rights
+    t = {"creator": "maya", "assignee": "sofia"}
+    assert has_decision_rights("maya", t) and has_decision_rights("sofia", t)
+    assert not has_decision_rights("zara", t) and not has_decision_rights(None, {"creator": None, "assignee": None})

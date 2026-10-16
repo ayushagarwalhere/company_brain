@@ -7,6 +7,7 @@ Runs the same steps as the batch pipeline, scoped to a single message:
 
 Guards against spam and false positives:
   * only "decision" / "requirement_change" with confidence >= MIN_CONFIDENCE
+  * only from the amended ticket's creator or assignee (decision rights, see benchmark/noise.py)
   * one alert per requirement (Alert node is MERGEd on the requirement id)
   * per-ticket cooldown so a heated thread doesn't post five alerts
   * messages from the bot itself are ignored by the bot adapters
@@ -19,6 +20,7 @@ from graph.db import get_graph
 from graph.writer import write_messages
 from pipeline.events import Event
 from pipeline.extract import CHANGE_KINDS, HeuristicExtractor  # noqa: F401 - re-exported for tests
+from pipeline.resolve import has_decision_rights
 from pipeline.textsim import TfIdf
 
 MIN_CONFIDENCE = 0.6
@@ -93,6 +95,10 @@ def process_message(event: Event, g=None, extractor=None) -> dict:
     if not ticket:
         sim = TfIdf({t["id"]: f"{t['title']} {t['description']}" for t in f["ticket_objs"]})
         ticket, _ = sim.best(f"{c['requirement']} {event.text}")
+    owners = Q.rows(g, """MATCH (t:Ticket {id: $t}) OPTIONAL MATCH (c:Person)-[:AUTHORED]->(t)
+                         OPTIONAL MATCH (t)-[:ASSIGNED_TO]->(p:Person) RETURN c.id AS creator, p.id AS assignee""", t=ticket)
+    if not owners or not has_decision_rights(event.author, owners[0]):
+        return {**result, "status": "no-decision-rights", "ticket": ticket}
 
     rid = f"req:{event.id}"
     g.query("""MATCH (m:Message {id: $m}), (t:Ticket {id: $t}), (f:Feature {id: $f}), (p:Person {id: $p})

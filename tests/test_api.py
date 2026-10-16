@@ -72,9 +72,15 @@ def test_ask_uses_rules_agent_without_llm(client):
 def test_simulate_publishes_event(client):
     from api import bus
     r = client.post("/api/simulate", json={"text": "Decision: dark mode must also ship a high-contrast theme, BD-105.",
-                                           "author": "zara"}).json()
+                                           "author": "priya"}).json()
     assert r["status"] == "drift" and r["ticket"] == "BD-105"
     assert bus.recent[-1]["type"] == "drift"
+
+
+def test_simulate_from_someone_without_decision_rights_is_not_a_change(client):
+    r = client.post("/api/simulate", json={"text": "Decision: dark mode must also ship a sepia theme, BD-105.",
+                                           "author": "zara"}).json()
+    assert r["status"] == "no-decision-rights" and r["ticket"] == "BD-105"
 
 
 def test_ticket_webhook_unrelated_edit_keeps_drift_then_real_edit_resolves(client):

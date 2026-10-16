@@ -1,0 +1,211 @@
+{
+ "labelled_by": "Claude (AI assistant) reading each comment in full on 2026-10-16; not independently verified, spot-check the URLs",
+ "criterion": "true_drift / true_decision = the comment states an agreed change to what an issue's feature must do (scope, behaviour, limits), made or accepted by someone with standing (maintainer or issue owner). Proposals, volunteering, analysis that asks for a decision, status, code review and bot output are false positives.",
+ "labels": [
+  {
+   "set": "drift_flag",
+   "repo": "FalkorDB/FalkorDB",
+   "url": "https://github.com/FalkorDB/FalkorDB/issues/3150#issuecomment-5982021285",
+   "ticket": "GH-3150",
+   "verdict": "false_positive",
+   "pattern": "analysis",
+   "note": "Bug report follow-up with repro table; 'Same panic here'. Also grouped under an unrelated 'feature' via a shared label."
+  },
+  {
+   "set": "drift_flag",
+   "repo": "FalkorDB/FalkorDB",
+   "url": "https://github.com/FalkorDB/FalkorDB/issues/3070#issuecomment-6109406007",
+   "ticket": "GH-3070",
+   "verdict": "false_positive",
+   "pattern": "analysis",
+   "note": "Prototype fix and cost measurement headed 'needs a decision': asks for a decision, makes none."
+  },
+  {
+   "set": "drift_flag",
+   "repo": "FalkorDB/FalkorDB",
+   "url": "https://github.com/FalkorDB/FalkorDB/issues/2982#issuecomment-6109557079",
+   "ticket": "GH-2982",
+   "verdict": "false_positive",
+   "pattern": "analysis",
+   "note": "Re-check plus experiment headed 'needs a decision': asks for a decision, makes none."
+  },
+  {
+   "set": "drift_flag",
+   "repo": "FalkorDB/FalkorDB",
+   "url": "https://github.com/FalkorDB/FalkorDB/issues/3272#issuecomment-6149064101",
+   "ticket": "GH-3272",
+   "verdict": "false_positive",
+   "pattern": "volunteer",
+   "note": "'I'd like to work on this issue' plus a plan; defers to maintainers' decision."
+  },
+  {
+   "set": "drift_flag",
+   "repo": "FalkorDB/FalkorDB",
+   "url": "https://github.com/FalkorDB/FalkorDB/issues/3242#issuecomment-6149128035",
+   "ticket": "GH-3205",
+   "verdict": "false_positive",
+   "pattern": "volunteer",
+   "note": "Volunteer's proposal ('I agree with the recommendation...'); also attached to the wrong issue (comment is on #3242 but mentions #3205)."
+  },
+  {
+   "set": "decision_sample",
+   "repo": "excalidraw/excalidraw",
+   "url": "https://github.com/excalidraw/excalidraw/issues/11708#issuecomment-5934068537",
+   "verdict": "false_positive",
+   "pattern": "analysis",
+   "note": "Technical analysis that says the issue NEEDS a semantics decision; makes none."
+  },
+  {
+   "set": "decision_sample",
+   "repo": "excalidraw/excalidraw",
+   "url": "https://github.com/excalidraw/excalidraw/issues/11973#issuecomment-5710492375",
+   "verdict": "false_positive",
+   "pattern": "volunteer",
+   "note": "'I'd like to work on this issue': a contributor's plan, not an agreed requirement."
+  },
+  {
+   "set": "decision_sample",
+   "repo": "FalkorDB/FalkorDB",
+   "url": "https://github.com/FalkorDB/FalkorDB/issues/3150#issuecomment-5982021285",
+   "verdict": "false_positive",
+   "pattern": "analysis",
+   "note": "Bug report with extra repro data and a suspected cause."
+  },
+  {
+   "set": "decision_sample",
+   "repo": "FalkorDB/FalkorDB",
+   "url": "https://github.com/FalkorDB/FalkorDB/pull/3125#issuecomment-5978254267",
+   "verdict": "false_positive",
+   "pattern": "code_review",
+   "note": "Automated-style code review of a PR; 'instead of' describes the diff."
+  },
+  {
+   "set": "decision_sample",
+   "repo": "excalidraw/excalidraw",
+   "url": "https://github.com/excalidraw/excalidraw/issues/9123#issuecomment-5647970113",
+   "verdict": "false_positive",
+   "pattern": "analysis",
+   "note": "Points out an existing mechanism elsewhere in the codebase; no decision."
+  },
+  {
+   "set": "decision_sample",
+   "repo": "excalidraw/excalidraw",
+   "url": "https://github.com/excalidraw/excalidraw/issues/7177#issuecomment-5429918774",
+   "verdict": "false_positive",
+   "pattern": "volunteer",
+   "note": "Volunteer proposes an implementation ('I'll update ... instead of the hardcoded #000'); nobody agreed to it in this comment."
+  },
+  {
+   "set": "decision_sample",
+   "repo": "excalidraw/excalidraw",
+   "url": "https://github.com/excalidraw/excalidraw/issues/11906#issuecomment-5432065328",
+   "verdict": "false_positive",
+   "pattern": "status",
+   "note": "Status: a fix is in review in another PR."
+  },
+  {
+   "set": "decision_sample",
+   "repo": "FalkorDB/FalkorDB",
+   "url": "https://github.com/FalkorDB/FalkorDB/pull/3155#issuecomment-5977958290",
+   "verdict": "false_positive",
+   "pattern": "code_review",
+   "note": "Code review of a PR."
+  },
+  {
+   "set": "decision_sample",
+   "repo": "excalidraw/excalidraw",
+   "url": "https://github.com/excalidraw/excalidraw/issues/7016#issuecomment-5382590535",
+   "verdict": "false_positive",
+   "pattern": "volunteer",
+   "note": "'I'd like to work on this one': volunteer with a repro."
+  },
+  {
+   "set": "decision_sample",
+   "repo": "FalkorDB/FalkorDB",
+   "url": "https://github.com/FalkorDB/FalkorDB/pull/3249#issuecomment-6109296583",
+   "verdict": "false_positive",
+   "pattern": "bot",
+   "note": "CodeRabbit bot comment."
+  },
+  {
+   "set": "decision_sample",
+   "repo": "excalidraw/excalidraw",
+   "url": "https://github.com/excalidraw/excalidraw/pull/11904#issuecomment-5534749674",
+   "verdict": "false_positive",
+   "pattern": "code_review",
+   "note": "Author's reply to review ('Agreed') about test code, not product behaviour."
+  },
+  {
+   "set": "decision_sample",
+   "repo": "FalkorDB/FalkorDB",
+   "url": "https://github.com/FalkorDB/FalkorDB/pull/3120#issuecomment-5845525082",
+   "verdict": "false_positive",
+   "pattern": "code_review",
+   "note": "Author's reply to review ('agreed in principle') about a test assertion."
+  },
+  {
+   "set": "decision_sample",
+   "repo": "excalidraw/excalidraw",
+   "url": "https://github.com/excalidraw/excalidraw/issues/8117#issuecomment-5848492578",
+   "verdict": "false_positive",
+   "pattern": "status",
+   "note": "Status: 'Fixed by #8012', the behaviour already shipped."
+  },
+  {
+   "set": "decision_sample",
+   "repo": "FalkorDB/FalkorDB",
+   "url": "https://github.com/FalkorDB/FalkorDB/pull/3062#issuecomment-5987578238",
+   "verdict": "false_positive",
+   "pattern": "code_review",
+   "note": "Code review of a PR."
+  },
+  {
+   "set": "decision_sample",
+   "repo": "FalkorDB/FalkorDB",
+   "url": "https://github.com/FalkorDB/FalkorDB/pull/3141#issuecomment-5977963446",
+   "verdict": "false_positive",
+   "pattern": "code_review",
+   "note": "Code review of a PR."
+  },
+  {
+   "set": "decision_sample",
+   "repo": "FalkorDB/FalkorDB",
+   "url": "https://github.com/FalkorDB/FalkorDB/pull/2981#issuecomment-5826500939",
+   "verdict": "false_positive",
+   "pattern": "bot",
+   "note": "CodeRabbit rate-limit notice."
+  },
+  {
+   "set": "decision_sample",
+   "repo": "excalidraw/excalidraw",
+   "url": "https://github.com/excalidraw/excalidraw/pull/11949#issuecomment-5404398306",
+   "verdict": "false_positive",
+   "pattern": "code_review",
+   "note": "Author's reply describing fixes for review findings."
+  },
+  {
+   "set": "decision_sample",
+   "repo": "FalkorDB/FalkorDB",
+   "url": "https://github.com/FalkorDB/FalkorDB/pull/3123#issuecomment-5857999369",
+   "verdict": "false_positive",
+   "pattern": "status",
+   "note": "Status table of open PRs awaiting CI approval."
+  },
+  {
+   "set": "decision_sample",
+   "repo": "excalidraw/excalidraw",
+   "url": "https://github.com/excalidraw/excalidraw/issues/9410#issuecomment-5518248089",
+   "verdict": "false_positive",
+   "pattern": "status",
+   "note": "Status: repro'd, root-caused, fix opened in another PR."
+  },
+  {
+   "set": "decision_sample",
+   "repo": "excalidraw/excalidraw",
+   "url": "https://github.com/excalidraw/excalidraw/pull/12161#issuecomment-5994499356",
+   "verdict": "false_positive",
+   "pattern": "code_review",
+   "note": "Review finding on a PR ('instead of treating them as empty')."
+  }
+ ]
+}

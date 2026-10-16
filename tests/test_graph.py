@@ -66,7 +66,7 @@ def test_live_monitor_alerts_once(g):
     from pipeline.events import Event
     from pipeline.live import HeuristicExtractor, process_message, _last_alert
     _last_alert.clear()
-    ev = Event("discord", "message", "test:live1", "zara", "2026-10-12T06:00:00Z",
+    ev = Event("discord", "message", "test:live1", "priya", "2026-10-12T06:00:00Z",
                "Decision: dark mode must also ship a high-contrast theme, BD-105.", channel="design")
     r = process_message(ev, g=g, extractor=HeuristicExtractor())
     assert r["status"] == "drift" and r["ticket"] == "BD-105" and "Graph path" in r["alert"]
@@ -164,3 +164,14 @@ def test_ablation_without_version_reasoning_raises_false_alarms():
     assert out["full"]["f1"] == 1.0
     assert out["flat"]["precision"] == 0.5 and set(out["flat"]["fp"]) == {"m_exp_06", "m_dark_05"}
     assert out["ids"]["recall"] == 0.0
+
+
+def test_demo_reset_restores_the_planted_drift():
+    from scripts.demo_reset import EXPECTED_DRIFT, check, rebuild
+    name = "test_demo_reset"
+    try:
+        assert rebuild("heuristic", graph=name) == "heuristic"
+        out = check(graph=name)
+        assert out["ok"] and set(out["drift_tickets"]) == EXPECTED_DRIFT
+    finally:
+        get_graph(name).delete()

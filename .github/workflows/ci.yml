@@ -33,7 +33,7 @@ jobs:
         run: |
           python -m pipeline.build --extractor heuristic
           python -m scripts.explain_queries
-      - name: Scale test (small, keeps CI fast)
+      - name: Stress test (small, keeps CI fast)
         run: python -m benchmark.scale --features 40 --noise 4000
       - name: Query reference is up to date
         run: |

@@ -53,8 +53,8 @@ def main():
             "- **Writes** ([`graph/writer.py`](../graph/writer.py), [`pipeline/resolve.py`](../pipeline/resolve.py), "
             "[`pipeline/actions.py`](../pipeline/actions.py)): every node is `MERGE`d on `id` (idempotent re-ingest); "
             "resolution edges carry `via` so each link records how it was made.",
-            "- **Graph algorithms explored**: `algo.pageRank`, `algo.betweenness` (see README); the connection tool uses a "
-            "bounded undirected variable-length match because `shortestPath` is directed-only in FalkorDB.", ""]
+            "- **Graph algorithm**: the connection tool uses `algo.SPpaths` with `relDirection: 'both'`, because Cypher "
+            "`shortestPath` is directed-only in FalkorDB (see [`EXPLAIN.md`](EXPLAIN.md)).", ""]
     OUT.write_text("\n".join(out), encoding="utf-8")
     print(f"wrote {OUT.relative_to(ROOT)} ({len(queries)} queries)")
 

@@ -1,0 +1,35 @@
+{
+ "decision_sample": {
+  "labelled": 20,
+  "true_positive": 0,
+  "precision": 0.0,
+  "failure_patterns": {
+   "code_review": 8,
+   "status": 4,
+   "analysis": 3,
+   "volunteer": 3,
+   "bot": 2
+  }
+ },
+ "drift_flag": {
+  "labelled": 5,
+  "true_positive": 0,
+  "precision": 0.0,
+  "failure_patterns": {
+   "analysis": 3,
+   "volunteer": 2
+  }
+ },
+ "all": {
+  "labelled": 25,
+  "true_positive": 0,
+  "precision": 0.0,
+  "failure_patterns": {
+   "code_review": 8,
+   "analysis": 6,
+   "volunteer": 5,
+   "status": 4,
+   "bot": 2
+  }
+ }
+}

@@ -68,6 +68,10 @@ Without version reasoning, **half the alerts are false**: changes that were alre
 
 A company brain that's only right at ingest time isn't much use. Two webhooks keep it current. A ticket edit becomes a new requirement version and re-runs the supersession check for that ticket. A signed GitHub PR webhook links the PR and decides which requirement version it implements. Changes stream to every open dashboard over Server-Sent Events, so when a PR that delivers the decision lands, the drift card disappears on its own.
 
+## Where it breaks
+
+I ran the unchanged pipeline on two public GitHub repos (FalkorDB and excalidraw). Every drift flag was wrong: 0 of 25 labelled items. The phrase rules fire on code review ("let's use a constant *instead of* the magic number"), status updates and "I'd like to work on this" offers. I also injected 500 messages that change nothing into the demo. The misread ones superseded the real decisions, and both real drifts disappeared. One principled fix, decision rights (only a ticket's creator or assignee can change it from chat), removed 71% of the false changes but brought neither drift back. The graph logic holds up; extraction is the open problem. The LLM extractor is built for that, but I couldn't measure it (no API balance). The README has every number and the command behind it.
+
 ## What I'd do next
 
 Real Linear and Jira connectors, FalkorDB vector indexes for the semantic step, and a feedback loop where dismissing an alert teaches the extractor. The biggest lesson, though, was that **most of the hard part was the data model, not the model**. Once requirements were versioned nodes with `SUPERSEDES` and `IMPLEMENTS` edges, "did we ship what we decided?" stopped being a judgment call and became a query.

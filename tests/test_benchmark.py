@@ -24,3 +24,10 @@ def test_questions_are_well_formed():
     ids = [q["id"] for q in QUESTIONS]
     assert len(ids) == len(set(ids)) == 15
     assert all(q["must"] and all(g for g in q["must"]) for q in QUESTIONS)
+
+
+def test_noise_set_is_fixed_and_never_a_scenario_message():
+    from benchmark.noise import N_REAL, N_SYNTH, noise_messages
+    a, b = noise_messages(), noise_messages()
+    assert [m.text for m in a] == [m.text for m in b] and len(a) == N_REAL + N_SYNTH == 500
+    assert all(m.id.startswith("noise:") for m in a)

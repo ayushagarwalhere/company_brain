@@ -66,7 +66,7 @@ RETURN f.id AS feature, f.name AS feature_name, t.id AS ticket, t.title AS ticke
 ORDER BY changed_ms
 ```
 
-Used by: [`agent/retro.py`](../agent/retro.py), [`agent/tools.py`](../agent/tools.py), [`api/main.py`](../api/main.py), [`benchmark/scale.py`](../benchmark/scale.py), [`benchmark/score_resolution.py`](../benchmark/score_resolution.py), [`bots/digest.py`](../bots/digest.py), [`graph/explore.py`](../graph/explore.py), [`pipeline/actions.py`](../pipeline/actions.py), [`pipeline/build.py`](../pipeline/build.py), [`pipeline/live.py`](../pipeline/live.py), [`pipeline/webhooks.py`](../pipeline/webhooks.py)
+Used by: [`agent/retro.py`](../agent/retro.py), [`agent/tools.py`](../agent/tools.py), [`api/main.py`](../api/main.py), [`benchmark/noise.py`](../benchmark/noise.py), [`benchmark/real_data.py`](../benchmark/real_data.py), [`benchmark/scale.py`](../benchmark/scale.py), [`benchmark/score_resolution.py`](../benchmark/score_resolution.py), [`bots/digest.py`](../bots/digest.py), [`graph/explore.py`](../graph/explore.py), [`pipeline/actions.py`](../pipeline/actions.py), [`pipeline/build.py`](../pipeline/build.py), [`pipeline/live.py`](../pipeline/live.py), [`pipeline/webhooks.py`](../pipeline/webhooks.py)
 
 ## SPRINT_DECISIONS
 
@@ -277,4 +277,4 @@ Used by: [`api/main.py`](../api/main.py)
 
 - **Full-text search** ([`graph/explore.py`](../graph/explore.py)): `CALL db.idx.fulltext.createNodeIndex('Message', 'text')` (plus Ticket, PullRequest, Person) and `CALL db.idx.fulltext.queryNodes($label, $q) YIELD node, score`.
 - **Writes** ([`graph/writer.py`](../graph/writer.py), [`pipeline/resolve.py`](../pipeline/resolve.py), [`pipeline/actions.py`](../pipeline/actions.py)): every node is `MERGE`d on `id` (idempotent re-ingest); resolution edges carry `via` so each link records how it was made.
-- **Graph algorithms explored**: `algo.pageRank`, `algo.betweenness` (see README); the connection tool uses a bounded undirected variable-length match because `shortestPath` is directed-only in FalkorDB.
+- **Graph algorithm**: the connection tool uses `algo.SPpaths` with `relDirection: 'both'`, because Cypher `shortestPath` is directed-only in FalkorDB (see [`EXPLAIN.md`](EXPLAIN.md)).
