@@ -1,0 +1,10 @@
+{
+ "is_change": false,
+ "kind": "other",
+ "old": null,
+ "new": null,
+ "evidence_quote": "Acme user locked out after too many logins, which is good I guess 😅",
+ "feature": "feat_user_account_security",
+ "ticket": "BD-107",
+ "confidence": 0.9
+}

@@ -1,0 +1,10 @@
+{
+ "is_change": true,
+ "kind": "requirement_change",
+ "old": "Accept RSA keys of any bit size",
+ "new": "Reject RSA keys with less than 1024 bits by default",
+ "evidence_quote": "This issue now tracks the work of implementing the proposal.",
+ "feature": "crypto/rsa",
+ "ticket": null,
+ "confidence": 1.0
+}

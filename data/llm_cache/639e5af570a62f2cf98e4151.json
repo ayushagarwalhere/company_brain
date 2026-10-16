@@ -1,0 +1,4 @@
+{
+ "replaces": true,
+ "reason": "The later message completely replaces the earlier decision by changing the notification method (email → Slack), adding a warning time frame, and dropping email notifications entirely."
+}

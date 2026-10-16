@@ -1,0 +1,4 @@
+{
+ "reflects": true,
+ "reason": "The edited ticket text incorporates the chat change by including the same functionality (Light / Dark / System toggle in Settings > Appearance) and adds clarification about the location (not the navbar), which does not alter the original requirement."
+}

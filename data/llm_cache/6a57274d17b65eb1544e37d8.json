@@ -1,0 +1,10 @@
+{
+ "is_change": true,
+ "kind": "requirement_change",
+ "old": "expect.anything()",
+ "new": "expect.any(DOMException)",
+ "evidence_quote": "So I have gone with `expect.any(DOMException)` instead. That is more precise than `expect.anything()` in the way you were after — it pins the argument to the thing this test actually throws rather than just \"not null\" — and it passes.",
+ "feature": "vi.resetModules()",
+ "ticket": "396617a",
+ "confidence": 1
+}

@@ -42,8 +42,26 @@ export function SplitText({ text, className, offset = 0 }: { text: string; class
   );
 }
 
+/** Headline that reveals word by word from behind a mask (each word slides up out of its own clip). */
+export function WordReveal({ text, className, delay = 0 }: { text: string; className?: string; delay?: number }) {
+  const still = useReducedMotion() || useStaticMode();
+  return (
+    <span className={`line ${className || ""}`} aria-hidden>
+      {text.split(" ").map((w, i, all) => (
+        <span key={i}>
+          <span className="wmask">
+            <motion.span className="w" initial={still ? false : { y: "112%" }} animate={{ y: "0%" }}
+              transition={{ duration: 1.05, ease: EASE, delay: delay + i * 0.09 }}>{w}</motion.span>
+          </span>
+          {i < all.length - 1 ? " " : null}
+        </span>
+      ))}
+    </span>
+  );
+}
+
 /** Number that counts up the first time it's visible. */
-export function CountUp({ value, duration = 1.2 }: { value: number; duration?: number }) {
+export function CountUp({ value, duration = 1.2, delay = 0, className }: { value: number; duration?: number; delay?: number; className?: string }) {
   const ref = useRef<HTMLElement>(null);
   const inView = useInView(ref, { once: true });
   const still = useReducedMotion() || useStaticMode();
@@ -51,10 +69,10 @@ export function CountUp({ value, duration = 1.2 }: { value: number; duration?: n
   useEffect(() => {
     if (still) { setShown(value); return; }
     if (!inView) return;
-    const c = animate(0, value, { duration, ease: EASE, onUpdate: (v) => setShown(Math.round(v)) });
+    const c = animate(0, value, { duration, delay, ease: EASE, onUpdate: (v) => setShown(Math.round(v)) });
     return () => c.stop();
-  }, [inView, value, duration, still]);
-  return <b ref={ref}>{shown.toLocaleString()}</b>;
+  }, [inView, value, duration, delay, still]);
+  return <b ref={ref} className={className}>{shown.toLocaleString()}</b>;
 }
 
 export { EASE };

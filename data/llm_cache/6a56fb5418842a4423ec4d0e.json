@@ -1,0 +1,10 @@
+{
+ "is_change": false,
+ "kind": "analysis",
+ "old": null,
+ "new": null,
+ "evidence_quote": "The same bug has a variable-length shape that #3099 does not cover. It goes through a separate code path: the leaf rewrite in `select_var_len_scan_node` (`graph/src/planner/optimizer/select_scan_node.rs:621-665`)",
+ "feature": null,
+ "ticket": null,
+ "confidence": 1.0
+}

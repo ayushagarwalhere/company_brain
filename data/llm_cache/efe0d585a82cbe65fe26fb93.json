@@ -1,0 +1,10 @@
+{
+ "is_change": true,
+ "kind": "decision",
+ "old": "Admins can export tickets created in the last 30 days as a CSV file. Columns: id, subject, status, created_at, assignee.",
+ "new": "the export must support any custom date range up to 12 months (not a fixed 30 days), and it must include all custom fields as extra columns",
+ "evidence_quote": "Decision: the export must support any custom date range up to 12 months (not a fixed 30 days), and it must include all custom fields as extra columns",
+ "feature": "feat_ticket_export_to_csv",
+ "ticket": "BD-101",
+ "confidence": 1
+}

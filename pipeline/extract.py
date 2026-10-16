@@ -1,7 +1,7 @@
 """Extraction: the judgments that need language understanding.
 
 Three interchangeable extractors:
-  * DeepSeekExtractor:  the real one, LLM calls with JSON output.
+  * LLMExtractor:       the real one, LLM calls with structured JSON output (DeepSeek, or local via Ollama).
   * HeuristicExtractor: rules only (labels, decision phrasing, text diffs). No LLM, no
                         answer key: the honest fallback and the baseline for the LLM.
   * OracleExtractor:   reads the answer key. Test harness only: it lets resolution
@@ -25,20 +25,56 @@ KEY_PATH = Path(__file__).resolve().parent.parent / "data" / "scenario" / "answe
 
 CHANGE_KINDS = {"decision", "requirement_change"}
 
-CLASSIFY_SYSTEM = """You analyse messages from a software team's Slack/Discord to track product requirements.
-Classify the TARGET message (use the thread only as context). Kinds:
-- "decision": someone with authority states an agreed change to what a feature must do (scope, behaviour, limits, channel, defaults, placement...).
-- "requirement_change": the message itself announces the requirement now differs from before, even without the word "decision".
-- "request": a customer/teammate asks for or suggests something that has NOT been agreed yet.
-- "rejected_proposal": a suggestion that is declined or parked.
-- "reaffirmation": confirms the existing requirement stays as is.
-- "status": progress update, PR announcements, review, done/merged.
-- "question": a question without a change.
-- "other": small talk or unrelated.
-Only "decision" or "requirement_change" change requirements. A request is not a change until someone agrees to it.
-If it is a change, write `requirement` as one self-contained sentence describing the NEW required behaviour (include concrete numbers).
-`feature` must be one of the given feature ids or null. `ticket` is the ticket id the change modifies, or null if unclear.
-Return JSON: {"kind": str, "feature": str|null, "ticket": str|null, "requirement": str|null, "confidence": 0..1}"""
+CLASSIFY_SYSTEM = """You decide whether ONE chat message (the TARGET) changes a product requirement. Use the thread only as context.
+
+A requirement change says that what a feature must do is now different (scope, behaviour, limits, channel, defaults,
+placement, numbers), stated as an agreed decision or an announced change by someone deciding it.
+
+These are NOT changes (is_change = false), even when they contain words like "decision", "agreed", "instead of" or "let's":
+- code review remarks and replies to review about how the code is written (naming, refactors, tests, helpers)
+- status updates: a PR is opened, merged, deployed, rebased or blocked; "fixed by #n"; tests are green
+- analysis, bug reports and reproductions, including ones that say a decision is NEEDED or list options
+- offers to do work and plans that nobody has agreed to ("I'd like to pick this up", "I'll change X to Y", "what if we...?", "idea:")
+- requests from customers or teammates that nobody has agreed to
+- questions, rejections ("not this quarter", "let's not") and reaffirmations ("keep it as is")
+
+Return JSON:
+{"is_change": true|false,
+ "kind": "decision"|"requirement_change"|"request"|"proposal"|"status"|"review"|"analysis"|"question"|"rejected_proposal"|"reaffirmation"|"other",
+ "old": what the requirement was before, or null,
+ "new": if is_change, ONE self-contained sentence with the NEW required behaviour (concrete numbers), else null,
+ "evidence_quote": if is_change, the exact words copied from the TARGET message that state the change, else null,
+ "feature": one of the given feature ids, or null,
+ "ticket": the ticket id the change modifies, or null,
+ "confidence": 0..1}"""
+
+REPLACES_SYSTEM = """Two chat messages each changed the requirement of the same ticket. Decide whether the LATER one revises,
+reverses or replaces the EARLIER decision (the same aspect of the feature), rather than being about something else
+or being only a status update, proposal or remark.
+Return JSON: {"replaces": true|false, "reason": short explanation}"""
+
+
+def _norm(text: str) -> str:
+    return re.sub(r"\s+", " ", (text or "").lower().replace("\u2019", "'")).strip(" .\"'`*")
+
+
+def evidence_ok(quote: str | None, message: str) -> bool:
+    """The model must copy the words that state the change; a quote that isn't in the message means
+    the change was made up, so the extraction is discarded (cheap guard against hallucinated changes)."""
+    q = _norm(quote)
+    return len(q) >= 8 and q in _norm(message)
+
+
+def from_structured(out: dict, message: str) -> dict:
+    """Maps the structured answer to the pipeline's {kind, feature, ticket, requirement, confidence}."""
+    base = {"feature": out.get("feature"), "ticket": out.get("ticket"), "confidence": out.get("confidence") or 0.0,
+            "evidence_quote": out.get("evidence_quote"), "old": out.get("old")}
+    if not out.get("is_change") or not out.get("new"):
+        return {**base, "kind": out.get("kind") if out.get("kind") not in CHANGE_KINDS else "other", "requirement": None}
+    if not evidence_ok(out.get("evidence_quote"), message):
+        return {**base, "kind": "other", "requirement": None, "guard": "evidence_not_in_message"}
+    return {**base, "kind": "decision" if out.get("kind") == "decision" else "requirement_change", "requirement": out["new"]}
+
 
 GROUP_SYSTEM = """Group a startup's tickets into product features. A feature is a user-facing capability that several tickets may contribute to
 (backend, frontend, tests, follow-ups). Tickets that are unrelated one-offs (chores, typo fixes, unrelated bugs) go in their own feature
@@ -60,8 +96,9 @@ def slug(name: str) -> str:
     return "feat_" + re.sub(r"[^a-z0-9]+", "_", name.lower()).strip("_")[:40]
 
 
-class DeepSeekExtractor:
-    name = "deepseek"
+class LLMExtractor:
+    """Any OpenAI-compatible model (pipeline/llm.py): DeepSeek, or a local one through Ollama."""
+    name = "llm"
 
     def group_tickets(self, tickets: list[dict]) -> list[dict]:
         lines = "\n".join(f"{t['id']}: {t['title']} - {t['description']}" for t in tickets)
@@ -78,7 +115,7 @@ class DeepSeekExtractor:
             user = (f"Features:\n{feat_txt}\n\nThread context:\n{thread}\n\n"
                     f"TARGET message by {it['author']} at {it['ts']}:\n{it['text']}")
             try:
-                return it["id"], llm.chat_json(CLASSIFY_SYSTEM, user)
+                return it["id"], from_structured(llm.chat_json(CLASSIFY_SYSTEM, user), it["text"])
             except Exception as e:  # noqa: BLE001 - one bad call shouldn't kill the run
                 return it["id"], {"kind": "error", "error": str(e)}
 
@@ -96,6 +133,11 @@ class DeepSeekExtractor:
         user = (f"Chat change ({chat_req['at']}): {chat_req['text']}\n\n"
                 f"Ticket text after edit ({ticket_req['at']}): {ticket_req['text']}")
         return bool(llm.chat_json(REFLECTS_SYSTEM, user).get("reflects"))
+
+    def replaces(self, new_req: dict, old_req: dict) -> bool:
+        user = f"EARLIER ({old_req['at']}): {old_req['text']}\n\nLATER ({new_req['at']}): {new_req['text']}"
+        return bool(llm.chat_json(REPLACES_SYSTEM, user).get("replaces"))
+
 
 class OracleExtractor:
     """Answer-key extractor (test harness only)."""
@@ -147,6 +189,13 @@ class OracleExtractor:
         return [c["id"] for c in candidates if c["at_ms"] == at]
 
 
+    def replaces(self, new_req, old_req):
+        def key_req(r):
+            dec = next((d for d in self.key["decisions"] if d["message"] == r["id"].removeprefix("req:")), None)
+            return dec["changes"] if dec else None
+        new = self.reqs.get(key_req(new_req) or "")
+        return bool(new) and new.get("supersedes") == key_req(old_req)
+
     def reflects(self, ticket_req, chat_req):
         from pipeline.events import to_ms
         msg = chat_req["id"].removeprefix("req:")
@@ -159,6 +208,7 @@ class HeuristicExtractor:
     """Rule-based extractor: no LLM, no answer key. Every rule is explainable, which makes
     it the honest fallback when no DeepSeek key is configured, and a baseline for the LLM."""
     name = "heuristic"
+    replaces = None  # rules can't judge whether one decision revises another: chat never supersedes chat
 
     GENERIC_LABELS = {"backend", "frontend", "bug", "tests", "tech-debt", "docs", "security", "performance",
                       "notifications", "reporting", "profile", "search"}
@@ -245,4 +295,5 @@ class HeuristicExtractor:
 
 
 def get_extractor(name: str):
-    return {"deepseek": DeepSeekExtractor, "oracle": OracleExtractor, "heuristic": HeuristicExtractor}[name]()
+    # "deepseek" is the old name of the LLM extractor, kept so existing commands work
+    return {"llm": LLMExtractor, "deepseek": LLMExtractor, "oracle": OracleExtractor, "heuristic": HeuristicExtractor}[name]()

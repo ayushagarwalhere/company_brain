@@ -1,0 +1,10 @@
+{
+ "is_change": false,
+ "kind": "status",
+ "old": null,
+ "new": null,
+ "evidence_quote": "BD-103 update: tests are green, SLA breach notifications works with email on staging.",
+ "feature": "feat_sla_breach_notifications",
+ "ticket": "BD-103",
+ "confidence": 1.0
+}

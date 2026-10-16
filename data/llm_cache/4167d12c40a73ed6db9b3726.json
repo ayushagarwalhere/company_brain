@@ -1,0 +1,10 @@
+{
+ "is_change": false,
+ "kind": "review",
+ "old": null,
+ "new": null,
+ "evidence_quote": "## Code Review: fix: pattern predicates in WITH ... WHERE refer to pre-projection variables (#3061)",
+ "feature": null,
+ "ticket": "3061",
+ "confidence": 0.9
+}

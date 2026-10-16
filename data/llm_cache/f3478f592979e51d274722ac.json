@@ -1,0 +1,10 @@
+{
+ "is_change": false,
+ "kind": "status",
+ "old": null,
+ "new": null,
+ "evidence_quote": "Sprint 2: dark mode is go. Spec is in BD-105: follow the OS theme by default, with a Light / Dark / System toggle. BD-106 is the theme token refactor that has to land first.",
+ "feature": "feat_dark_mode_and_theme_customization",
+ "ticket": "BD-105",
+ "confidence": 0.9
+}

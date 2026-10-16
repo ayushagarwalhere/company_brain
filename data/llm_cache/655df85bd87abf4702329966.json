@@ -1,0 +1,10 @@
+{
+ "is_change": false,
+ "kind": "analysis",
+ "old": null,
+ "new": null,
+ "evidence_quote": "Onboarding completion went from 61% to 68% after the copy change.",
+ "feature": null,
+ "ticket": null,
+ "confidence": 0.9
+}

@@ -1,0 +1,565 @@
+{
+ "org": {
+  "features": 200,
+  "messages": 20800,
+  "tickets": 600,
+  "prs": 200,
+  "drifted_features": 100,
+  "build_s": 9.7
+ },
+ "grader": "per-feature: required facts; cross-feature: F1 over ticket/PR ids named",
+ "seed": 0,
+ "summary": {
+  "graph (rules agent, no LLM)": {
+   "per-feature": {
+    "questions": 18,
+    "mean_score": 1.0,
+    "fully_correct": 18
+   },
+   "cross-feature": {
+    "questions": 3,
+    "mean_score": 0.667,
+    "fully_correct": 2
+   },
+   "mean_answer_chars": 3793
+  },
+  "retrieval top-25 (extractive, no LLM)": {
+   "per-feature": {
+    "questions": 18,
+    "mean_score": 1.0,
+    "fully_correct": 18
+   },
+   "cross-feature": {
+    "questions": 3,
+    "mean_score": 0.152,
+    "fully_correct": 0
+   },
+   "mean_answer_chars": 4591
+  },
+  "retrieval top-100 (extractive, no LLM)": {
+   "per-feature": {
+    "questions": 18,
+    "mean_score": 1.0,
+    "fully_correct": 18
+   },
+   "cross-feature": {
+    "questions": 3,
+    "mean_score": 0.403,
+    "fully_correct": 1
+   },
+   "mean_answer_chars": 19535
+  }
+ },
+ "results": {
+  "graph (rules agent, no LLM)": [
+   {
+    "id": "cur_98",
+    "kind": "per-feature",
+    "q": "What is the current requirement for the umber98 report?",
+    "score": 1.0,
+    "chars": 1073,
+    "answer_head": "2026-02-15: chat change on SC-294: \"the umber98 report must include the last 198 entries, for admins and managers.\" (never written into the ticket, not implemented).\nDRIFT on umber98 report: p18 decided \"the umber98 report must include the last 198 entries, for admins and managers.\" on 2026-02-15 (slack #product), but SC-294 still says \"The umber98 report must include the last 10 entries for admin"
+   },
+   {
+    "id": "pr_98",
+    "kind": "per-feature",
+    "q": "Which PR shipped the old version of the umber98 report requirement?",
+    "score": 1.0,
+    "chars": 120,
+    "answer_head": "PR #99 \"SC-294: umber98 report\" by p18 \u2192 SC-294.\n\nEvidence:\n(PullRequest #99)-[:REFERENCES {via: hard}]->(Ticket SC-294)"
+   },
+   {
+    "id": "cur_194",
+    "kind": "per-feature",
+    "q": "What is the current requirement for the meadow194 report?",
+    "score": 1.0,
+    "chars": 1093,
+    "answer_head": "2026-01-22: chat change on SC-582: \"the meadow194 report must include the last 294 entries, for admins and managers.\" (never written into the ticket, not implemented).\nDRIFT on meadow194 report: p34 decided \"the meadow194 report must include the last 294 entries, for admins and managers.\" on 2026-01-22 (slack #product), but SC-582 still says \"The meadow194 report must include the last 15 entries f"
+   },
+   {
+    "id": "pr_194",
+    "kind": "per-feature",
+    "q": "Which PR shipped the old version of the meadow194 report requirement?",
+    "score": 1.0,
+    "chars": 124,
+    "answer_head": "PR #195 \"SC-582: meadow194 report\" by p34 \u2192 SC-582.\n\nEvidence:\n(PullRequest #195)-[:REFERENCES {via: hard}]->(Ticket SC-582)"
+   },
+   {
+    "id": "cur_106",
+    "kind": "per-feature",
+    "q": "What is the current requirement for the cedar106 report?",
+    "score": 1.0,
+    "chars": 1086,
+    "answer_head": "2026-02-23: chat change on SC-318: \"the cedar106 report must include the last 206 entries, for admins and managers.\" (never written into the ticket, not implemented).\nDRIFT on cedar106 report: p26 decided \"the cedar106 report must include the last 206 entries, for admins and managers.\" on 2026-02-23 (slack #product), but SC-318 still says \"The cedar106 report must include the last 11 entries for a"
+   },
+   {
+    "id": "pr_106",
+    "kind": "per-feature",
+    "q": "Which PR shipped the old version of the cedar106 report requirement?",
+    "score": 1.0,
+    "chars": 123,
+    "answer_head": "PR #107 \"SC-318: cedar106 report\" by p26 \u2192 SC-318.\n\nEvidence:\n(PullRequest #107)-[:REFERENCES {via: hard}]->(Ticket SC-318)"
+   },
+   {
+    "id": "cur_10",
+    "kind": "per-feature",
+    "q": "What is the current requirement for the kestrel10 report?",
+    "score": 1.0,
+    "chars": 1075,
+    "answer_head": "2026-01-18: chat change on SC-30: \"the kestrel10 report must include the last 110 entries, for admins and managers.\" (never written into the ticket, not implemented).\nDRIFT on kestrel10 report: p10 decided \"the kestrel10 report must include the last 110 entries, for admins and managers.\" on 2026-01-18 (slack #product), but SC-30 still says \"The kestrel10 report must include the last 13 entries for"
+   },
+   {
+    "id": "pr_10",
+    "kind": "per-feature",
+    "q": "Which PR shipped the old version of the kestrel10 report requirement?",
+    "score": 1.0,
+    "chars": 119,
+    "answer_head": "PR #11 \"SC-30: kestrel10 report\" by p10 \u2192 SC-30.\n\nEvidence:\n(PullRequest #11)-[:REFERENCES {via: hard}]->(Ticket SC-30)"
+   },
+   {
+    "id": "cur_66",
+    "kind": "per-feature",
+    "q": "What is the current requirement for the onyx66 report?",
+    "score": 1.0,
+    "chars": 1066,
+    "answer_head": "2026-01-14: chat change on SC-198: \"the onyx66 report must include the last 166 entries, for admins and managers.\" (never written into the ticket, not implemented).\nDRIFT on onyx66 report: p26 decided \"the onyx66 report must include the last 166 entries, for admins and managers.\" on 2026-01-14 (slack #product), but SC-198 still says \"The onyx66 report must include the last 13 entries for admins.\"."
+   },
+   {
+    "id": "pr_66",
+    "kind": "per-feature",
+    "q": "Which PR shipped the old version of the onyx66 report requirement?",
+    "score": 1.0,
+    "chars": 119,
+    "answer_head": "PR #67 \"SC-198: onyx66 report\" by p26 \u2192 SC-198.\n\nEvidence:\n(PullRequest #67)-[:REFERENCES {via: hard}]->(Ticket SC-198)"
+   },
+   {
+    "id": "cur_130",
+    "kind": "per-feature",
+    "q": "What is the current requirement for the alpha130 report?",
+    "score": 1.0,
+    "chars": 1086,
+    "answer_head": "2026-01-18: chat change on SC-390: \"the alpha130 report must include the last 230 entries, for admins and managers.\" (never written into the ticket, not implemented).\nDRIFT on alpha130 report: p10 decided \"the alpha130 report must include the last 230 entries, for admins and managers.\" on 2026-01-18 (slack #product), but SC-390 still says \"The alpha130 report must include the last 14 entries for a"
+   },
+   {
+    "id": "pr_130",
+    "kind": "per-feature",
+    "q": "Which PR shipped the old version of the alpha130 report requirement?",
+    "score": 1.0,
+    "chars": 123,
+    "answer_head": "PR #131 \"SC-390: alpha130 report\" by p10 \u2192 SC-390.\n\nEvidence:\n(PullRequest #131)-[:REFERENCES {via: hard}]->(Ticket SC-390)"
+   },
+   {
+    "id": "cur_125",
+    "kind": "per-feature",
+    "q": "What is the current requirement for the vertex125 report?",
+    "score": 1.0,
+    "chars": 612,
+    "answer_head": "2026-01-13: chat change on SC-375: \"the vertex125 report must include the last 225 entries, for admins and managers.\" (written into SC-375 (v2), not shipped yet).\nNo open drift on vertex125 report: its tickets and PRs match the latest decision.\n\nEvidence:\n(Ticket SC-375)-[:STATES]->(Requirement req:SC-375:v1 @ 2026-01-10T09:00:00Z) <-[:IMPLEMENTS]- PR [126]\n(Message s125_dec)-[:CHANGES]->(Requirem"
+   },
+   {
+    "id": "cur_103",
+    "kind": "per-feature",
+    "q": "What is the current requirement for the zephyr103 report?",
+    "score": 1.0,
+    "chars": 612,
+    "answer_head": "2026-02-20: chat change on SC-309: \"the zephyr103 report must include the last 203 entries, for admins and managers.\" (written into SC-309 (v2), not shipped yet).\nNo open drift on zephyr103 report: its tickets and PRs match the latest decision.\n\nEvidence:\n(Ticket SC-309)-[:STATES]->(Requirement req:SC-309:v1 @ 2026-02-17T09:00:00Z) <-[:IMPLEMENTS]- PR [104]\n(Decision dec:s103_dec)-[:CHANGES]->(Req"
+   },
+   {
+    "id": "cur_77",
+    "kind": "per-feature",
+    "q": "What is the current requirement for the zephyr77 report?",
+    "score": 1.0,
+    "chars": 605,
+    "answer_head": "2026-01-25: chat change on SC-231: \"the zephyr77 report must include the last 177 entries, for admins and managers.\" (written into SC-231 (v2), not shipped yet).\nNo open drift on zephyr77 report: its tickets and PRs match the latest decision.\n\nEvidence:\n(Ticket SC-231)-[:STATES]->(Requirement req:SC-231:v1 @ 2026-01-22T09:00:00Z) <-[:IMPLEMENTS]- PR [78]\n(Decision dec:s77_dec)-[:CHANGES]->(Require"
+   },
+   {
+    "id": "cur_123",
+    "kind": "per-feature",
+    "q": "What is the current requirement for the tundra123 report?",
+    "score": 1.0,
+    "chars": 612,
+    "answer_head": "2026-01-11: chat change on SC-369: \"the tundra123 report must include the last 223 entries, for admins and managers.\" (written into SC-369 (v2), not shipped yet).\nNo open drift on tundra123 report: its tickets and PRs match the latest decision.\n\nEvidence:\n(Ticket SC-369)-[:STATES]->(Requirement req:SC-369:v1 @ 2026-01-08T09:00:00Z) <-[:IMPLEMENTS]- PR [124]\n(Message s123_dec)-[:CHANGES]->(Requirem"
+   },
+   {
+    "id": "cur_91",
+    "kind": "per-feature",
+    "q": "What is the current requirement for the nimbus91 report?",
+    "score": 1.0,
+    "chars": 605,
+    "answer_head": "2026-02-08: chat change on SC-273: \"the nimbus91 report must include the last 191 entries, for admins and managers.\" (written into SC-273 (v2), not shipped yet).\nNo open drift on nimbus91 report: its tickets and PRs match the latest decision.\n\nEvidence:\n(Ticket SC-273)-[:STATES]->(Requirement req:SC-273:v1 @ 2026-02-05T09:00:00Z) <-[:IMPLEMENTS]- PR [92]\n(Message s91_dec)-[:CHANGES]->(Requirement "
+   },
+   {
+    "id": "cur_149",
+    "kind": "per-feature",
+    "q": "What is the current requirement for the tundra149 report?",
+    "score": 1.0,
+    "chars": 612,
+    "answer_head": "2026-02-06: chat change on SC-447: \"the tundra149 report must include the last 249 entries, for admins and managers.\" (written into SC-447 (v2), not shipped yet).\nNo open drift on tundra149 report: its tickets and PRs match the latest decision.\n\nEvidence:\n(Ticket SC-447)-[:STATES]->(Requirement req:SC-447:v1 @ 2026-02-03T09:00:00Z) <-[:IMPLEMENTS]- PR [150]\n(Message s149_dec)-[:CHANGES]->(Requirem"
+   },
+   {
+    "id": "x_stale_tickets",
+    "kind": "cross-feature",
+    "q": "Which tickets are stale compared with what was decided in chat?",
+    "score": 1.0,
+    "chars": 29253,
+    "answer_head": "DRIFT on alpha0 report: p0 decided \"the alpha0 report must include the last 100 entries, for admins and managers.\" on 2026-01-08 (slack #product), but SC-0 still says \"The alpha0 report must include the last 10 entries for admins.\". PRs that shipped the old version: #1.\nDRIFT on quill120 report: p0 decided \"the quill120 report must include the last 220 entries, for admins and managers.\" on 2026-01"
+   },
+   {
+    "id": "x_drift_features",
+    "kind": "cross-feature",
+    "q": "Which features have requirement drift?",
+    "score": 1.0,
+    "chars": 29253,
+    "answer_head": "DRIFT on alpha0 report: p0 decided \"the alpha0 report must include the last 100 entries, for admins and managers.\" on 2026-01-08 (slack #product), but SC-0 still says \"The alpha0 report must include the last 10 entries for admins.\". PRs that shipped the old version: #1.\nDRIFT on quill120 report: p0 decided \"the quill120 report must include the last 220 entries, for admins and managers.\" on 2026-01"
+   },
+   {
+    "id": "x_stale_prs",
+    "kind": "cross-feature",
+    "q": "Which pull requests shipped a requirement that was later changed in chat?",
+    "score": 0.0,
+    "chars": 10273,
+    "answer_head": "Features: alpha0 report (SC-2, SC-1, SC-0), alpha104 report (SC-314, SC-313, SC-312), alpha130 report (SC-392, SC-391, SC-390), alpha156 report (SC-470, SC-469, SC-468), alpha182 report (SC-548, SC-547, SC-546), alpha26 report (SC-80, SC-79, SC-78), alpha52 report (SC-158, SC-157, SC-156), alpha78 report (SC-236, SC-235, SC-234), bravo105 report (SC-317, SC-316, SC-315), bravo131 report (SC-395, S"
+   }
+  ],
+  "retrieval top-25 (extractive, no LLM)": [
+   {
+    "id": "cur_98",
+    "kind": "per-feature",
+    "q": "What is the current requirement for the umber98 report?",
+    "score": 1.0,
+    "chars": 4876,
+    "answer_head": "[ticket SC-294, assignee p18] umber98 report: The umber98 report must include the last 10 entries for admins. (history: 2026-02-12T09:00:00Z: The umber98 report must include the last 10 entries for admins.)\n[ticket SC-295, assignee p18] umber98 report export button: Work on the umber98 report export button. (history: 2026-02-12T09:00:00Z: Work on the umber98 report export button.)\n[ticket SC-296, "
+   },
+   {
+    "id": "pr_98",
+    "kind": "per-feature",
+    "q": "Which PR shipped the old version of the umber98 report requirement?",
+    "score": 1.0,
+    "chars": 4496,
+    "answer_head": "[ticket SC-294, assignee p18] umber98 report: The umber98 report must include the last 10 entries for admins. (history: 2026-02-12T09:00:00Z: The umber98 report must include the last 10 entries for admins.)\n[ticket SC-295, assignee p18] umber98 report export button: Work on the umber98 report export button. (history: 2026-02-12T09:00:00Z: Work on the umber98 report export button.)\n[ticket SC-296, "
+   },
+   {
+    "id": "cur_194",
+    "kind": "per-feature",
+    "q": "What is the current requirement for the meadow194 report?",
+    "score": 1.0,
+    "chars": 4901,
+    "answer_head": "[ticket SC-582, assignee p34] meadow194 report: The meadow194 report must include the last 15 entries for admins. (history: 2026-01-19T09:00:00Z: The meadow194 report must include the last 15 entries for admins.)\n[ticket SC-583, assignee p34] meadow194 report export button: Work on the meadow194 report export button. (history: 2026-01-19T09:00:00Z: Work on the meadow194 report export button.)\n[tic"
+   },
+   {
+    "id": "pr_194",
+    "kind": "per-feature",
+    "q": "Which PR shipped the old version of the meadow194 report requirement?",
+    "score": 1.0,
+    "chars": 4521,
+    "answer_head": "[ticket SC-582, assignee p34] meadow194 report: The meadow194 report must include the last 15 entries for admins. (history: 2026-01-19T09:00:00Z: The meadow194 report must include the last 15 entries for admins.)\n[ticket SC-583, assignee p34] meadow194 report export button: Work on the meadow194 report export button. (history: 2026-01-19T09:00:00Z: Work on the meadow194 report export button.)\n[tic"
+   },
+   {
+    "id": "cur_106",
+    "kind": "per-feature",
+    "q": "What is the current requirement for the cedar106 report?",
+    "score": 1.0,
+    "chars": 4889,
+    "answer_head": "[ticket SC-318, assignee p26] cedar106 report: The cedar106 report must include the last 11 entries for admins. (history: 2026-02-20T09:00:00Z: The cedar106 report must include the last 11 entries for admins.)\n[ticket SC-319, assignee p26] cedar106 report export button: Work on the cedar106 report export button. (history: 2026-02-20T09:00:00Z: Work on the cedar106 report export button.)\n[ticket SC"
+   },
+   {
+    "id": "pr_106",
+    "kind": "per-feature",
+    "q": "Which PR shipped the old version of the cedar106 report requirement?",
+    "score": 1.0,
+    "chars": 4509,
+    "answer_head": "[ticket SC-318, assignee p26] cedar106 report: The cedar106 report must include the last 11 entries for admins. (history: 2026-02-20T09:00:00Z: The cedar106 report must include the last 11 entries for admins.)\n[ticket SC-319, assignee p26] cedar106 report export button: Work on the cedar106 report export button. (history: 2026-02-20T09:00:00Z: Work on the cedar106 report export button.)\n[ticket SC"
+   },
+   {
+    "id": "cur_10",
+    "kind": "per-feature",
+    "q": "What is the current requirement for the kestrel10 report?",
+    "score": 1.0,
+    "chars": 4890,
+    "answer_head": "[ticket SC-30, assignee p10] kestrel10 report: The kestrel10 report must include the last 13 entries for admins. (history: 2026-01-15T09:00:00Z: The kestrel10 report must include the last 13 entries for admins.)\n[ticket SC-31, assignee p10] kestrel10 report export button: Work on the kestrel10 report export button. (history: 2026-01-15T09:00:00Z: Work on the kestrel10 report export button.)\n[ticke"
+   },
+   {
+    "id": "pr_10",
+    "kind": "per-feature",
+    "q": "Which PR shipped the old version of the kestrel10 report requirement?",
+    "score": 1.0,
+    "chars": 4509,
+    "answer_head": "[ticket SC-30, assignee p10] kestrel10 report: The kestrel10 report must include the last 13 entries for admins. (history: 2026-01-15T09:00:00Z: The kestrel10 report must include the last 13 entries for admins.)\n[ticket SC-31, assignee p10] kestrel10 report export button: Work on the kestrel10 report export button. (history: 2026-01-15T09:00:00Z: Work on the kestrel10 report export button.)\n[ticke"
+   },
+   {
+    "id": "cur_66",
+    "kind": "per-feature",
+    "q": "What is the current requirement for the onyx66 report?",
+    "score": 1.0,
+    "chars": 4864,
+    "answer_head": "[ticket SC-198, assignee p26] onyx66 report: The onyx66 report must include the last 13 entries for admins. (history: 2026-01-11T09:00:00Z: The onyx66 report must include the last 13 entries for admins.)\n[ticket SC-199, assignee p26] onyx66 report export button: Work on the onyx66 report export button. (history: 2026-01-11T09:00:00Z: Work on the onyx66 report export button.)\n[ticket SC-200, assign"
+   },
+   {
+    "id": "pr_66",
+    "kind": "per-feature",
+    "q": "Which PR shipped the old version of the onyx66 report requirement?",
+    "score": 1.0,
+    "chars": 4484,
+    "answer_head": "[ticket SC-198, assignee p26] onyx66 report: The onyx66 report must include the last 13 entries for admins. (history: 2026-01-11T09:00:00Z: The onyx66 report must include the last 13 entries for admins.)\n[ticket SC-199, assignee p26] onyx66 report export button: Work on the onyx66 report export button. (history: 2026-01-11T09:00:00Z: Work on the onyx66 report export button.)\n[ticket SC-200, assign"
+   },
+   {
+    "id": "cur_130",
+    "kind": "per-feature",
+    "q": "What is the current requirement for the alpha130 report?",
+    "score": 1.0,
+    "chars": 4889,
+    "answer_head": "[ticket SC-390, assignee p10] alpha130 report: The alpha130 report must include the last 14 entries for admins. (history: 2026-01-15T09:00:00Z: The alpha130 report must include the last 14 entries for admins.)\n[ticket SC-391, assignee p10] alpha130 report export button: Work on the alpha130 report export button. (history: 2026-01-15T09:00:00Z: Work on the alpha130 report export button.)\n[ticket SC"
+   },
+   {
+    "id": "pr_130",
+    "kind": "per-feature",
+    "q": "Which PR shipped the old version of the alpha130 report requirement?",
+    "score": 1.0,
+    "chars": 4509,
+    "answer_head": "[ticket SC-390, assignee p10] alpha130 report: The alpha130 report must include the last 14 entries for admins. (history: 2026-01-15T09:00:00Z: The alpha130 report must include the last 14 entries for admins.)\n[ticket SC-391, assignee p10] alpha130 report export button: Work on the alpha130 report export button. (history: 2026-01-15T09:00:00Z: Work on the alpha130 report export button.)\n[ticket SC"
+   },
+   {
+    "id": "cur_125",
+    "kind": "per-feature",
+    "q": "What is the current requirement for the vertex125 report?",
+    "score": 1.0,
+    "chars": 5013,
+    "answer_head": "[ticket SC-376, assignee p5] vertex125 report export button: Work on the vertex125 report export button. (history: 2026-01-10T09:00:00Z: Work on the vertex125 report export button.)\n[ticket SC-377, assignee p5] vertex125 report performance tuning: Work on the vertex125 report performance tuning. (history: 2026-01-10T09:00:00Z: Work on the vertex125 report performance tuning.)\n[ticket SC-375, assig"
+   },
+   {
+    "id": "cur_103",
+    "kind": "per-feature",
+    "q": "What is the current requirement for the zephyr103 report?",
+    "score": 1.0,
+    "chars": 5019,
+    "answer_head": "[ticket SC-310, assignee p23] zephyr103 report export button: Work on the zephyr103 report export button. (history: 2026-02-17T09:00:00Z: Work on the zephyr103 report export button.)\n[ticket SC-311, assignee p23] zephyr103 report performance tuning: Work on the zephyr103 report performance tuning. (history: 2026-02-17T09:00:00Z: Work on the zephyr103 report performance tuning.)\n[ticket SC-309, ass"
+   },
+   {
+    "id": "cur_77",
+    "kind": "per-feature",
+    "q": "What is the current requirement for the zephyr77 report?",
+    "score": 1.0,
+    "chars": 5005,
+    "answer_head": "[ticket SC-233, assignee p37] zephyr77 report performance tuning: Work on the zephyr77 report performance tuning. (history: 2026-01-22T09:00:00Z: Work on the zephyr77 report performance tuning.)\n[ticket SC-232, assignee p37] zephyr77 report export button: Work on the zephyr77 report export button. (history: 2026-01-22T09:00:00Z: Work on the zephyr77 report export button.)\n[ticket SC-231, assignee "
+   },
+   {
+    "id": "cur_123",
+    "kind": "per-feature",
+    "q": "What is the current requirement for the tundra123 report?",
+    "score": 1.0,
+    "chars": 5013,
+    "answer_head": "[ticket SC-370, assignee p3] tundra123 report export button: Work on the tundra123 report export button. (history: 2026-01-08T09:00:00Z: Work on the tundra123 report export button.)\n[ticket SC-371, assignee p3] tundra123 report performance tuning: Work on the tundra123 report performance tuning. (history: 2026-01-08T09:00:00Z: Work on the tundra123 report performance tuning.)\n[ticket SC-369, assig"
+   },
+   {
+    "id": "cur_91",
+    "kind": "per-feature",
+    "q": "What is the current requirement for the nimbus91 report?",
+    "score": 1.0,
+    "chars": 5005,
+    "answer_head": "[ticket SC-275, assignee p11] nimbus91 report performance tuning: Work on the nimbus91 report performance tuning. (history: 2026-02-05T09:00:00Z: Work on the nimbus91 report performance tuning.)\n[ticket SC-274, assignee p11] nimbus91 report export button: Work on the nimbus91 report export button. (history: 2026-02-05T09:00:00Z: Work on the nimbus91 report export button.)\n[ticket SC-273, assignee "
+   },
+   {
+    "id": "cur_149",
+    "kind": "per-feature",
+    "q": "What is the current requirement for the tundra149 report?",
+    "score": 1.0,
+    "chars": 5019,
+    "answer_head": "[ticket SC-448, assignee p29] tundra149 report export button: Work on the tundra149 report export button. (history: 2026-02-03T09:00:00Z: Work on the tundra149 report export button.)\n[ticket SC-449, assignee p29] tundra149 report performance tuning: Work on the tundra149 report performance tuning. (history: 2026-02-03T09:00:00Z: Work on the tundra149 report performance tuning.)\n[ticket SC-447, ass"
+   },
+   {
+    "id": "x_stale_tickets",
+    "kind": "cross-feature",
+    "q": "Which tickets are stale compared with what was decided in chat?",
+    "score": 0.4,
+    "chars": 5170,
+    "answer_head": "[ticket SC-0, assignee p0] alpha0 report: The alpha0 report must include the last 10 entries for admins. (history: 2026-01-05T09:00:00Z: The alpha0 report must include the last 10 entries for admins.)\n[ticket SC-6, assignee p2] cedar2 report: The cedar2 report must include the last 12 entries for admins. (history: 2026-01-07T09:00:00Z: The cedar2 report must include the last 12 entries for admins."
+   },
+   {
+    "id": "x_drift_features",
+    "kind": "cross-feature",
+    "q": "Which features have requirement drift?",
+    "score": 0.057,
+    "chars": 2417,
+    "answer_head": "[2026-01-07T09:00:00Z slack#product] p1: Customers keep asking about the alpha0 report, the last 10 entries is not enough.\n[2026-01-08T09:00:00Z slack#product] p0: Decision: the alpha0 report must include the last 100 entries, for admins and managers.\n[2026-01-08T09:05:00Z slack#product] p2: ok, will pass it on\n[2026-01-05T11:00:00Z slack#engineering] p0: Starting on SC-0 today.\n[2026-01-08T09:00:"
+   },
+   {
+    "id": "x_stale_prs",
+    "kind": "cross-feature",
+    "q": "Which pull requests shipped a requirement that was later changed in chat?",
+    "score": 0.0,
+    "chars": 2417,
+    "answer_head": "[2026-01-07T09:00:00Z slack#product] p1: Customers keep asking about the alpha0 report, the last 10 entries is not enough.\n[2026-01-08T09:00:00Z slack#product] p0: Decision: the alpha0 report must include the last 100 entries, for admins and managers.\n[2026-01-08T09:05:00Z slack#product] p2: ok, will pass it on\n[2026-01-05T11:00:00Z slack#engineering] p0: Starting on SC-0 today.\n[2026-01-08T09:00:"
+   }
+  ],
+  "retrieval top-100 (extractive, no LLM)": [
+   {
+    "id": "cur_98",
+    "kind": "per-feature",
+    "q": "What is the current requirement for the umber98 report?",
+    "score": 1.0,
+    "chars": 20633,
+    "answer_head": "[ticket SC-294, assignee p18] umber98 report: The umber98 report must include the last 10 entries for admins. (history: 2026-02-12T09:00:00Z: The umber98 report must include the last 10 entries for admins.)\n[ticket SC-295, assignee p18] umber98 report export button: Work on the umber98 report export button. (history: 2026-02-12T09:00:00Z: Work on the umber98 report export button.)\n[ticket SC-296, "
+   },
+   {
+    "id": "pr_98",
+    "kind": "per-feature",
+    "q": "Which PR shipped the old version of the umber98 report requirement?",
+    "score": 1.0,
+    "chars": 20245,
+    "answer_head": "[ticket SC-294, assignee p18] umber98 report: The umber98 report must include the last 10 entries for admins. (history: 2026-02-12T09:00:00Z: The umber98 report must include the last 10 entries for admins.)\n[ticket SC-295, assignee p18] umber98 report export button: Work on the umber98 report export button. (history: 2026-02-12T09:00:00Z: Work on the umber98 report export button.)\n[ticket SC-296, "
+   },
+   {
+    "id": "cur_194",
+    "kind": "per-feature",
+    "q": "What is the current requirement for the meadow194 report?",
+    "score": 1.0,
+    "chars": 20652,
+    "answer_head": "[ticket SC-582, assignee p34] meadow194 report: The meadow194 report must include the last 15 entries for admins. (history: 2026-01-19T09:00:00Z: The meadow194 report must include the last 15 entries for admins.)\n[ticket SC-583, assignee p34] meadow194 report export button: Work on the meadow194 report export button. (history: 2026-01-19T09:00:00Z: Work on the meadow194 report export button.)\n[tic"
+   },
+   {
+    "id": "pr_194",
+    "kind": "per-feature",
+    "q": "Which PR shipped the old version of the meadow194 report requirement?",
+    "score": 1.0,
+    "chars": 20264,
+    "answer_head": "[ticket SC-582, assignee p34] meadow194 report: The meadow194 report must include the last 15 entries for admins. (history: 2026-01-19T09:00:00Z: The meadow194 report must include the last 15 entries for admins.)\n[ticket SC-583, assignee p34] meadow194 report export button: Work on the meadow194 report export button. (history: 2026-01-19T09:00:00Z: Work on the meadow194 report export button.)\n[tic"
+   },
+   {
+    "id": "cur_106",
+    "kind": "per-feature",
+    "q": "What is the current requirement for the cedar106 report?",
+    "score": 1.0,
+    "chars": 20643,
+    "answer_head": "[ticket SC-318, assignee p26] cedar106 report: The cedar106 report must include the last 11 entries for admins. (history: 2026-02-20T09:00:00Z: The cedar106 report must include the last 11 entries for admins.)\n[ticket SC-319, assignee p26] cedar106 report export button: Work on the cedar106 report export button. (history: 2026-02-20T09:00:00Z: Work on the cedar106 report export button.)\n[ticket SC"
+   },
+   {
+    "id": "pr_106",
+    "kind": "per-feature",
+    "q": "Which PR shipped the old version of the cedar106 report requirement?",
+    "score": 1.0,
+    "chars": 20255,
+    "answer_head": "[ticket SC-318, assignee p26] cedar106 report: The cedar106 report must include the last 11 entries for admins. (history: 2026-02-20T09:00:00Z: The cedar106 report must include the last 11 entries for admins.)\n[ticket SC-319, assignee p26] cedar106 report export button: Work on the cedar106 report export button. (history: 2026-02-20T09:00:00Z: Work on the cedar106 report export button.)\n[ticket SC"
+   },
+   {
+    "id": "cur_10",
+    "kind": "per-feature",
+    "q": "What is the current requirement for the kestrel10 report?",
+    "score": 1.0,
+    "chars": 20647,
+    "answer_head": "[ticket SC-30, assignee p10] kestrel10 report: The kestrel10 report must include the last 13 entries for admins. (history: 2026-01-15T09:00:00Z: The kestrel10 report must include the last 13 entries for admins.)\n[ticket SC-31, assignee p10] kestrel10 report export button: Work on the kestrel10 report export button. (history: 2026-01-15T09:00:00Z: Work on the kestrel10 report export button.)\n[ticke"
+   },
+   {
+    "id": "pr_10",
+    "kind": "per-feature",
+    "q": "Which PR shipped the old version of the kestrel10 report requirement?",
+    "score": 1.0,
+    "chars": 20259,
+    "answer_head": "[ticket SC-30, assignee p10] kestrel10 report: The kestrel10 report must include the last 13 entries for admins. (history: 2026-01-15T09:00:00Z: The kestrel10 report must include the last 13 entries for admins.)\n[ticket SC-31, assignee p10] kestrel10 report export button: Work on the kestrel10 report export button. (history: 2026-01-15T09:00:00Z: Work on the kestrel10 report export button.)\n[ticke"
+   },
+   {
+    "id": "cur_66",
+    "kind": "per-feature",
+    "q": "What is the current requirement for the onyx66 report?",
+    "score": 1.0,
+    "chars": 20624,
+    "answer_head": "[ticket SC-198, assignee p26] onyx66 report: The onyx66 report must include the last 13 entries for admins. (history: 2026-01-11T09:00:00Z: The onyx66 report must include the last 13 entries for admins.)\n[ticket SC-199, assignee p26] onyx66 report export button: Work on the onyx66 report export button. (history: 2026-01-11T09:00:00Z: Work on the onyx66 report export button.)\n[ticket SC-200, assign"
+   },
+   {
+    "id": "pr_66",
+    "kind": "per-feature",
+    "q": "Which PR shipped the old version of the onyx66 report requirement?",
+    "score": 1.0,
+    "chars": 20236,
+    "answer_head": "[ticket SC-198, assignee p26] onyx66 report: The onyx66 report must include the last 13 entries for admins. (history: 2026-01-11T09:00:00Z: The onyx66 report must include the last 13 entries for admins.)\n[ticket SC-199, assignee p26] onyx66 report export button: Work on the onyx66 report export button. (history: 2026-01-11T09:00:00Z: Work on the onyx66 report export button.)\n[ticket SC-200, assign"
+   },
+   {
+    "id": "cur_130",
+    "kind": "per-feature",
+    "q": "What is the current requirement for the alpha130 report?",
+    "score": 1.0,
+    "chars": 20643,
+    "answer_head": "[ticket SC-390, assignee p10] alpha130 report: The alpha130 report must include the last 14 entries for admins. (history: 2026-01-15T09:00:00Z: The alpha130 report must include the last 14 entries for admins.)\n[ticket SC-391, assignee p10] alpha130 report export button: Work on the alpha130 report export button. (history: 2026-01-15T09:00:00Z: Work on the alpha130 report export button.)\n[ticket SC"
+   },
+   {
+    "id": "pr_130",
+    "kind": "per-feature",
+    "q": "Which PR shipped the old version of the alpha130 report requirement?",
+    "score": 1.0,
+    "chars": 20255,
+    "answer_head": "[ticket SC-390, assignee p10] alpha130 report: The alpha130 report must include the last 14 entries for admins. (history: 2026-01-15T09:00:00Z: The alpha130 report must include the last 14 entries for admins.)\n[ticket SC-391, assignee p10] alpha130 report export button: Work on the alpha130 report export button. (history: 2026-01-15T09:00:00Z: Work on the alpha130 report export button.)\n[ticket SC"
+   },
+   {
+    "id": "cur_125",
+    "kind": "per-feature",
+    "q": "What is the current requirement for the vertex125 report?",
+    "score": 1.0,
+    "chars": 20764,
+    "answer_head": "[ticket SC-376, assignee p5] vertex125 report export button: Work on the vertex125 report export button. (history: 2026-01-10T09:00:00Z: Work on the vertex125 report export button.)\n[ticket SC-377, assignee p5] vertex125 report performance tuning: Work on the vertex125 report performance tuning. (history: 2026-01-10T09:00:00Z: Work on the vertex125 report performance tuning.)\n[ticket SC-375, assig"
+   },
+   {
+    "id": "cur_103",
+    "kind": "per-feature",
+    "q": "What is the current requirement for the zephyr103 report?",
+    "score": 1.0,
+    "chars": 20770,
+    "answer_head": "[ticket SC-310, assignee p23] zephyr103 report export button: Work on the zephyr103 report export button. (history: 2026-02-17T09:00:00Z: Work on the zephyr103 report export button.)\n[ticket SC-311, assignee p23] zephyr103 report performance tuning: Work on the zephyr103 report performance tuning. (history: 2026-02-17T09:00:00Z: Work on the zephyr103 report performance tuning.)\n[ticket SC-309, ass"
+   },
+   {
+    "id": "cur_77",
+    "kind": "per-feature",
+    "q": "What is the current requirement for the zephyr77 report?",
+    "score": 1.0,
+    "chars": 20756,
+    "answer_head": "[ticket SC-233, assignee p37] zephyr77 report performance tuning: Work on the zephyr77 report performance tuning. (history: 2026-01-22T09:00:00Z: Work on the zephyr77 report performance tuning.)\n[ticket SC-232, assignee p37] zephyr77 report export button: Work on the zephyr77 report export button. (history: 2026-01-22T09:00:00Z: Work on the zephyr77 report export button.)\n[ticket SC-231, assignee "
+   },
+   {
+    "id": "cur_123",
+    "kind": "per-feature",
+    "q": "What is the current requirement for the tundra123 report?",
+    "score": 1.0,
+    "chars": 20764,
+    "answer_head": "[ticket SC-370, assignee p3] tundra123 report export button: Work on the tundra123 report export button. (history: 2026-01-08T09:00:00Z: Work on the tundra123 report export button.)\n[ticket SC-371, assignee p3] tundra123 report performance tuning: Work on the tundra123 report performance tuning. (history: 2026-01-08T09:00:00Z: Work on the tundra123 report performance tuning.)\n[ticket SC-369, assig"
+   },
+   {
+    "id": "cur_91",
+    "kind": "per-feature",
+    "q": "What is the current requirement for the nimbus91 report?",
+    "score": 1.0,
+    "chars": 20756,
+    "answer_head": "[ticket SC-275, assignee p11] nimbus91 report performance tuning: Work on the nimbus91 report performance tuning. (history: 2026-02-05T09:00:00Z: Work on the nimbus91 report performance tuning.)\n[ticket SC-274, assignee p11] nimbus91 report export button: Work on the nimbus91 report export button. (history: 2026-02-05T09:00:00Z: Work on the nimbus91 report export button.)\n[ticket SC-273, assignee "
+   },
+   {
+    "id": "cur_149",
+    "kind": "per-feature",
+    "q": "What is the current requirement for the tundra149 report?",
+    "score": 1.0,
+    "chars": 20770,
+    "answer_head": "[ticket SC-448, assignee p29] tundra149 report export button: Work on the tundra149 report export button. (history: 2026-02-03T09:00:00Z: Work on the tundra149 report export button.)\n[ticket SC-449, assignee p29] tundra149 report performance tuning: Work on the tundra149 report performance tuning. (history: 2026-02-03T09:00:00Z: Work on the tundra149 report performance tuning.)\n[ticket SC-447, ass"
+   },
+   {
+    "id": "x_stale_tickets",
+    "kind": "cross-feature",
+    "q": "Which tickets are stale compared with what was decided in chat?",
+    "score": 1.0,
+    "chars": 20928,
+    "answer_head": "[ticket SC-0, assignee p0] alpha0 report: The alpha0 report must include the last 10 entries for admins. (history: 2026-01-05T09:00:00Z: The alpha0 report must include the last 10 entries for admins.)\n[ticket SC-6, assignee p2] cedar2 report: The cedar2 report must include the last 12 entries for admins. (history: 2026-01-07T09:00:00Z: The cedar2 report must include the last 12 entries for admins."
+   },
+   {
+    "id": "x_drift_features",
+    "kind": "cross-feature",
+    "q": "Which features have requirement drift?",
+    "score": 0.208,
+    "chars": 9687,
+    "answer_head": "[2026-01-07T09:00:00Z slack#product] p1: Customers keep asking about the alpha0 report, the last 10 entries is not enough.\n[2026-01-08T09:00:00Z slack#product] p0: Decision: the alpha0 report must include the last 100 entries, for admins and managers.\n[2026-01-08T09:05:00Z slack#product] p2: ok, will pass it on\n[2026-01-05T11:00:00Z slack#engineering] p0: Starting on SC-0 today.\n[2026-01-08T09:00:"
+   },
+   {
+    "id": "x_stale_prs",
+    "kind": "cross-feature",
+    "q": "Which pull requests shipped a requirement that was later changed in chat?",
+    "score": 0.0,
+    "chars": 9687,
+    "answer_head": "[2026-01-07T09:00:00Z slack#product] p1: Customers keep asking about the alpha0 report, the last 10 entries is not enough.\n[2026-01-08T09:00:00Z slack#product] p0: Decision: the alpha0 report must include the last 100 entries, for admins and managers.\n[2026-01-08T09:05:00Z slack#product] p2: ok, will pass it on\n[2026-01-05T11:00:00Z slack#engineering] p0: Starting on SC-0 today.\n[2026-01-08T09:00:"
+   }
+  ]
+ }
+}

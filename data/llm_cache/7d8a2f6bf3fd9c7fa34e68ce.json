@@ -1,0 +1,10 @@
+{
+ "is_change": false,
+ "kind": "status",
+ "old": null,
+ "new": null,
+ "evidence_quote": "👍 will raise it at standup tomorrow",
+ "feature": "feat_ticket_export_to_csv",
+ "ticket": "BD-101",
+ "confidence": 0.9
+}

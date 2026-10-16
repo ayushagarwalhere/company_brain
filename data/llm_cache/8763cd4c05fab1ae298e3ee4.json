@@ -1,0 +1,10 @@
+{
+ "is_change": false,
+ "kind": "other",
+ "old": null,
+ "new": null,
+ "evidence_quote": "Working on a memory leak in the worker today. Might need a second pair of eyes this afternoon.",
+ "feature": null,
+ "ticket": null,
+ "confidence": 0.9
+}

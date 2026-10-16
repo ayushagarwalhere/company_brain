@@ -1,0 +1,10 @@
+{
+ "is_change": false,
+ "kind": "status",
+ "old": null,
+ "new": null,
+ "evidence_quote": "Export button is wired into the ticket list now, calls Sofia's endpoint. Opening a PR.",
+ "feature": "feat_ticket_export_to_csv",
+ "ticket": "BD-102",
+ "confidence": 0.9
+}

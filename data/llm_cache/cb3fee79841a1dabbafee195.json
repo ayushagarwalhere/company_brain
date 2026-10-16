@@ -1,0 +1,10 @@
+{
+ "is_change": false,
+ "kind": "other",
+ "old": null,
+ "new": null,
+ "evidence_quote": "Let's start with a `//go:fix` and deprecate and let that sit until the monthly x repo tagging, then wait one additional month to make sure there aren't any issues, and then finally isolate, tag, and delete.",
+ "feature": null,
+ "ticket": null,
+ "confidence": 0.9
+}

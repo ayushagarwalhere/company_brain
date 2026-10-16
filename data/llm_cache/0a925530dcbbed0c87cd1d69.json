@@ -1,0 +1,9 @@
+{
+ "implements": [
+  "BD-101:v1",
+  "m_exp_06",
+  "BD-101:v2",
+  "m_exp_07"
+ ],
+ "reason": "The PR implements the CSV export for tickets created in the last 30 days with the required columns (id, subject, status, created_at, assignee), satisfying BD-101:v1, m_exp_06, BD-101:v2, and m_exp_07. It does not implement m_exp_12, which requires a custom date range and all custom fields."
+}

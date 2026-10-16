@@ -1,0 +1,10 @@
+{
+ "is_change": true,
+ "kind": "requirement_change",
+ "old": "The binder kept the parser's `ExprIR::Paren` wrapper in the bound expression, so `utilize_index` never saw `n.k = 7` behind `( ... )` and fell back to a label scan.",
+ "new": "The binder now drops the wrapper and merges nested `AND`/`OR` groups into their parent, so parenthesised and plain forms bind to the same IR.",
+ "evidence_quote": "The binder now drops the wrapper and merges nested `AND`/`OR` groups into their parent, so parenthesised and plain forms bind to the same IR.",
+ "feature": "query_optimization",
+ "ticket": "3335",
+ "confidence": 1.0
+}

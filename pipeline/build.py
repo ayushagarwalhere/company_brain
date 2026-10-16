@@ -14,15 +14,18 @@ from pipeline.resolve import resolve
 
 
 def mark_build(g, extractor: str) -> None:
-    """Records how the graph was built, so the dashboard can say whether extraction was real (DeepSeek) or the oracle."""
-    g.query("MERGE (b:Build {id: 'latest'}) SET b.extractor = $e, b.at = $at",
-            {"e": extractor, "at": datetime.now(timezone.utc).strftime("%Y-%m-%dT%H:%M:%SZ")})
+    """Records how the graph was built, so the dashboard can say whether extraction was an LLM (and which), rules or the oracle."""
+    from pipeline.llm import model_name
+    extractor = "llm" if extractor == "deepseek" else extractor
+    g.query("MERGE (b:Build {id: 'latest'}) SET b.extractor = $e, b.model = $m, b.at = $at",
+            {"e": extractor, "m": model_name() if extractor == "llm" else None,
+             "at": datetime.now(timezone.utc).strftime("%Y-%m-%dT%H:%M:%SZ")})
 
 
 def main():
     ap = argparse.ArgumentParser()
-    ap.add_argument("--extractor", default="auto", choices=["auto", "deepseek", "heuristic", "oracle"],
-                    help="auto = deepseek if the LLM answers, else heuristic")
+    ap.add_argument("--extractor", default="auto", choices=["auto", "llm", "deepseek", "heuristic", "oracle"],
+                    help="auto = llm if the configured LLM answers, else heuristic ('deepseek' = 'llm')")
     ap.add_argument("--semantic", choices=["llm", "tfidf"])
     ap.add_argument("--live", action="store_true")
     ap.add_argument("--graph")
@@ -30,7 +33,7 @@ def main():
 
     if a.extractor == "auto":
         from pipeline import llm
-        a.extractor = "deepseek" if llm.available() else "heuristic"
+        a.extractor = "llm" if llm.available() else "heuristic"
         if a.extractor == "heuristic":
             print(f"LLM unavailable ({llm.unavailable_reason()}): using the heuristic extractor")
     print(ingest(live=a.live, reset=True, graph_name=a.graph))

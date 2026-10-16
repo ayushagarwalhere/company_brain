@@ -1,0 +1,10 @@
+{
+ "is_change": false,
+ "kind": "question",
+ "old": null,
+ "new": null,
+ "evidence_quote": "Where is the spec for SLA breach notifications? Want to check the at breach part.",
+ "feature": "feat_sla_breach_notifications",
+ "ticket": "BD-103",
+ "confidence": 0.9
+}

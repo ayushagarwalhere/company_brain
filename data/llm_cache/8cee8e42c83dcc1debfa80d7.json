@@ -1,0 +1,10 @@
+{
+ "is_change": false,
+ "kind": "question",
+ "old": null,
+ "new": null,
+ "evidence_quote": "@neild In https://github.com/golang/go/issues/73560#issuecomment-2905900700 for the frame data: ...",
+ "feature": null,
+ "ticket": null,
+ "confidence": 0.9
+}

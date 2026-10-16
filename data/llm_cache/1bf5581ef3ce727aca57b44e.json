@@ -1,0 +1,6 @@
+{
+ "implements": [
+  "BD-102:v1"
+ ],
+ "reason": "The PR adds an 'Export' button to the ticket list toolbar that downloads the CSV from the export endpoint, visible only to admins, matching BD-102:v1."
+}

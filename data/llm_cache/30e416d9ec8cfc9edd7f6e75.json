@@ -1,0 +1,10 @@
+{
+ "is_change": true,
+ "kind": "requirement_change",
+ "old": "Returning [] on JSON parse failure removes the distinction between corruption and a valid empty room.",
+ "new": "Preserve unreadable stored scenes instead of treating them as empty",
+ "evidence_quote": "Preserve unreadable stored scenes instead of treating them as empty",
+ "feature": "firebase",
+ "ticket": "P1",
+ "confidence": 1
+}

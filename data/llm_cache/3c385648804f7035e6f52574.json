@@ -1,0 +1,10 @@
+{
+ "is_change": false,
+ "kind": "status",
+ "old": null,
+ "new": null,
+ "evidence_quote": "Heads up: staging is down for ~10 min while I run migrations.",
+ "feature": null,
+ "ticket": null,
+ "confidence": 1.0
+}

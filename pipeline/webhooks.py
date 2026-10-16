@@ -19,7 +19,7 @@ from pipeline.resolve import supersession_pairs
 def _extractor():
     from pipeline import llm
     from pipeline.extract import get_extractor
-    return get_extractor("deepseek" if llm.available() else "heuristic")
+    return get_extractor("llm" if llm.available() else "heuristic")
 
 
 def _now_iso() -> str:
@@ -34,10 +34,11 @@ def recompute_supersession(g, ticket: str, ex=None) -> int:
     """Rebuild SUPERSEDES among one ticket's requirements (ticket versions + chat changes)."""
     ex = ex or _extractor()
     chain = Q.rows(g, """MATCH (q:Requirement {ticket: $t})
-                         RETURN q.id AS id, q.text AS text, q.origin AS origin, q.at AS at, q.at_ms AS at_ms
+                         RETURN q.id AS id, q.text AS text, q.origin AS origin, q.at AS at, q.at_ms AS at_ms,
+                                q.confidence AS confidence
                          ORDER BY q.at_ms, q.id""", t=ticket)
     g.query("MATCH (a:Requirement {ticket: $t})-[s:SUPERSEDES]->(b:Requirement {ticket: $t}) DELETE s", {"t": ticket})
-    pairs = supersession_pairs(chain, ex.reflects)
+    pairs = supersession_pairs(chain, ex.reflects, ex.replaces)
     g.query("""UNWIND $ps AS p MATCH (n:Requirement {id: p.new}), (o:Requirement {id: p.old})
                MERGE (n)-[:SUPERSEDES]->(o)""", {"ps": pairs})
     return len(pairs)

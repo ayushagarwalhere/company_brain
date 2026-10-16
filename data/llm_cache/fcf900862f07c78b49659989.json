@@ -1,0 +1,10 @@
+{
+ "is_change": false,
+ "kind": "request",
+ "old": null,
+ "new": null,
+ "evidence_quote": "Hi I can take a look and implement this feature. Can I get assigned this if no one is working on it yet?",
+ "feature": null,
+ "ticket": null,
+ "confidence": 0.9
+}

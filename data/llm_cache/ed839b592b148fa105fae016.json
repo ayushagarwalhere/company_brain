@@ -1,0 +1,10 @@
+{
+ "is_change": false,
+ "kind": "review",
+ "old": null,
+ "new": null,
+ "evidence_quote": "Review on the the export button PR (BD-102): let's use a constant instead of the magic number in the handler.",
+ "feature": "feat_ticket_export_to_csv",
+ "ticket": "BD-102",
+ "confidence": 0.9
+}

@@ -1,0 +1,10 @@
+{
+ "is_change": false,
+ "kind": "status",
+ "old": null,
+ "new": null,
+ "evidence_quote": "Yesterday: an Umbrella Inc. attachment upload failure. Today: same, plus code review. Blockers: none.",
+ "feature": null,
+ "ticket": null,
+ "confidence": 1.0
+}

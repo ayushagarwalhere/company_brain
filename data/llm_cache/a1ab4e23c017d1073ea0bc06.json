@@ -1,0 +1,4 @@
+{
+ "replaces": false,
+ "reason": "The later message introduces new requirements about date ranges and custom fields, which are distinct from the earlier message about column definitions."
+}

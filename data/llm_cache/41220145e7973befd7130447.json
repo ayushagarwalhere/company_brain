@@ -1,0 +1,10 @@
+{
+ "is_change": false,
+ "kind": "other",
+ "old": null,
+ "new": null,
+ "evidence_quote": "@zsviczian note that the initial document ownership change had a regression in `useOutsideClick` - fixed in https://github.com/excalidraw/excalidraw/pull/12053 and merged into this PR",
+ "feature": null,
+ "ticket": null,
+ "confidence": 0.9
+}

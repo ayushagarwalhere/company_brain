@@ -1,0 +1,10 @@
+{
+ "is_change": false,
+ "kind": "status",
+ "old": null,
+ "new": null,
+ "evidence_quote": "Verification: focused regression test passes; full `history.test.tsx` suite green (70 passed); `yarn test:typecheck` clean; ESLint clean. Tests were run with `COREPACK_HOME` redirected to a writable directory, working around the cache issue that blocked verification earlier.",
+ "feature": null,
+ "ticket": null,
+ "confidence": 1.0
+}

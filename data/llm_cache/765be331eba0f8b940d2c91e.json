@@ -1,0 +1,10 @@
+{
+ "is_change": false,
+ "kind": "analysis",
+ "old": null,
+ "new": null,
+ "evidence_quote": "BD-112 is reproducible: two tickets with the same created_at.",
+ "feature": "feat_ui_ux_improvements",
+ "ticket": "BD-112",
+ "confidence": 1.0
+}

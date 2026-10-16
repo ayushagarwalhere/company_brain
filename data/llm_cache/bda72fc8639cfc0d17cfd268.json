@@ -1,0 +1,10 @@
+{
+ "is_change": false,
+ "kind": "idea",
+ "old": null,
+ "new": null,
+ "evidence_quote": "Idea: we could do two clicks instead of one click for the export button someday. Parking it here.",
+ "feature": "feat_ticket_export_to_csv",
+ "ticket": "BD-102",
+ "confidence": 0.9
+}

@@ -1,0 +1,10 @@
+{
+ "is_change": false,
+ "kind": "proposal",
+ "old": null,
+ "new": null,
+ "evidence_quote": "Proposal for BD-105: what if dark mode used settings instead of the header? Just an idea, not urgent.",
+ "feature": "feat_dark_mode_and_theme_customization",
+ "ticket": "BD-105",
+ "confidence": 0.9
+}

@@ -1,0 +1,10 @@
+{
+ "is_change": false,
+ "kind": "proposal",
+ "old": null,
+ "new": null,
+ "evidence_quote": "Second big item for Sprint 1 is SLA alerts, BD-103: when a ticket breaches its SLA we email the assignee. BD-104 covers the settings page where admins set SLA hours per priority.",
+ "feature": "feat_sla_breach_notifications",
+ "ticket": "BD-103",
+ "confidence": 0.9
+}

@@ -1,0 +1,10 @@
+{
+ "is_change": false,
+ "kind": "status",
+ "old": null,
+ "new": null,
+ "evidence_quote": "Yesterday: the onboarding typo BD-110. Today: same, plus code review. Blockers: none.",
+ "feature": "feat_ui_ux_improvements",
+ "ticket": "BD-110",
+ "confidence": 1.0
+}

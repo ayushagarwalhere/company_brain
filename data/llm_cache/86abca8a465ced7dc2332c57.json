@@ -1,0 +1,10 @@
+{
+ "is_change": false,
+ "kind": "analysis",
+ "old": null,
+ "new": null,
+ "evidence_quote": "Same panic here on `falkordb/falkordb:6.0.1`, linux/amd64, in production behind [graphiti-core](https://github.com/getzep/graphiti) 0.30.2: the server restarted 12 times in one day (`src/reply.rs:655`, `Option::unwrap()` on `None`). We rolled back to `v4.22.0`, where the same queries work.",
+ "feature": null,
+ "ticket": null,
+ "confidence": 0.9
+}

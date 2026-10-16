@@ -31,3 +31,29 @@ def test_noise_set_is_fixed_and_never_a_scenario_message():
     a, b = noise_messages(), noise_messages()
     assert [m.text for m in a] == [m.text for m in b] and len(a) == N_REAL + N_SYNTH == 500
     assert all(m.id.startswith("noise:") for m in a)
+
+
+def test_scale_qa_cross_feature_grading_is_f1_over_named_ids():
+    from benchmark.qa_scale import grade_q
+    q = {"ids": ["SC-0", "SC-6"], "pattern": r"SC-\d+"}
+    assert grade_q("SC-0 and SC-6", q) == 1.0
+    assert grade_q("SC-0 and SC-3", q) == 0.5            # one right, one wrong main ticket
+    assert grade_q("SC-1 SC-2 (siblings never drift)", q) == 0.0
+    assert grade_q("SC-0, SC-6, SC-1", q) == 1.0          # sibling tickets are ignored, not penalised
+
+
+def test_scale_qa_questions_are_fixed():
+    from benchmark.qa_scale import questions
+    expected = {f"SC-{f * 3}" for f in range(0, 200, 2)}
+    a, b = questions([], expected), questions([], expected)
+    assert [q["q"] for q in a] == [q["q"] for q in b]
+    assert sum(q["kind"] == "per-feature" for q in a) == 18 and sum(q["kind"] == "cross-feature" for q in a) == 3
+
+
+def test_recall_samples_are_fixed_and_labelled():
+    import json
+    from pathlib import Path
+    from benchmark.real_data import proposal_sample, recall_sample
+    labels = json.loads((Path(__file__).resolve().parent.parent / "benchmark" / "real_data_recall_labels.json").read_text(encoding="utf-8"))
+    urls = [c["url"] for c in recall_sample() + proposal_sample()]
+    assert urls == [l["url"] for l in labels["labels"]] and len(urls) == 60

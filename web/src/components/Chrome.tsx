@@ -46,7 +46,7 @@ function useTheme() {
 }
 
 export function Nav() {
-  const { setPaletteOpen } = useBrain();
+  const { setPaletteOpen, newDrift, clearNew } = useBrain();
   const toggleTheme = useTheme();
   const [solid, setSolid] = useState(false);
   const [active, setActive] = useState("");
@@ -54,13 +54,15 @@ export function Nav() {
   const scaleX = useSpring(scrollYProgress, { stiffness: 140, damping: 30 });
 
   useEffect(() => {
-    const onScroll = () => setSolid(window.scrollY > 40);
+    // the nav gets its blurred backdrop once the hero has scrolled away
+    const onScroll = () => setSolid(window.scrollY > window.innerHeight * 0.8);
     onScroll();
     addEventListener("scroll", onScroll, { passive: true });
     const io = new IntersectionObserver((es) => es.forEach((e) => e.isIntersecting && setActive(e.target.id)), { rootMargin: "-45% 0px -50% 0px" });
     const t = setTimeout(() => SECTIONS.forEach(([id]) => { const el = document.getElementById(id); if (el) io.observe(el); }), 800);
     return () => { removeEventListener("scroll", onScroll); io.disconnect(); clearTimeout(t); };
   }, []);
+  useEffect(() => { if (active === "drift" && newDrift) { const t = setTimeout(clearNew, 1500); return () => clearTimeout(t); } }, [active, newDrift, clearNew]);
 
   return (
     <>
@@ -68,7 +70,16 @@ export function Nav() {
       <nav className={`nav ${solid ? "nav--solid" : ""}`}>
         <a className="brand" href="#top" aria-label="Drift Monitor home"><span className="brand__mark" /><span className="brand__word">DRIFT</span></a>
         <div className="nav__links mono">
-          {SECTIONS.map(([id, label]) => <a key={id} href={`#${id}`} className={active === id ? "active" : ""}>{label}</a>)}
+          {SECTIONS.map(([id, label]) => (
+            <a key={id} href={`#${id}`} className={active === id ? "active" : ""}>
+              {label}
+              {id === "drift" && newDrift > 0 && (
+                <motion.span className="nav__badge" key={newDrift} initial={{ scale: 0.4, opacity: 0 }} animate={{ scale: 1, opacity: 1 }}
+                  aria-label={`${newDrift} new`}>{newDrift}</motion.span>
+              )}
+              {active === id && <motion.span className="nav__underline" layoutId="nav-underline" transition={{ type: "spring", stiffness: 420, damping: 36 }} />}
+            </a>
+          ))}
         </div>
         <div className="nav__right">
           <LiveDot />
@@ -82,6 +93,8 @@ export function Nav() {
   );
 }
 
+const REPO = "https://github.com/ayushagarwalhere/company_brain";
+
 export function Footer() {
   const { refresh } = useBrain();
   const [busy, setBusy] = useState(false);
@@ -91,9 +104,20 @@ export function Footer() {
   };
   return (
     <footer className="foot">
+      <div className="foot__sky" aria-hidden />
       <div className="foot__cols mono">
-        <div><span className="foot__h">Product</span><a href="#drift">Open drift</a><a href="#graph-sec">Feature graph</a><a href="#ask">Ask the graph</a></div>
-        <div><span className="foot__h">Brain</span><a href="#retro-sec">Sprint retro</a><a href="#coverage">Coverage &amp; risk</a><a href="#simulate">Live monitor</a></div>
+        <div>
+          <span className="foot__h">Project</span>
+          <a href={REPO} target="_blank" rel="noopener">GitHub ↗</a>
+          <a href={`${REPO}#readme`} target="_blank" rel="noopener">README ↗</a>
+          <a href={`${REPO}#results`} target="_blank" rel="noopener">Benchmarks ↗</a>
+          <a href={`${REPO}/blob/main/docs/demo.gif`} target="_blank" rel="noopener">Demo video ↗</a>
+        </div>
+        <div>
+          <span className="foot__h">How it works</span>
+          <a href={`${REPO}/blob/main/docs/EXPLAIN.md`} target="_blank" rel="noopener">Drift query, explained ↗</a>
+          <a href={`${REPO}/blob/main/docs/QUERIES.md`} target="_blank" rel="noopener">Every Cypher query ↗</a>
+        </div>
         <div>
           <span className="foot__h">Demo</span>
           <button className="foot__link" onClick={reset} disabled={busy} title="Rebuild the graph from source data (undoes simulated messages and drift actions)">
@@ -103,7 +127,7 @@ export function Footer() {
         </div>
       </div>
       <div className="foot__legal mono"><span>Every alert and answer is backed by a graph path</span><span>Built on FalkorDB</span></div>
-      <motion.div className="wordmark" aria-hidden initial={{ y: "30%" }} whileInView={{ y: 0 }} viewport={{ once: true }} transition={{ duration: 1.2, ease: [0.2, 0.7, 0.1, 1] }}>
+      <motion.div className="wordmark" aria-hidden initial={{ opacity: 0, y: 40 }} whileInView={{ opacity: 1, y: 0 }} viewport={{ once: true }} transition={{ duration: 1.2, ease: [0.2, 0.7, 0.1, 1] }}>
         DRIFT
       </motion.div>
     </footer>

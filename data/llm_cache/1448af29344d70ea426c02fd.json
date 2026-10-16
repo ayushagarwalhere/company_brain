@@ -1,0 +1,10 @@
+{
+ "is_change": false,
+ "kind": "other",
+ "old": null,
+ "new": null,
+ "evidence_quote": "Change https://golang.org/cl/97376 mentions this issue: `crypto/x509: add SRV and XMPP fields`",
+ "feature": "crypto/x509",
+ "ticket": "97376",
+ "confidence": 0.9
+}

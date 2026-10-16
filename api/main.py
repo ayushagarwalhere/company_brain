@@ -139,13 +139,13 @@ def _stats():
     g = get_graph()
     nodes = Q.rows(g, "MATCH (n) RETURN labels(n)[0] AS label, count(*) AS n ORDER BY n DESC")
     rels = Q.rows(g, "MATCH ()-[r]->() RETURN type(r) AS type, count(*) AS n ORDER BY n DESC")
-    build = Q.rows(g, "MATCH (b:Build {id: 'latest'}) RETURN b.extractor AS extractor, b.at AS at")
+    build = Q.rows(g, "MATCH (b:Build {id: 'latest'}) RETURN b.extractor AS extractor, b.model AS model, b.at AS at")
     nodes = [n for n in nodes if n["label"] != "Build"]
     from config import settings
     from pipeline import llm
     ok, reason = llm.peek()  # never blocks the dashboard on a network call
     return {"nodes": nodes, "relationships": rels, "build": build[0] if build else None,
-            "llm": {"model": settings.deepseek_model, "available": bool(ok), "reason": reason}}
+            "llm": {"model": settings.llm_model, "available": bool(ok), "reason": reason}}
 
 
 @app.get("/api/features")
@@ -397,8 +397,8 @@ def demo_reset():
     g = get_graph()
     prev = Q.rows(g, "MATCH (b:Build {id: 'latest'}) RETURN b.extractor AS e")
     from pipeline import llm
-    extractor = prev[0]["e"] if prev else ("deepseek" if llm.available() else "heuristic")
-    if extractor == "deepseek" and not llm.available():
+    extractor = prev[0]["e"] if prev else ("llm" if llm.available() else "heuristic")
+    if extractor in ("llm", "deepseek") and not llm.available():
         extractor = "heuristic"  # the key stopped working (no balance, revoked): rebuild without the LLM
     from graph.db import current_graph_name
     ingest(reset=True, graph_name=current_graph_name())
@@ -439,7 +439,7 @@ def bootstrap_org(org: str):
         name = org_graph_name(org)
     except ValueError as e:
         raise HTTPException(400, str(e))
-    extractor = "deepseek" if llm.available() else "heuristic"
+    extractor = "llm" if llm.available() else "heuristic"
     counts = ingest(reset=True, graph_name=name)
     g = get_graph(name)
     resolve(g, extractor, log=lambda *_: None)
@@ -543,7 +543,8 @@ def index():
     page = WEB_DIST / "index.html"
     if not page.exists():
         raise HTTPException(503, "Frontend not built: run `npm install && npm run build` in web/")
-    return FileResponse(page)
+    # the page must revalidate on every load, or browsers keep running an old build; assets are content-hashed
+    return FileResponse(page, headers={"Cache-Control": "no-cache"})
 
 
 if (WEB_DIST / "assets").exists():

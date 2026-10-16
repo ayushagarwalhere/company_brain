@@ -4,7 +4,7 @@ export type Count = { label?: string; type?: string; n: number };
 export type Stats = {
   nodes: { label: string; n: number }[];
   relationships: { type: string; n: number }[];
-  build: { extractor: string; at: string } | null;
+  build: { extractor: string; model?: string | null; at: string } | null;
   llm: { model: string; available: boolean; reason: string };
 };
 export type StalePR = { pr: number; title: string; url: string; merged: string | null; implements: string | null };

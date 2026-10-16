@@ -1,0 +1,10 @@
+{
+ "is_change": false,
+ "kind": "reaffirmation",
+ "old": null,
+ "new": null,
+ "evidence_quote": "Dark mode PR is up: Light/Dark/System, System default, toggle under Settings > Appearance.",
+ "feature": "feat_dark_mode_and_theme_customization",
+ "ticket": "BD-105",
+ "confidence": 1.0
+}

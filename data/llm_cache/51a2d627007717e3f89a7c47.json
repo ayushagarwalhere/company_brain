@@ -1,0 +1,8 @@
+{
+ "implements": [
+  "BD-105:v1",
+  "m_dark_05",
+  "BD-105:v2"
+ ],
+ "reason": "The PR implements dark mode with Light/Dark/System toggle in Settings > Appearance, matching all three requirements."
+}

@@ -1,0 +1,10 @@
+{
+ "is_change": false,
+ "kind": "proposal",
+ "old": null,
+ "new": null,
+ "evidence_quote": "Based on the discussion above, this proposal seems like a **[likely accept](https://go.dev/s/proposal-status#likely-accept)**.",
+ "feature": null,
+ "ticket": null,
+ "confidence": 0.9
+}

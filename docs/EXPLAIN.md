@@ -60,19 +60,22 @@ A: Similarity tells you a message and a ticket are about the same thing. Drift i
 [`pipeline/resolve.py`](../pipeline/resolve.py)
 
 ```python
-def supersession_pairs(chain, reflects):
+def supersession_pairs(chain, reflects, replaces=None):
     pairs, heads, last_ticket_text = [], [], ""
     for r in chain:                                   # one ticket's requirements, in time order
         if r["origin"] == "ticket":
             r = {**r, "prev_text": last_ticket_text}  # lets reflects() see what this edit ADDED
             last_ticket_text = r["text"]
-        if r["origin"] == "chat" or not heads:
-            pairs += [{"new": r["id"], "old": h["id"]} for h in heads]
-            heads = [r]
-            continue
         keep = []
         for h in heads:
-            if h["origin"] == "ticket" or reflects(r, h):
+            if h["origin"] == "ticket":
+                ok = True                             # anything supersedes an older ticket version
+            elif r["origin"] == "ticket":
+                ok = reflects(r, h)                   # a ticket edit must carry the chat change
+            else:                                     # chat over chat: only when judged to, and as confident
+                ok = (replaces is not None and (r.get("confidence") or 0) >= (h.get("confidence") or 0)
+                      and replaces(r, h))
+            if ok:
                 pairs.append({"new": r["id"], "old": h["id"]})
             else:
                 keep.append(h)
@@ -80,31 +83,33 @@ def supersession_pairs(chain, reflects):
     return pairs
 ```
 
-**What it does.** It walks one ticket's requirements oldest to newest and keeps the set of current "heads". The rules:
-- **A chat change supersedes every current head.** What was said most recently in chat is the new intent.
-- **A new ticket version always supersedes older ticket versions.**
-- **A new ticket version supersedes a chat change only if `reflects(new_version, chat_change)` is true.** Otherwise the chat change stays a head next to the new version, and the drift query keeps flagging it.
+**What it does.** It walks one ticket's requirements oldest to newest and keeps the set of current "heads". Each new requirement supersedes only the heads it actually replaces:
+- **Anything supersedes an older ticket version.** A chat decision changes what the ticket should say.
+- **A ticket version supersedes a chat change only if `reflects(new_version, chat_change)` is true.** Otherwise the chat change stays a head next to the new version, and the drift query keeps flagging it.
+- **A chat change supersedes an earlier chat change only if `replaces(new, old)` judges that it revises that decision, and it is at least as confident.** The rules extractor has no such judgment (`replaces=None`), so with rules chat never supersedes chat.
 
 **Why it's written this way.**
 - **Ticket edits happen for unrelated reasons:** typo fixes, labels, formatting. "The ticket was edited after the decision" is the obvious rule and it's wrong. It would let a cosmetic edit silently hide drift.
-- **`prev_text` lets `reflects` judge only the words the edit *added*.** The rules extractor needs the added words to share content with the chat change, ignoring edit chatter like "typo fixed". If the change has numbers ("12 months"), at least one must be among the added words. The DeepSeek extractor makes the same judgment with a prompt.
-- **More than one head at a time** is how "the ticket moved on, but not in the direction chat decided" is represented.
-- **It's a pure function over a list,** so the logic is unit-tested without a database, and the same function is reused by the ticket webhook ([`pipeline/webhooks.py`](../pipeline/webhooks.py)).
+- **Being the latest chat message is not evidence either.** That was the original rule ("a chat change supersedes every head"), and [`benchmark/noise.py`](../benchmark/noise.py) showed what it costs. One misread status update ("merged the fix for BD-101") became the newest requirement and buried the real decision: 0 of 2 real drifts found under 500 noise messages. With the current rule it's 2 of 2.
+- **`prev_text` lets `reflects` judge only the words the edit *added*.** With rules, the added words must share content with the chat change, ignoring edit chatter like "typo fixed". If the change has numbers ("12 months"), at least one must be among the added words. The LLM makes the same judgment with a prompt.
+- **More than one head at a time** is how "the ticket moved on, but not in the direction chat decided" is represented, and how two open decisions coexist.
+- **It's a pure function over a list,** so the logic is unit-tested without a database. The batch build, the live monitor and the ticket webhook all use it ([`pipeline/webhooks.py`](../pipeline/webhooks.py)).
 
 **What breaks without it.**
 - **With no chain at all** (the ablation's `supersession` switch), every chat change looks current forever. Drift precision drops to 0.50.
 - **With the naive "any later edit supersedes" rule,** the `(typo fixed)` edit in [`tests/test_api.py`](../tests/test_api.py) would resolve the BD-101 drift. That test exists to stop exactly this.
-- **Known weakness, from [`benchmark/noise.py`](../benchmark/noise.py):** "a chat change supersedes all heads" also means a misread status update hides a real decision. The rule trusts extraction.
+- **With "the latest chat message wins",** noise hides real drift (above).
+- **The cost of the current rule:** a misread message now shows up as its own false alert instead of hiding a real one. Under noise that's 17 false alerts instead of 6.
 
-**Q: Why should a chat change supersede unconditionally, when a ticket edit has to prove it reflects the change?**
-A: Chat is where the team states new intent. A ticket edit is a claim that the record caught up, and that claim needs checking. The asymmetry is deliberate. The noise benchmark shows its cost: when extraction calls a non-decision a decision, that message wins. The fix belongs in extraction, through better classification and the decision-rights check, not in the chain.
+**Q: Why not let the newest chat message win? It usually is the latest intent.**
+A: Because the extractor decides what counts as a "message that changes a requirement", and on real text it's often wrong. Under "newest wins", every extraction mistake silently deletes a real drift from the report. Under "replace only when judged to", the same mistake produces a visible alert someone can dismiss. Between a quiet miss and a noisy false positive, I chose the failure a human can see.
 
-**Q: Isn't `reflects` doing all the real work? What if it's wrong?**
-A: Yes, it's the single judgment the chain depends on, and the Limitations section says so.
+**Q: Isn't `reflects` (and now `replaces`) doing all the real work? What if they're wrong?**
+A: Yes, the chain depends on those judgments, and the Limitations section says so.
 - **A wrong "yes"** hides drift.
-- **A wrong "no"** keeps a resolved drift open. That's the safer failure, because a person can dismiss it.
+- **A wrong "no"** keeps a drift open. That's the safer failure, because a person can dismiss it.
 
-Keeping it as one injected function means it can be swapped (rules, LLM or oracle) and tested in isolation.
+Keeping each one as an injected function means it can be swapped (rules, LLM or oracle) and tested in isolation.
 
 ---
 

@@ -1,0 +1,10 @@
+{
+ "is_change": false,
+ "kind": "question",
+ "old": null,
+ "new": null,
+ "evidence_quote": "Quick q on the export button: are we doing kebab menu instead of toolbar?",
+ "feature": "feat_ticket_export_to_csv",
+ "ticket": "BD-102",
+ "confidence": 0.9
+}

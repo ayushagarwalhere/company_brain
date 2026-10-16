@@ -1,0 +1,10 @@
+{
+ "is_change": false,
+ "kind": "status",
+ "old": null,
+ "new": null,
+ "evidence_quote": "Standup: yesterday reviews, today dependency bumps (BD-111), no blockers.",
+ "feature": "feat_backend_and_dependency_upgrades",
+ "ticket": "BD-111",
+ "confidence": 1.0
+}

@@ -1,0 +1,10 @@
+{
+ "is_change": false,
+ "kind": "analysis",
+ "old": null,
+ "new": null,
+ "evidence_quote": "This came up again as the lack of an error leaks into downstream tooling and makes for a subpar user experience. See #53825. That was closed as a duplicate, but we may want to consider raising the priority of resolving this. Unclear who should do it, though.",
+ "feature": null,
+ "ticket": "53825",
+ "confidence": 0.9
+}

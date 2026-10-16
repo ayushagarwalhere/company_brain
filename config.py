@@ -43,5 +43,13 @@ class Settings:
     deepseek_base_url: str = _get("DEEPSEEK_BASE_URL", "https://api.deepseek.com")
     deepseek_model: str = _get("DEEPSEEK_MODEL", "deepseek-chat")
 
+    # Any OpenAI-compatible endpoint. Unset = DeepSeek (the DEEPSEEK_* values above).
+    #   Ollama, local and free:  LLM_BASE_URL=http://localhost:11434/v1  LLM_MODEL=qwen3:8b  LLM_API_KEY=ollama
+    #                            LLM_REASONING_EFFORT=none   (qwen3: skip the thinking phase, about 15x faster)
+    llm_base_url: str = _get("LLM_BASE_URL") or _get("DEEPSEEK_BASE_URL", "https://api.deepseek.com")
+    llm_model: str = _get("LLM_MODEL") or _get("DEEPSEEK_MODEL", "deepseek-chat")
+    llm_api_key: str = _get("LLM_API_KEY") or _get("DEEPSEEK_API_KEY")
+    llm_reasoning_effort: str = _get("LLM_REASONING_EFFORT")
+
 
 settings = Settings()

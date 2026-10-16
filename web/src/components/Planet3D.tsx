@@ -20,9 +20,10 @@ const NOISE = /* glsl */ `
   float fbm(vec3 p){ float v=0.0, a=0.5; for(int i=0;i<5;i++){ v+=a*noise(p); p*=2.03; a*=0.5; } return v; }
 `;
 
-function Planet({ light }: { light: boolean }) {
+function Planet({ light, reduced }: { light: boolean; reduced: boolean }) {
   const mat = useRef<THREE.ShaderMaterial>(null);
   const mesh = useRef<THREE.Mesh>(null);
+  const { pointer } = useThree();
   const uniforms = useMemo(() => ({
     uTime: { value: 0 },
     uLight: { value: new THREE.Vector3(0.35, 0.9, 0.45).normalize() },
@@ -34,7 +35,12 @@ function Planet({ light }: { light: boolean }) {
   }), [light]);
   useFrame((_, dt) => {
     if (mat.current) mat.current.uniforms.uTime.value += dt;
-    if (mesh.current) mesh.current.rotation.y += dt * 0.012;
+    if (!mesh.current) return;
+    mesh.current.rotation.y += dt * 0.012;
+    if (!reduced) {  // the planet leans slightly toward the cursor, damped
+      mesh.current.position.x += (PLANET_POS.x + pointer.x * 0.9 - mesh.current.position.x) * 0.03;
+      mesh.current.position.y += (PLANET_POS.y + pointer.y * 0.5 - mesh.current.position.y) * 0.03;
+    }
   });
   return (
     <mesh ref={mesh} position={PLANET_POS}>
@@ -147,6 +153,10 @@ function Graph({ reduced }: { reduced: boolean }) {
 
   const meshes = useRef<(THREE.Mesh | null)[]>([]);
   const halos = useRef<(THREE.Sprite | null)[]>([]);
+  // faint spokes from every node down to the planet: everything is anchored in one graph
+  const spokeGeo = useMemo(() => new THREE.BufferGeometry().setAttribute("position", new THREE.BufferAttribute(new Float32Array(nodes.length * 6), 3)), [nodes.length]);
+  const HOT = 5;  // the node that periodically flares orange: "a drift being detected"
+  const hotColor = useMemo(() => ({ base: new THREE.Color(nodes[HOT].color), drift: new THREE.Color("#ff5a36"), cur: new THREE.Color() }), [nodes]);
   const lineGeo = useMemo(() => new THREE.BufferGeometry().setAttribute("position", new THREE.BufferAttribute(new Float32Array(edges.length * 6), 3)), [edges.length]);
   const lineCol = useMemo(() => {
     const col = new Float32Array(edges.length * 6);
@@ -173,6 +183,19 @@ function Graph({ reduced }: { reduced: boolean }) {
       meshes.current[i]?.position.copy(tmp[i]);
       halos.current[i]?.position.copy(tmp[i]);
     });
+    const sp = spokeGeo.attributes.position.array as Float32Array, dir = new THREE.Vector3();
+    tmp.forEach((v, i) => {
+      dir.copy(v).sub(PLANET_POS).normalize().multiplyScalar(PLANET_R).add(PLANET_POS);
+      sp.set([v.x, v.y, v.z, dir.x, dir.y, dir.z], i * 6);
+    });
+    spokeGeo.attributes.position.needsUpdate = true;
+    // every ~5 s the hot node flares orange for a moment, then cools back
+    const phase = reduced ? 0 : (t % 5) / 5, flare = phase < 0.3 ? Math.sin((phase / 0.3) * Math.PI) : 0;
+    hotColor.cur.copy(hotColor.base).lerp(hotColor.drift, flare);
+    const hm = meshes.current[HOT]?.material as THREE.MeshBasicMaterial | undefined;
+    if (hm) hm.color.copy(hotColor.cur);
+    const hh = halos.current[HOT];
+    if (hh) { (hh.material as THREE.SpriteMaterial).color.copy(hotColor.cur); const k = nodes[HOT].size * 7 * (1 + flare * 1.6); hh.scale.set(k, k, 1); }
     const arr = lineGeo.attributes.position.array as Float32Array;
     edges.forEach(([a, b], i) => { arr.set([tmp[a].x, tmp[a].y, tmp[a].z, tmp[b].x, tmp[b].y, tmp[b].z], i * 6); });
     lineGeo.attributes.position.needsUpdate = true;
@@ -189,6 +212,9 @@ function Graph({ reduced }: { reduced: boolean }) {
   return (
     <group>
       {ORBITS.map((o, i) => <OrbitRing key={i} radius={o.radius} tilt={o.tilt} />)}
+      <lineSegments geometry={spokeGeo}>
+        <lineBasicMaterial color="#8b7fd1" transparent opacity={0.12} depthWrite={false} blending={THREE.AdditiveBlending} />
+      </lineSegments>
       <lineSegments geometry={lineGeo}>
         <lineBasicMaterial ref={lineMat} vertexColors transparent opacity={0.55} depthWrite={false} blending={THREE.AdditiveBlending} />
       </lineSegments>
@@ -210,9 +236,10 @@ function Graph({ reduced }: { reduced: boolean }) {
   );
 }
 
-function Rig({ scroll }: { scroll: React.MutableRefObject<number> }) {
+function Rig({ scroll, reduced }: { scroll: React.MutableRefObject<number>; reduced: boolean }) {
   const { camera, pointer } = useThree();
   useFrame(() => {
+    if (reduced) { camera.lookAt(0, -0.6, -2); return; }  // no camera moves under reduced motion
     const tx = pointer.x * 0.6, ty = 0.4 + pointer.y * 0.3 - scroll.current * 1.6;
     camera.position.x += (tx - camera.position.x) * 0.04;
     camera.position.y += (ty - camera.position.y) * 0.04;
@@ -235,13 +262,13 @@ export default function Planet3D({ light }: { light: boolean }) {
   }, []);
   return (
     <div ref={wrap} className="planet3d" aria-hidden>
-      <Canvas dpr={[1, 1.75]} frameloop={visible ? "always" : "never"} camera={{ position: [0, 0.4, 10], fov: 38, near: 0.1, far: 200 }}
+      <Canvas dpr={[1, 1.5]} frameloop={reduced ? "demand" : visible ? "always" : "never"} camera={{ position: [0, 0.4, 10], fov: 38, near: 0.1, far: 200 }}
         gl={{ antialias: true, alpha: true, powerPreference: "high-performance" }}>
         <Stars />
-        <Planet light={light} />
+        <Planet light={light} reduced={reduced} />
         <Atmosphere light={light} />
         <Graph reduced={reduced} />
-        <Rig scroll={scroll} />
+        <Rig scroll={scroll} reduced={reduced} />
       </Canvas>
     </div>
   );

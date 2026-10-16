@@ -1,0 +1,10 @@
+{
+ "is_change": false,
+ "kind": "other",
+ "old": null,
+ "new": null,
+ "evidence_quote": "Two customers asked about dark mode today, both happy with the header as is.",
+ "feature": "feat_dark_mode_and_theme_customization",
+ "ticket": null,
+ "confidence": 0.9
+}

@@ -1,0 +1,10 @@
+{
+ "is_change": false,
+ "kind": "proposal",
+ "old": null,
+ "new": null,
+ "evidence_quote": "I can take the backend for BD-101. Columns id, subject, status, created_at to start?",
+ "feature": "feat_ticket_export_to_csv",
+ "ticket": "BD-101",
+ "confidence": 0.9
+}

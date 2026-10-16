@@ -5,30 +5,46 @@
   "seed": 0
  },
  "extractor": "heuristic (rules, no LLM)",
- "before (anyone can change a ticket from chat)": {
-  "drift_alerts": 7,
-  "false_drift_alerts": 7,
-  "false_drift_alerts_by_noise_kind": {
-   "code_review": 4,
-   "customer": 2,
-   "real": 1
+ "configs": {
+  "1. original (anyone can change a ticket; the latest chat change wins)": {
+   "drift_alerts": 7,
+   "false_drift_alerts": 7,
+   "false_drift_alerts_by_noise_kind": {
+    "code_review": 4,
+    "customer": 2,
+    "real": 1
+   },
+   "true_drifts_found": 0,
+   "true_drifts_total": 2,
+   "requirement_changes_from_noise": 59,
+   "requirement_changes_from_scenario": 4
   },
-  "true_drifts_found": 0,
-  "true_drifts_total": 2,
-  "requirement_changes_from_noise": 59,
-  "requirement_changes_from_scenario": 4
- },
- "after (decision rights: ticket creator or assignee only)": {
-  "drift_alerts": 6,
-  "false_drift_alerts": 6,
-  "false_drift_alerts_by_noise_kind": {
-   "code_review": 3,
-   "customer": 1,
-   "volunteer": 2
+  "2. + decision rights (ticket creator or assignee only)": {
+   "drift_alerts": 6,
+   "false_drift_alerts": 6,
+   "false_drift_alerts_by_noise_kind": {
+    "code_review": 3,
+    "customer": 1,
+    "volunteer": 2
+   },
+   "true_drifts_found": 0,
+   "true_drifts_total": 2,
+   "requirement_changes_from_noise": 17,
+   "requirement_changes_from_scenario": 4
   },
-  "true_drifts_found": 0,
-  "true_drifts_total": 2,
-  "requirement_changes_from_noise": 17,
-  "requirement_changes_from_scenario": 4
+  "3. + decision rights + no burial (chat supersedes chat only when judged to)": {
+   "drift_alerts": 19,
+   "false_drift_alerts": 17,
+   "false_drift_alerts_by_noise_kind": {
+    "code_review": 7,
+    "customer": 6,
+    "status": 2,
+    "volunteer": 2
+   },
+   "true_drifts_found": 2,
+   "true_drifts_total": 2,
+   "requirement_changes_from_noise": 17,
+   "requirement_changes_from_scenario": 4
+  }
  }
 }

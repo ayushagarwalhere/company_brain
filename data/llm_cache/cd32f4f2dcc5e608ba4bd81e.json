@@ -1,0 +1,10 @@
+{
+ "is_change": false,
+ "kind": "question",
+ "old": null,
+ "new": null,
+ "evidence_quote": "Hello, is anyone working on fixing this issue? I'd like to help.",
+ "feature": null,
+ "ticket": null,
+ "confidence": 0.9
+}

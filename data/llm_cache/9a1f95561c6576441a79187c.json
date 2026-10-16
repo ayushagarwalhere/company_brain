@@ -1,0 +1,10 @@
+{
+ "is_change": false,
+ "kind": "reaffirmation",
+ "old": null,
+ "new": null,
+ "evidence_quote": "Works for me, cleaner navbar anyway.",
+ "feature": "feat_dark_mode_and_theme_customization",
+ "ticket": "BD-105",
+ "confidence": 0.9
+}

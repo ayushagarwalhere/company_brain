@@ -20,6 +20,7 @@ from pipeline.events import from_ms
 from pipeline.extract import CHANGE_KINDS, get_extractor
 from pipeline.textsim import TfIdf, tokens
 
+MIN_CONFIDENCE = 0.6  # below this an extracted "change" is not written (same bar as the live monitor)
 MSG_SIM_THRESHOLD = 0.22
 PR_SIM_THRESHOLD = 0.25
 DAY_MS = 86_400_000
@@ -76,25 +77,33 @@ def load_prs(g):
 
 # ---------------------------------------------------------------- resolution
 
-def supersession_pairs(chain: list[dict], reflects) -> list[dict]:
+def supersession_pairs(chain: list[dict], reflects, replaces=None) -> list[dict]:
     """SUPERSEDES edges for one ticket's requirements (chronological).
 
-    A chat change supersedes whatever is current. A later ticket version supersedes
-    earlier ticket versions, but a chat change only if its text actually reflects it,
-    so an unrelated ticket edit (typo fix, new label) can't silently hide drift.
+    Each new requirement supersedes the current heads it actually replaces; the rest stay open:
+      * anything supersedes an older ticket version;
+      * a ticket version supersedes a chat change only if its text reflects that change, so an
+        unrelated edit (typo fix, new label) can't silently hide drift;
+      * a chat change supersedes an older chat change only if `replaces(new, old)` says it revises
+        that decision AND it is at least as confident. Without a judge (`replaces=None`, the rules
+        extractor) chat never supersedes chat: being the latest message is not evidence. This is the
+        fix for benchmark/noise.py, where a misread status update used to bury the real decision.
     """
     pairs, heads, last_ticket_text = [], [], ""
     for r in chain:
         if r["origin"] == "ticket":
             r = {**r, "prev_text": last_ticket_text}  # lets reflects() look at what this edit added
             last_ticket_text = r["text"]
-        if r["origin"] == "chat" or not heads:
-            pairs += [{"new": r["id"], "old": h["id"]} for h in heads]
-            heads = [r]
-            continue
         keep = []
         for h in heads:
-            if h["origin"] == "ticket" or reflects(r, h):
+            if h["origin"] == "ticket":
+                ok = True
+            elif r["origin"] == "ticket":
+                ok = reflects(r, h)
+            else:
+                ok = (replaces is not None and (r.get("confidence") or 0) >= (h.get("confidence") or 0)
+                      and replaces(r, h))
+            if ok:
                 pairs.append({"new": r["id"], "old": h["id"]})
             else:
                 keep.append(h)
@@ -119,14 +128,15 @@ def has_decision_rights(author: str | None, ticket: dict) -> bool:
     return author is not None and author in (ticket.get("creator"), ticket.get("assignee"))
 
 
-def resolve(g, extractor_name: str = "deepseek", semantic: str | None = None, log=print,
-            ablate: frozenset = frozenset(), decision_rights: bool = True) -> dict:
+def resolve(g, extractor_name: str = "llm", semantic: str | None = None, log=print,
+            ablate: frozenset = frozenset(), decision_rights: bool = True, latest_wins: bool = False) -> dict:
     """`ablate` switches off graph capabilities one at a time (benchmark/ablation.py):
     threads (REPLY_TO), pr_proximity (author + time window), semantic, supersession (SUPERSEDES/IMPLEMENTS).
-    `decision_rights=False` lets anyone's chat message change any ticket (the behaviour before benchmark/noise.py)."""
+    `decision_rights=False` lets anyone's chat message change any ticket, and `latest_wins=True` lets every chat
+    change supersede the open ones: both are the behaviour before benchmark/noise.py, kept to reproduce it."""
     assert set(ablate) <= ABLATIONS, ablate
     ex = get_extractor(extractor_name)
-    semantic = semantic or ("llm" if extractor_name == "deepseek" else "tfidf")
+    semantic = semantic or ("llm" if extractor_name in ("llm", "deepseek") else "tfidf")
     reset_derived(g)
     tickets = load_tickets(g)
     tix = {t["id"]: t for t in tickets}
@@ -263,7 +273,7 @@ def resolve(g, extractor_name: str = "deepseek", semantic: str | None = None, lo
     changes = []
     for m in msgs:
         c = cls.get(m["id"]) or {}
-        if c.get("kind") not in CHANGE_KINDS or not c.get("requirement"):
+        if c.get("kind") not in CHANGE_KINDS or not c.get("requirement") or (c.get("confidence") or 0) < MIN_CONFIDENCE:
             continue
         feat = msg_feature.get(m["id"], (c.get("feature"), "llm"))[0] or c.get("feature")
         if feat not in feat_docs:
@@ -299,10 +309,11 @@ def resolve(g, extractor_name: str = "deepseek", semantic: str | None = None, lo
     # 6. SUPERSEDES chains per ticket ----------------------------------------------
     reqs_by_ticket = defaultdict(list)
     for r in _rows_paged(g, """MATCH (q:Requirement) RETURN q.id AS id, q.ticket AS ticket, q.text AS text, q.origin AS origin,
-                                                       q.at AS at, q.at_ms AS at_ms ORDER BY at_ms, id"""):
+                                                       q.at AS at, q.at_ms AS at_ms, q.confidence AS confidence
+                                ORDER BY at_ms, id"""):
         reqs_by_ticket[r["ticket"]].append(r)
     pairs = [] if "supersession" in ablate else [
-        p for chain in reqs_by_ticket.values() for p in supersession_pairs(chain, ex.reflects)]
+        p for chain in reqs_by_ticket.values() for p in supersession_pairs(chain, ex.reflects, (lambda n, o: True) if latest_wins else ex.replaces)]
     g.query("""UNWIND $ps AS p MATCH (n:Requirement {id: p.new}), (o:Requirement {id: p.old})
                MERGE (n)-[:SUPERSEDES]->(o)""", {"ps": pairs})
 

@@ -1,0 +1,10 @@
+{
+ "is_change": false,
+ "kind": "proposal",
+ "old": null,
+ "new": null,
+ "evidence_quote": "It would be nice if \"go version -m\" showed the real GOAMD64 not local. Probably 'go env GOAMD64' needs to say local. Some way to interrogate the meaning of local would be nice.",
+ "feature": null,
+ "ticket": null,
+ "confidence": 0.9
+}

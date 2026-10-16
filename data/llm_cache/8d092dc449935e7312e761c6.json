@@ -1,0 +1,10 @@
+{
+ "is_change": false,
+ "kind": "status",
+ "old": null,
+ "new": null,
+ "evidence_quote": "PR for the export endpoint is up: last 30 days, CSV, id/subject/status/created_at/assignee. Reviews welcome.",
+ "feature": "feat_ticket_export_to_csv",
+ "ticket": "BD-101",
+ "confidence": 1.0
+}

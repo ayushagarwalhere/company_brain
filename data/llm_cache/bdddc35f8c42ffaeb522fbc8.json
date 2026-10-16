@@ -1,0 +1,10 @@
+{
+ "is_change": false,
+ "kind": "request",
+ "old": null,
+ "new": null,
+ "evidence_quote": "Hi! I'd like to work on this. I can reproduce it with the steps in the description, and I'll look at the index-creation path to find why the stopwords option isn't applied when a range index already exists on the label. Could you assign this to me? I'll open a PR once I have a fix and a flow test.",
+ "feature": null,
+ "ticket": null,
+ "confidence": 0.9
+}

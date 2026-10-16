@@ -1,0 +1,10 @@
+{
+ "is_change": true,
+ "kind": "requirement_change",
+ "old": "Columns: id, subject, status, created_at, assignee.",
+ "new": "Columns: id, subject, status, created_at, assignee.",
+ "evidence_quote": "Let's add an assignee column to the export.",
+ "feature": "feat_ticket_export_to_csv",
+ "ticket": "BD-101",
+ "confidence": 1.0
+}

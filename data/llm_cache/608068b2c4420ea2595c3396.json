@@ -1,0 +1,10 @@
+{
+ "is_change": false,
+ "kind": "question",
+ "old": null,
+ "new": null,
+ "evidence_quote": "Customer asking if we support SAML SSO. Not yet, right?",
+ "feature": null,
+ "ticket": null,
+ "confidence": 0.9
+}

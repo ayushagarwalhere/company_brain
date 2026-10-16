@@ -1,0 +1,10 @@
+{
+ "is_change": false,
+ "kind": "proposal",
+ "old": null,
+ "new": null,
+ "evidence_quote": "A CL demonstrating the change would be useful. In particular, I'd like to see the proposed implementation of the change to how we handle DATA frame padding--the current framer reads an entire frame into a []byte and hands it off to a type-specific parser function, and I don't think that approach works with your requirements.",
+ "feature": null,
+ "ticket": null,
+ "confidence": 0.9
+}

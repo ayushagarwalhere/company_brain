@@ -1,0 +1,6 @@
+{
+ "implements": [
+  "BD-106:v1"
+ ],
+ "reason": "The PR moves all colours to CSS custom properties, satisfying the requirement to replace hard-coded colours with design tokens for theme swapping."
+}

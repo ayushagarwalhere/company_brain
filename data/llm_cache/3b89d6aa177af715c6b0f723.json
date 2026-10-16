@@ -1,0 +1,10 @@
+{
+ "is_change": true,
+ "kind": "requirement_change",
+ "old": "Rectangle or ellipse with bound text uses the old grow-the-container path.",
+ "new": "Expose the same fitting behaviour to ordinary bound-text containers, opt-in per element rather than as a new default.",
+ "evidence_quote": "The remaining ask here is narrower than when this was filed: expose the same fitting behaviour to ordinary bound-text containers, opt-in per element rather than as a new default.",
+ "feature": "text_fitting",
+ "ticket": "12064",
+ "confidence": 1.0
+}

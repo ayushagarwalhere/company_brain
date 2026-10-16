@@ -1,0 +1,10 @@
+{
+ "is_change": true,
+ "kind": "requirement_change",
+ "old": "Supporting `GODEBUG` for smaller keys",
+ "new": "Allow opting-in per function/method call instead of a global toggle for smaller keys",
+ "evidence_quote": "I really don't think this should (only) be a `GODEBUG`. When smaller keys are intentional, it is going to be for some specific use case. Having this toggle for the entire application is too coarse grain. It would be far preferable to be able to opt-in per function/method call.",
+ "feature": "GODEBUG",
+ "ticket": null,
+ "confidence": 0.95
+}

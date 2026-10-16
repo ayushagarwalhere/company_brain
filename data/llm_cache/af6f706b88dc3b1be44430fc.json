@@ -1,0 +1,6 @@
+{
+ "implements": [
+  "BD-111:v1"
+ ],
+ "reason": "The PR upgrades the backend dependencies as required by BD-111:v1, including bumping FastAPI, SQLAlchemy, and pydantic to current versions and fixing deprecation warnings."
+}

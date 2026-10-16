@@ -1,0 +1,10 @@
+{
+ "is_change": false,
+ "kind": "review",
+ "old": null,
+ "new": null,
+ "evidence_quote": "Thanks for the review. I addressed the untitled-dialog case: Dialog now uses the namespaced aria-labelledby when a title is rendered, and a localized aria-label when title={false}; Modal accepts either mechanism. I also added focused coverage for both paths, including verifying that the referenced title ID resolves inside the modal, and added the missing aria-labels the review called out on FontPicker and ColorPicker. Changes are pushed in 6d23fd21.",
+ "feature": null,
+ "ticket": null,
+ "confidence": 1.0
+}

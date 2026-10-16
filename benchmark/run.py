@@ -90,8 +90,9 @@ def main():
     docs = corpus()
     index = TfIdf(docs)
     if mode == "llm":
-        systems = {"graph (DeepSeek agent)": graph_answer,
-                   "baseline (TF-IDF top-25 -> DeepSeek)": lambda q: baseline_answer(q, index, docs)}
+        from pipeline.llm import model_name
+        systems = {f"graph (LLM agent, {model_name()})": graph_answer,
+                   f"baseline (TF-IDF top-25 -> {model_name()})": lambda q: baseline_answer(q, index, docs)}
     else:
         systems = {"graph (rules agent, no LLM)": graph_answer_rules,
                    "baseline (extractive top-3, no LLM)": lambda q: baseline_extractive(q, index, docs, 3),
@@ -115,7 +116,10 @@ def main():
     out_dir = HERE / "results"
     out_dir.mkdir(exist_ok=True)
     stamp = datetime.now(timezone.utc).strftime("%Y%m%dT%H%M%SZ")
-    for name in (f"run_{mode}_{stamp}.json", "latest.json"):
+    from pipeline.llm import model_name
+    payload["model"] = model_name() if mode == "llm" else None
+    latest = "latest.json" if mode == "no-llm" else f"latest_llm_{model_name().replace(':', '-').replace('/', '-')}.json"
+    for name in (f"run_{mode}_{stamp}.json", latest):
         (out_dir / name).write_text(json.dumps(payload, indent=1, ensure_ascii=False), encoding="utf-8")
 
 

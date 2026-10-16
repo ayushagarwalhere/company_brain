@@ -1,0 +1,64 @@
+{
+ "features": [
+  {
+   "name": "Ticket Export to CSV",
+   "tickets": [
+    "BD-101",
+    "BD-102",
+    "BD-108"
+   ]
+  },
+  {
+   "name": "SLA Breach Notifications",
+   "tickets": [
+    "BD-103",
+    "BD-109",
+    "BD-104"
+   ]
+  },
+  {
+   "name": "Dark Mode and Theme Customization",
+   "tickets": [
+    "BD-105",
+    "BD-106"
+   ]
+  },
+  {
+   "name": "User Account Security",
+   "tickets": [
+    "BD-107"
+   ]
+  },
+  {
+   "name": "User Profile Enhancements",
+   "tickets": [
+    "BD-113"
+   ]
+  },
+  {
+   "name": "UI/UX Improvements",
+   "tickets": [
+    "BD-110",
+    "BD-112"
+   ]
+  },
+  {
+   "name": "Backend and Dependency Upgrades",
+   "tickets": [
+    "BD-111"
+   ]
+  },
+  {
+   "name": "API Documentation",
+   "tickets": [
+    "BD-114"
+   ]
+  },
+  {
+   "name": "Test Stability Improvements",
+   "tickets": [
+    "BD-115"
+   ]
+  }
+ ]
+}

@@ -1,0 +1,10 @@
+{
+ "is_change": false,
+ "kind": "status",
+ "old": null,
+ "new": null,
+ "evidence_quote": "Rolling back the last deploy, seeing 500s on /login.",
+ "feature": null,
+ "ticket": null,
+ "confidence": 1.0
+}

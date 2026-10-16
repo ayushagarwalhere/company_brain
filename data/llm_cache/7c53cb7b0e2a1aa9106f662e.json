@@ -1,0 +1,10 @@
+{
+ "is_change": false,
+ "kind": "other",
+ "old": null,
+ "new": null,
+ "evidence_quote": "Implemented in #11799: the bucket fill tool fills the enclosed area you click on.",
+ "feature": null,
+ "ticket": null,
+ "confidence": 0.9
+}

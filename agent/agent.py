@@ -7,7 +7,7 @@ import sys
 
 from agent import tools
 from config import settings
-from pipeline.llm import _client
+from pipeline.llm import _client, _extra
 
 SYSTEM = """You answer questions about a software team's decisions, tickets and pull requests using ONLY the graph tools.
 Always call list_features first if you don't know the feature id. Prefer the most specific tool.
@@ -35,11 +35,11 @@ def ask(question: str) -> dict:
     messages = [{"role": "system", "content": SYSTEM}, {"role": "user", "content": question}]
     trace, paths = [], []
     for _ in range(MAX_STEPS):
-        resp = client.chat.completions.create(model=settings.deepseek_model, messages=messages,
-                                              tools=tools.openai_schema(), temperature=0)
+        resp = client.chat.completions.create(model=settings.llm_model, messages=messages,
+                                              tools=tools.openai_schema(), temperature=0, **_extra())
         msg = resp.choices[0].message
         if not msg.tool_calls:
-            return {"answer": msg.content, "tool_calls": trace, "paths": paths, "engine": "deepseek"}
+            return {"answer": msg.content, "tool_calls": trace, "paths": paths, "engine": f"llm:{settings.llm_model}"}
         messages.append({"role": "assistant", "content": msg.content or "",
                          "tool_calls": [tc.model_dump() for tc in msg.tool_calls]})
         for tc in msg.tool_calls:
@@ -51,7 +51,7 @@ def ask(question: str) -> dict:
             trace.append({"tool": tc.function.name, "args": args, "rows": len(result.get("rows", []))})
             paths += [p for p in result.get("paths", []) if p not in paths]
             messages.append({"role": "tool", "tool_call_id": tc.id, "content": _compact(result)})
-    return {"answer": "I couldn't finish within the step limit.", "tool_calls": trace, "paths": paths, "engine": "deepseek"}
+    return {"answer": "I couldn't finish within the step limit.", "tool_calls": trace, "paths": paths, "engine": f"llm:{settings.llm_model}"}
 
 
 if __name__ == "__main__":

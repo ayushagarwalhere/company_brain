@@ -1,0 +1,10 @@
+{
+ "is_change": false,
+ "kind": "proposal",
+ "old": null,
+ "new": null,
+ "evidence_quote": "Russ would like to implement the ideas in the following paper: https://doi.org/10.1002/spe.2436. I haven't had a chance to read the paper yet (and it's behind a paywall).",
+ "feature": null,
+ "ticket": null,
+ "confidence": 0.8
+}

@@ -1,0 +1,10 @@
+{
+ "is_change": true,
+ "kind": "requirement_change",
+ "old": "When a ticket breaches its SLA, send an email notification to the ticket's assignee.",
+ "new": "When a ticket breaches its SLA, send an email notification to the ticket's assignee.",
+ "evidence_quote": "They want a heads-up before it happens, somewhere the team actually looks.",
+ "feature": "feat_sla_breach_notifications",
+ "ticket": "BD-103",
+ "confidence": 0.9
+}

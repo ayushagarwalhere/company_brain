@@ -1,0 +1,10 @@
+{
+ "is_change": false,
+ "kind": "analysis",
+ "old": null,
+ "new": null,
+ "evidence_quote": "Looked into this a bit — I think the root cause is on the OSS side of the fence after all, in how text width is measured, not in anything the MCP tool does with layout.",
+ "feature": null,
+ "ticket": null,
+ "confidence": 0.9
+}

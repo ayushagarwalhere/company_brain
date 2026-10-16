@@ -1,0 +1,10 @@
+{
+ "is_change": true,
+ "kind": "decision",
+ "old": "Today's streaming order for OPTIONAL MATCH paths",
+ "new": "Reorder only when order is observable (recommended). The planner marks Optional / Apply-optional / Optional Conditional Traverse `preserve_order` unless an order-insensitive consumer sits above, such as an `Aggregate` with no order-sensitive function (`collect`) or a `Sort`. Unmarked plans keep today's streaming at zero cost. Marked plans use the `FallbackOrder` mechanics above.",
+ "evidence_quote": "Reorder only when order is observable (recommended). The planner marks Optional / Apply-optional / Optional Conditional Traverse `preserve_order` unless an order-insensitive consumer sits above, such as an `Aggregate` with no order-sensitive function (`collect`) or a `Sort`. Unmarked plans keep today's streaming at zero cost. Marked plans use the `FallbackOrder` mechanics above.",
+ "feature": "optional_conditional_traverse",
+ "ticket": "fix/optional-fallback-order",
+ "confidence": 0.95
+}

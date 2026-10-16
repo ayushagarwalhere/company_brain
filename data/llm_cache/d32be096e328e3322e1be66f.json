@@ -1,0 +1,10 @@
+{
+ "is_change": true,
+ "kind": "requirement_change",
+ "old": "Admins can export tickets created in the last 30 days as a CSV file. Columns: id, subject, status, created_at, assignee.",
+ "new": "Admins can export tickets created in the last 30 days as a CSV file. Columns: id, subject, status, created_at, assignee, and custom fields.",
+ "evidence_quote": "Both said 30 days is useless for quarterly business reviews, and they need their custom fields in the file too, not just the standard columns.",
+ "feature": "feat_ticket_export_to_csv",
+ "ticket": "BD-101",
+ "confidence": 1.0
+}

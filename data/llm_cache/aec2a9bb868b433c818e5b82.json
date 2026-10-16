@@ -1,0 +1,7 @@
+{
+ "implements": [
+  "BD-103:v1",
+  "m_sla_03"
+ ],
+ "reason": "The PR sends email notifications to the assignee when a ticket breaches SLA, satisfying BD-103:v1 and m_sla_03. It does not include the 15-minute warning or Slack notification from m_sla_05."
+}

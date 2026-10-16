@@ -1,0 +1,10 @@
+{
+ "is_change": false,
+ "kind": "other",
+ "old": null,
+ "new": null,
+ "evidence_quote": "You can do this with shortcuts: select a frame and press Shift+3 to zoom it to fill the view, then Shift+2 to zoom back out.",
+ "feature": null,
+ "ticket": null,
+ "confidence": 0.9
+}

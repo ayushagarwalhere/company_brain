@@ -1,0 +1,10 @@
+{
+ "is_change": false,
+ "kind": "status",
+ "old": null,
+ "new": null,
+ "evidence_quote": "Change https://go.dev/cl/706899 mentions this issue: `go/analysis/passes/inline: publish`",
+ "feature": null,
+ "ticket": "706899",
+ "confidence": 1.0
+}

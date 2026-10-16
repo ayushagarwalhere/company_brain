@@ -1,0 +1,10 @@
+{
+ "is_change": false,
+ "kind": "reaffirmation",
+ "old": null,
+ "new": null,
+ "evidence_quote": "Not this quarter. CSV with UTF-8 BOM should fix the Excel encoding issue. Let's park XLSX.",
+ "feature": "feat_ticket_export_to_csv",
+ "ticket": "BD-101",
+ "confidence": 0.9
+}

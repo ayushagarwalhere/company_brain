@@ -1,0 +1,10 @@
+{
+ "is_change": false,
+ "kind": "reaffirmation",
+ "old": null,
+ "new": null,
+ "evidence_quote": "I think we should proceed as is, but @griesemer should confirm.",
+ "feature": null,
+ "ticket": null,
+ "confidence": 0.9
+}

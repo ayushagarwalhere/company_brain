@@ -23,7 +23,7 @@ def rebuild(extractor: str = "auto", graph: str | None = None) -> str:
     from pipeline.ingest import ingest
     from pipeline.resolve import resolve
     if extractor == "auto":
-        extractor = "deepseek" if llm.available() else "heuristic"
+        extractor = "llm" if llm.available() else "heuristic"
     ingest(reset=True, graph_name=graph)
     g = get_graph(graph)
     resolve(g, extractor, log=lambda *_: None)
@@ -44,7 +44,7 @@ def check(graph: str | None = None) -> dict:
 def main(argv=None) -> int:
     ap = argparse.ArgumentParser()
     ap.add_argument("--api", help="base URL of a running server, e.g. http://localhost:8000")
-    ap.add_argument("--extractor", default="auto", choices=["auto", "deepseek", "heuristic"])
+    ap.add_argument("--extractor", default="auto", choices=["auto", "llm", "heuristic"])
     a = ap.parse_args(argv)
     if a.api:
         import requests

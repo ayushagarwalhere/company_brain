@@ -1,0 +1,10 @@
+{
+ "is_change": false,
+ "kind": "analysis",
+ "old": null,
+ "new": null,
+ "evidence_quote": "Guys, I think this is a breaking change for some system. What if some systems depend on old API, and there is no way to ask the provider to upgrade theirs keys from 512 to 1024? While for go 1.23 it was working normally, for other version it will stop working without quick way of fixing it.",
+ "feature": null,
+ "ticket": null,
+ "confidence": 0.9
+}

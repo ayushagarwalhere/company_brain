@@ -1,0 +1,10 @@
+{
+ "is_change": false,
+ "kind": "status",
+ "old": null,
+ "new": null,
+ "evidence_quote": "Thanks! The zen mode / tooltip follow-up commit that was bundled here got split out into #12188 (kept your authorship, ported onto the #12173 tooltip rework) and is merged. I rebased this branch onto master, so it's now just the showHints action.",
+ "feature": null,
+ "ticket": null,
+ "confidence": 1.0
+}

@@ -119,7 +119,7 @@ def measure(g) -> dict:
             "requirement_changes_from_scenario": sum(not m.startswith("noise:") for m in changes)}
 
 
-def run(**resolve_kwargs) -> dict:
+def run(extractor: str = "heuristic", **resolve_kwargs) -> dict:
     from graph import writer
     from graph.db import get_graph
     from pipeline.ingest import ingest
@@ -127,18 +127,30 @@ def run(**resolve_kwargs) -> dict:
     ingest(reset=True, graph_name=GRAPH)
     g = get_graph(GRAPH)
     writer.write_messages(g, noise_messages())
-    resolve(g, "heuristic", log=lambda *_: None, **resolve_kwargs)
+    resolve(g, extractor, log=lambda *_: None, **resolve_kwargs)
     return measure(g)
 
 
+CONFIGS = {
+    "1. original (anyone can change a ticket; the latest chat change wins)": dict(decision_rights=False, latest_wins=True),
+    "2. + decision rights (ticket creator or assignee only)": dict(decision_rights=True, latest_wins=True),
+    "3. + decision rights + no burial (chat supersedes chat only when judged to)": dict(decision_rights=True, latest_wins=False),
+}
+
+
 def main():
+    import argparse
     from benchmark.run import HERE
+    from pipeline.llm import model_name
+    ap = argparse.ArgumentParser()
+    ap.add_argument("--extractor", default="heuristic", choices=["heuristic", "llm"])
+    a = ap.parse_args()
+    label = "heuristic (rules, no LLM)" if a.extractor == "heuristic" else f"llm ({model_name()})"
     out = {"noise": {"real_github_comments": N_REAL, "synthetic_on_topic": N_SYNTH, "seed": SEED},
-           "extractor": "heuristic (rules, no LLM)",
-           "before (anyone can change a ticket from chat)": run(decision_rights=False),
-           "after (decision rights: ticket creator or assignee only)": run(decision_rights=True)}
+           "extractor": label, "configs": {name: run(a.extractor, **kw) for name, kw in CONFIGS.items()}}
     print(json.dumps(out, indent=1))
-    (HERE / "results" / "noise.json").write_text(json.dumps(out, indent=1), encoding="utf-8")
+    name = "noise.json" if a.extractor == "heuristic" else f"noise_llm_{model_name().replace(':', '-').replace('/', '-')}.json"
+    (HERE / "results" / name).write_text(json.dumps(out, indent=1), encoding="utf-8")
 
 
 if __name__ == "__main__":

@@ -1,0 +1,10 @@
+{
+ "is_change": false,
+ "kind": "status",
+ "old": null,
+ "new": null,
+ "evidence_quote": "No change in consensus, so **[accepted](https://go.dev/s/proposal-status#accepted)**. 🎉 This issue now tracks the work of implementing the proposal.",
+ "feature": null,
+ "ticket": null,
+ "confidence": 1.0
+}

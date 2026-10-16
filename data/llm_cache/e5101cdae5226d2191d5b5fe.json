@@ -1,0 +1,10 @@
+{
+ "is_change": false,
+ "kind": "question",
+ "old": null,
+ "new": null,
+ "evidence_quote": "Hey, I looked into this and it seems like `actionManager` is already defined in `AppClassProperties` in `types.ts` (line ~1140). Could you clarify what specific error you are seeing? Is it a type error when accessing `app.actionManager` from a particular component?",
+ "feature": null,
+ "ticket": null,
+ "confidence": 0.9
+}

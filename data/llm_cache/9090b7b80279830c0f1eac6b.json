@@ -1,0 +1,10 @@
+{
+ "is_change": false,
+ "kind": "status",
+ "old": null,
+ "new": null,
+ "evidence_quote": "SLA notifier PR is up, using the existing mailer so it was quick.",
+ "feature": "feat_sla_breach_notifications",
+ "ticket": "BD-103",
+ "confidence": 1.0
+}

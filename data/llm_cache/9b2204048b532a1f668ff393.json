@@ -1,0 +1,10 @@
+{
+ "is_change": false,
+ "kind": "proposal",
+ "old": null,
+ "new": null,
+ "evidence_quote": "hi, i'd like to work on this.\n\nright now a key can write anywhere. i'd stamp collection-id or scene-id into the key payload and reject writes outside that scope on the mcp/api handlers. therefore an agent cannot wander into another project.\n\nis a scene-id in the jwt enough, or do you also want a collection allowlist? and should existing unscoped keys keep working until they rotate?",
+ "feature": null,
+ "ticket": null,
+ "confidence": 0.9
+}

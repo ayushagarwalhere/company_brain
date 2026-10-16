@@ -108,19 +108,17 @@ def github():
     return f"{repo['full_name']} (public), rate limit remaining={remaining}"
 
 
-@check("DeepSeek")
+@check("LLM")
 def deepseek():
-    if not settings.deepseek_api_key:
-        raise RuntimeError("DEEPSEEK_API_KEY not set")
-    from openai import OpenAI
-
-    client = OpenAI(api_key=settings.deepseek_api_key, base_url=settings.deepseek_base_url)
-    resp = client.chat.completions.create(
-        model=settings.deepseek_model,
+    if not settings.llm_api_key:
+        raise RuntimeError("no LLM key set (LLM_API_KEY or DEEPSEEK_API_KEY)")
+    from pipeline.llm import _client, _extra, _strip_think
+    resp = _client().chat.completions.create(
+        model=settings.llm_model,
         messages=[{"role": "user", "content": "Reply with exactly: pong"}],
-        max_tokens=5,
+        max_tokens=5, **_extra(),
     )
-    return f"{settings.deepseek_model} replied '{resp.choices[0].message.content.strip()}'"
+    return f"{settings.llm_model} at {settings.llm_base_url} replied '{_strip_think(resp.choices[0].message.content).strip()}'"
 
 
 if __name__ == "__main__":

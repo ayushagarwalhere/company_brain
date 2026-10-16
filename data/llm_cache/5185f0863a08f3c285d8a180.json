@@ -1,0 +1,10 @@
+{
+ "is_change": false,
+ "kind": "status",
+ "old": null,
+ "new": null,
+ "evidence_quote": "Finished the staging DB migration, picking up the next thing from the board.",
+ "feature": null,
+ "ticket": null,
+ "confidence": 1.0
+}

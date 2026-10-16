@@ -1,0 +1,366 @@
+{
+ "labelled_by": "Claude (AI assistant), reading each comment in full BEFORE looking at any extractor output; not independently verified",
+ "criterion": "positive = a decision on what will be built (accepting or changing a requirement) made by someone with standing (maintainer, review group). Proposals, volunteering, status, bots, questions, objections, analysis and reaffirmations are negative.",
+ "labels": [
+  {
+   "set": "issue_comments",
+   "url": "https://github.com/excalidraw/excalidraw/issues/11944#issuecomment-5429620626",
+   "is_requirement_change": false,
+   "note": "question to the reporter"
+  },
+  {
+   "set": "issue_comments",
+   "url": "https://github.com/FalkorDB/FalkorDB/issues/3168#issuecomment-6109523266",
+   "is_requirement_change": false,
+   "note": "status: verified a PR"
+  },
+  {
+   "set": "issue_comments",
+   "url": "https://github.com/excalidraw/excalidraw/issues/12023#issuecomment-5863354026",
+   "is_requirement_change": false,
+   "note": "thanks"
+  },
+  {
+   "set": "issue_comments",
+   "url": "https://github.com/FalkorDB/FalkorDB/issues/3166#issuecomment-6001099162",
+   "is_requirement_change": false,
+   "note": "volunteer"
+  },
+  {
+   "set": "issue_comments",
+   "url": "https://github.com/excalidraw/excalidraw/issues/12023#issuecomment-5647208959",
+   "is_requirement_change": false,
+   "note": "status: links a fix"
+  },
+  {
+   "set": "issue_comments",
+   "url": "https://github.com/excalidraw/excalidraw/issues/12120#issuecomment-5753320035",
+   "is_requirement_change": false,
+   "note": "volunteer"
+  },
+  {
+   "set": "issue_comments",
+   "url": "https://github.com/excalidraw/excalidraw/issues/11983#issuecomment-5469249451",
+   "is_requirement_change": false,
+   "note": "junk"
+  },
+  {
+   "set": "issue_comments",
+   "url": "https://github.com/excalidraw/excalidraw/issues/12023#issuecomment-5525331367",
+   "is_requirement_change": false,
+   "note": "volunteer"
+  },
+  {
+   "set": "issue_comments",
+   "url": "https://github.com/excalidraw/excalidraw/issues/12093#issuecomment-5664745240",
+   "is_requirement_change": false,
+   "note": "contributor proposes a behaviour, 'happy to adjust'"
+  },
+  {
+   "set": "issue_comments",
+   "url": "https://github.com/excalidraw/excalidraw/issues/11973#issuecomment-5566564576",
+   "is_requirement_change": false,
+   "note": "volunteer"
+  },
+  {
+   "set": "issue_comments",
+   "url": "https://github.com/excalidraw/excalidraw/issues/12132#issuecomment-5826391065",
+   "is_requirement_change": false,
+   "note": "volunteer"
+  },
+  {
+   "set": "issue_comments",
+   "url": "https://github.com/FalkorDB/FalkorDB/issues/3295#issuecomment-6126200182",
+   "is_requirement_change": false,
+   "note": "volunteer"
+  },
+  {
+   "set": "issue_comments",
+   "url": "https://github.com/FalkorDB/FalkorDB/issues/3159#issuecomment-6002589508",
+   "is_requirement_change": false,
+   "note": "volunteer with questions"
+  },
+  {
+   "set": "issue_comments",
+   "url": "https://github.com/excalidraw/excalidraw/issues/12023#issuecomment-5634069541",
+   "is_requirement_change": false,
+   "note": "volunteer plan"
+  },
+  {
+   "set": "issue_comments",
+   "url": "https://github.com/FalkorDB/FalkorDB/issues/3023#issuecomment-5845448218",
+   "is_requirement_change": false,
+   "note": "analysis endorsing an option (not the owner)"
+  },
+  {
+   "set": "issue_comments",
+   "url": "https://github.com/excalidraw/excalidraw/issues/12236#issuecomment-6000599055",
+   "is_requirement_change": false,
+   "note": "junk"
+  },
+  {
+   "set": "issue_comments",
+   "url": "https://github.com/excalidraw/excalidraw/issues/12172#issuecomment-6084199879",
+   "is_requirement_change": false,
+   "note": "status: PR already up"
+  },
+  {
+   "set": "issue_comments",
+   "url": "https://github.com/excalidraw/excalidraw/issues/11973#issuecomment-5633932704",
+   "is_requirement_change": false,
+   "note": "volunteer"
+  },
+  {
+   "set": "issue_comments",
+   "url": "https://github.com/excalidraw/excalidraw/issues/11983#issuecomment-5436617159",
+   "is_requirement_change": false,
+   "note": "question"
+  },
+  {
+   "set": "issue_comments",
+   "url": "https://github.com/excalidraw/excalidraw/issues/12066#issuecomment-5646441438",
+   "is_requirement_change": false,
+   "note": "junk"
+  },
+  {
+   "set": "issue_comments",
+   "url": "https://github.com/excalidraw/excalidraw/issues/12266#issuecomment-6116317799",
+   "is_requirement_change": false,
+   "note": "volunteer"
+  },
+  {
+   "set": "issue_comments",
+   "url": "https://github.com/excalidraw/excalidraw/issues/12123#issuecomment-5740935744",
+   "is_requirement_change": false,
+   "note": "volunteer proposal with open questions"
+  },
+  {
+   "set": "issue_comments",
+   "url": "https://github.com/FalkorDB/FalkorDB/issues/2972#issuecomment-6109367313",
+   "is_requirement_change": false,
+   "note": "bug analysis by the issue author"
+  },
+  {
+   "set": "issue_comments",
+   "url": "https://github.com/excalidraw/excalidraw/issues/12101#issuecomment-5859764758",
+   "is_requirement_change": false,
+   "note": "maintainer closes as duplicate: the behaviour stays (no change)"
+  },
+  {
+   "set": "issue_comments",
+   "url": "https://github.com/excalidraw/excalidraw/issues/12253#issuecomment-6096297082",
+   "is_requirement_change": false,
+   "note": "volunteer plan"
+  },
+  {
+   "set": "issue_comments",
+   "url": "https://github.com/excalidraw/excalidraw/issues/12336#issuecomment-6208375180",
+   "is_requirement_change": false,
+   "note": "junk (pasted code)"
+  },
+  {
+   "set": "issue_comments",
+   "url": "https://github.com/excalidraw/excalidraw/issues/12103#issuecomment-5675981411",
+   "is_requirement_change": false,
+   "note": "analysis"
+  },
+  {
+   "set": "issue_comments",
+   "url": "https://github.com/excalidraw/excalidraw/issues/12145#issuecomment-6073397347",
+   "is_requirement_change": false,
+   "note": "volunteer"
+  },
+  {
+   "set": "issue_comments",
+   "url": "https://github.com/FalkorDB/FalkorDB/issues/3331#issuecomment-6164413802",
+   "is_requirement_change": false,
+   "note": "status: root cause and fix PR"
+  },
+  {
+   "set": "issue_comments",
+   "url": "https://github.com/excalidraw/excalidraw/issues/12058#issuecomment-5807385476",
+   "is_requirement_change": false,
+   "note": "status: PR already raised"
+  },
+  {
+   "set": "go_proposals",
+   "url": "https://github.com/golang/go/issues/11646#issuecomment-412349119",
+   "is_requirement_change": false,
+   "note": "complaint"
+  },
+  {
+   "set": "go_proposals",
+   "url": "https://github.com/golang/go/issues/26227#issuecomment-1183309959",
+   "is_requirement_change": false,
+   "note": "status/priority note"
+  },
+  {
+   "set": "go_proposals",
+   "url": "https://github.com/golang/go/issues/21789#issuecomment-368730656",
+   "is_requirement_change": false,
+   "note": "bot: CL mentions issue"
+  },
+  {
+   "set": "go_proposals",
+   "url": "https://github.com/golang/go/issues/70250#issuecomment-2959671135",
+   "is_requirement_change": false,
+   "note": "opinion, defers the decision"
+  },
+  {
+   "set": "go_proposals",
+   "url": "https://github.com/golang/go/issues/60338#issuecomment-1591760081",
+   "is_requirement_change": true,
+   "note": "accepted by the proposal review group"
+  },
+  {
+   "set": "go_proposals",
+   "url": "https://github.com/golang/go/issues/68762#issuecomment-2344347112",
+   "is_requirement_change": true,
+   "note": "accepted, restates the new behaviour (reject <1024-bit keys, GODEBUG to revert)"
+  },
+  {
+   "set": "go_proposals",
+   "url": "https://github.com/golang/go/issues/64047#issuecomment-5916074784",
+   "is_requirement_change": true,
+   "note": "review group member sets the plan: //go:fix + deprecate first, then isolate, tag, delete"
+  },
+  {
+   "set": "go_proposals",
+   "url": "https://github.com/golang/go/issues/79802#issuecomment-6200760396",
+   "is_requirement_change": false,
+   "note": "bot"
+  },
+  {
+   "set": "go_proposals",
+   "url": "https://github.com/golang/go/issues/62577#issuecomment-1806138397",
+   "is_requirement_change": true,
+   "note": "accepted, restates the behaviour (split DWARF on darwin)"
+  },
+  {
+   "set": "go_proposals",
+   "url": "https://github.com/golang/go/issues/11646#issuecomment-288227541",
+   "is_requirement_change": false,
+   "note": "analysis"
+  },
+  {
+   "set": "go_proposals",
+   "url": "https://github.com/golang/go/issues/79603#issuecomment-4561007040",
+   "is_requirement_change": true,
+   "note": "likely accept, states the API to add"
+  },
+  {
+   "set": "go_proposals",
+   "url": "https://github.com/golang/go/issues/60338#issuecomment-1570635770",
+   "is_requirement_change": false,
+   "note": "wishes, no decision"
+  },
+  {
+   "set": "go_proposals",
+   "url": "https://github.com/golang/go/issues/75266#issuecomment-3267130849",
+   "is_requirement_change": false,
+   "note": "bot"
+  },
+  {
+   "set": "go_proposals",
+   "url": "https://github.com/golang/go/issues/73560#issuecomment-3137474278",
+   "is_requirement_change": false,
+   "note": "question"
+  },
+  {
+   "set": "go_proposals",
+   "url": "https://github.com/golang/go/issues/77441#issuecomment-6180824117",
+   "is_requirement_change": true,
+   "note": "accepted (proposal given in an earlier comment)"
+  },
+  {
+   "set": "go_proposals",
+   "url": "https://github.com/golang/go/issues/70250#issuecomment-2963286163",
+   "is_requirement_change": false,
+   "note": "reaffirmation: leave the API as accepted (no change)"
+  },
+  {
+   "set": "go_proposals",
+   "url": "https://github.com/golang/go/issues/79427#issuecomment-5456650440",
+   "is_requirement_change": false,
+   "note": "bot"
+  },
+  {
+   "set": "go_proposals",
+   "url": "https://github.com/golang/go/issues/75266#issuecomment-3304062479",
+   "is_requirement_change": false,
+   "note": "agreement on process, not on what is built"
+  },
+  {
+   "set": "go_proposals",
+   "url": "https://github.com/golang/go/issues/77441#issuecomment-5918663865",
+   "is_requirement_change": false,
+   "note": "question"
+  },
+  {
+   "set": "go_proposals",
+   "url": "https://github.com/golang/go/issues/68762#issuecomment-2274428363",
+   "is_requirement_change": false,
+   "note": "objection"
+  },
+  {
+   "set": "go_proposals",
+   "url": "https://github.com/golang/go/issues/11646#issuecomment-272522057",
+   "is_requirement_change": false,
+   "note": "status"
+  },
+  {
+   "set": "go_proposals",
+   "url": "https://github.com/golang/go/issues/70250#issuecomment-2959950821",
+   "is_requirement_change": false,
+   "note": "suggestion"
+  },
+  {
+   "set": "go_proposals",
+   "url": "https://github.com/golang/go/issues/75267#issuecomment-3335934540",
+   "is_requirement_change": false,
+   "note": "bot"
+  },
+  {
+   "set": "go_proposals",
+   "url": "https://github.com/golang/go/issues/68762#issuecomment-3389488528",
+   "is_requirement_change": false,
+   "note": "objection"
+  },
+  {
+   "set": "go_proposals",
+   "url": "https://github.com/golang/go/issues/73560#issuecomment-2902622624",
+   "is_requirement_change": false,
+   "note": "request for a CL; opinion"
+  },
+  {
+   "set": "go_proposals",
+   "url": "https://github.com/golang/go/issues/75129#issuecomment-6049369320",
+   "is_requirement_change": true,
+   "note": "accepted"
+  },
+  {
+   "set": "go_proposals",
+   "url": "https://github.com/golang/go/issues/79427#issuecomment-4985246179",
+   "is_requirement_change": false,
+   "note": "options, no decision"
+  },
+  {
+   "set": "go_proposals",
+   "url": "https://github.com/golang/go/issues/60338#issuecomment-1581334407",
+   "is_requirement_change": false,
+   "note": "question"
+  },
+  {
+   "set": "go_proposals",
+   "url": "https://github.com/golang/go/issues/79427#issuecomment-5916456501",
+   "is_requirement_change": false,
+   "note": "review discussion listing open questions"
+  },
+  {
+   "set": "go_proposals",
+   "url": "https://github.com/golang/go/issues/60338#issuecomment-6107844946",
+   "is_requirement_change": false,
+   "note": "bot"
+  }
+ ]
+}

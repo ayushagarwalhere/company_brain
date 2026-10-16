@@ -23,7 +23,7 @@ from pipeline.extract import CHANGE_KINDS, HeuristicExtractor  # noqa: F401 - re
 from pipeline.resolve import has_decision_rights
 from pipeline.textsim import TfIdf
 
-MIN_CONFIDENCE = 0.6
+from pipeline.resolve import MIN_CONFIDENCE  # noqa: E402 - one threshold for batch and live
 TICKET_COOLDOWN_S = 300
 _last_alert: dict[str, float] = {}
 
@@ -31,8 +31,8 @@ _last_alert: dict[str, float] = {}
 def _extractor():
     from pipeline import llm
     if llm.available():
-        from pipeline.extract import DeepSeekExtractor
-        return DeepSeekExtractor()
+        from pipeline.extract import LLMExtractor
+        return LLMExtractor()
     return HeuristicExtractor()
 
 
@@ -115,11 +115,9 @@ def process_message(event: Event, g=None, extractor=None) -> dict:
                MERGE (d)-[:CHANGES]->(q)""",
             {"m": event.id, "t": ticket, "f": feature, "p": event.author, "rid": rid,
              "text": c["requirement"], "conf": c.get("confidence")})
-    # the new requirement supersedes whatever was newest for this ticket
-    g.query("""MATCH (q:Requirement {id: $rid})
-               MATCH (old:Requirement {ticket: $t}) WHERE old.id <> q.id AND old.at_ms <= q.at_ms
-                 AND NOT (old)<-[:SUPERSEDES]-(:Requirement)
-               MERGE (q)-[:SUPERSEDES]->(old)""", {"rid": rid, "t": ticket})
+    # rebuild this ticket's SUPERSEDES chain with the same rules as the batch build
+    from pipeline.webhooks import recompute_supersession
+    recompute_supersession(g, ticket, ex)
 
     found = [d for d in Q.drift(g, ticket=ticket) if d["requirement"] == rid]
     if not found:

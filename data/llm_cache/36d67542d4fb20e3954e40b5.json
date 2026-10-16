@@ -1,0 +1,10 @@
+{
+ "is_change": false,
+ "kind": "status",
+ "old": null,
+ "new": null,
+ "evidence_quote": "Finished the login rate limit work (BD-107), picking up the next thing from the board.",
+ "feature": "feat_user_account_security",
+ "ticket": "BD-107",
+ "confidence": 1.0
+}

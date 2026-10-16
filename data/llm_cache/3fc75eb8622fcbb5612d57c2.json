@@ -1,0 +1,10 @@
+{
+ "is_change": false,
+ "kind": "analysis",
+ "old": null,
+ "new": null,
+ "evidence_quote": "Found the cause of the memory leak: unbounded cache in the worker.",
+ "feature": null,
+ "ticket": null,
+ "confidence": 1.0
+}

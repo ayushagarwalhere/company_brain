@@ -44,10 +44,38 @@ def test_supersession_unrelated_ticket_edit_keeps_drift_open():
     assert ("chat", "v1") in {(p["new"], p["old"]) for p in pairs}
 
 
-def test_supersession_newer_chat_replaces_older_chat():
+def test_supersession_newer_chat_replaces_older_chat_only_when_judged_to():
     chain = [_r("v1", "ticket", 1), _r("c1", "chat", 2), _r("c2", "chat", 3)]
-    pairs = {(p["new"], p["old"]) for p in supersession_pairs(chain, reflects=lambda n, o: False)}
+    pairs = {(p["new"], p["old"]) for p in supersession_pairs(chain, lambda n, o: False, replaces=lambda n, o: True)}
     assert pairs == {("c1", "v1"), ("c2", "c1")}
+
+
+def test_latest_chat_message_does_not_bury_an_open_decision():
+    """The noise fix: without a judgment that c2 revises c1 (rules extractor), both stay open."""
+    chain = [_r("v1", "ticket", 1), _r("c1", "chat", 2), _r("c2", "chat", 3)]
+    pairs = {(p["new"], p["old"]) for p in supersession_pairs(chain, lambda n, o: False, replaces=None)}
+    assert pairs == {("c1", "v1")}
+    unrelated = {(p["new"], p["old"]) for p in supersession_pairs(chain, lambda n, o: False, replaces=lambda n, o: False)}
+    assert unrelated == {("c1", "v1")}
+
+
+def test_a_less_confident_message_cannot_replace_a_decision():
+    chain = [_r("v1", "ticket", 1), {**_r("c1", "chat", 2), "confidence": 0.9}, {**_r("c2", "chat", 3), "confidence": 0.6}]
+    pairs = {(p["new"], p["old"]) for p in supersession_pairs(chain, lambda n, o: False, replaces=lambda n, o: True)}
+    assert ("c2", "c1") not in pairs
+
+
+def test_llm_extraction_is_discarded_when_its_evidence_is_not_in_the_message():
+    from pipeline.extract import evidence_ok, from_structured
+    msg = "Let's change it: send the warning 15 minutes BEFORE the breach."
+    good = {"is_change": True, "kind": "decision", "new": "Warn 15 minutes before breach.", "confidence": 0.9,
+            "evidence_quote": "send the warning 15 minutes   before the breach"}
+    assert evidence_ok(good["evidence_quote"], msg)
+    assert from_structured(good, msg)["kind"] == "decision"
+    made_up = {**good, "evidence_quote": "send the warning by SMS"}
+    out = from_structured(made_up, msg)
+    assert out["kind"] == "other" and out["requirement"] is None and out["guard"] == "evidence_not_in_message"
+    assert from_structured({"is_change": False, "kind": "status"}, msg)["kind"] == "status"
 
 
 def test_tfidf_prefers_topical_doc():
@@ -74,7 +102,7 @@ def test_llm_unavailable_without_key(monkeypatch):
     """No key -> available() is False with a reason, so callers take the rule-based path."""
     from pipeline import llm
     import dataclasses
-    monkeypatch.setattr(llm, "settings", dataclasses.replace(llm.settings, deepseek_api_key=""))
+    monkeypatch.setattr(llm, "settings", dataclasses.replace(llm.settings, llm_api_key=""))
     llm._status.update(ok=None, reason="", at=0.0)
     assert llm.available() is False and "not set" in llm.unavailable_reason()
 
@@ -91,7 +119,7 @@ def test_llm_failure_is_cached_as_unavailable(monkeypatch):
                     raise RuntimeError("Error code: 402 - Insufficient Balance")
 
     import dataclasses
-    monkeypatch.setattr(llm, "settings", dataclasses.replace(llm.settings, deepseek_api_key="sk-test"))
+    monkeypatch.setattr(llm, "settings", dataclasses.replace(llm.settings, llm_api_key="sk-test"))
     monkeypatch.setattr(llm, "_client", lambda: Boom)
     llm._status.update(ok=None, reason="", at=0.0)
     assert llm.available() is False and llm.unavailable_reason() == "insufficient balance"

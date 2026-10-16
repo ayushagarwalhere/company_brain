@@ -1,0 +1,10 @@
+{
+ "is_change": false,
+ "kind": "other",
+ "old": null,
+ "new": null,
+ "evidence_quote": "Working on avatar upload mocks (BD-113) today. Might need a second pair of eyes this afternoon.",
+ "feature": "feat_user_profile_enhancements",
+ "ticket": "BD-113",
+ "confidence": 0.9
+}

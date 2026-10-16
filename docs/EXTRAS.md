@@ -2,6 +2,20 @@
 
 These parts are built and tested, but they aren't what the project is about. The README covers the core: the context graph, drift, and how well both hold up.
 
+## More features
+
+- **Spec generation.** Turns a drifted feature's graph context into an agent-ready spec. Nothing executes it.
+- **Coverage and risk.** PRs with no ticket, tickets closed with no code, tickets nobody discussed, and features where one person holds most of the knowledge ("bus factor 1").
+- **Feature timeline.** Ticket versions, chat changes and PRs on one time axis. The stretch where the ticket and PRs never caught up is shaded.
+- **Close the loop.** Each drift card has two actions, both written to the graph so they stay auditable:
+  - **Write to ticket** makes the decided requirement the ticket's next version (`Ticket -STATES-> new version -SUPERSEDES-> chat requirement`).
+  - **Keep old scope** records `Person -MADE-> Decision {kind: dismissal} -DISMISSES-> requirement`.
+- **Browse the brain.** `/` or Ctrl+K searches through FalkorDB full-text indexes. Person profiles show what someone owns, shipped and decided. Double-click a node to expand its neighbours.
+
+| How drift happens | Open drift with evidence paths | What's in the graph |
+|---|---|---|
+| ![Orbit diagram](screenshot-chain.png) | ![Drift cards](screenshot-drift.png) | ![Stats](screenshot-stats.png) |
+
 ## Dashboard
 
 React 18 + TypeScript, built with Vite. Motion uses Framer Motion: split-text hero, scroll reveals, the orbit diagram drawing in, count-ups and drift-card exit animations. The graph view uses Cytoscape.js. State lives in one small context ([`web/src/lib/brain.tsx`](../web/src/lib/brain.tsx)), and every API shape is typed in [`web/src/lib/api.ts`](../web/src/lib/api.ts).

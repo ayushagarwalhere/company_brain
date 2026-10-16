@@ -1,0 +1,10 @@
+{
+ "is_change": false,
+ "kind": "other",
+ "old": null,
+ "new": null,
+ "evidence_quote": "Duplicate of #9431: embeds always render above other elements, and changing that isn't feasible performance-wise (details there).",
+ "feature": null,
+ "ticket": "9431",
+ "confidence": 0.9
+}

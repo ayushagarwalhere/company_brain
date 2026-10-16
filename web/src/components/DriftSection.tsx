@@ -1,88 +1,134 @@
-import { AnimatePresence, motion } from "framer-motion";
-import { useState } from "react";
+import { AnimatePresence, motion, useInView } from "framer-motion";
+import { useEffect, useRef, useState } from "react";
 import { api, type Drift } from "../lib/api";
 import { useBrain } from "../lib/brain";
+import { scrollToEl, useStill } from "../lib/fx";
 import { day, isExternal } from "../lib/ui";
+import { EASE } from "./Motion";
+import { Avatar, EvidenceChain } from "./Evidence";
 import { PathChips } from "./PathChips";
 import { Section } from "./Section";
 
 const Link = ({ url, children }: { url?: string | null; children: React.ReactNode }) =>
   isExternal(url) ? <a href={url!} target="_blank" rel="noopener">{children}</a> : <>{children}</>;
 
-function DriftCard({ d, i }: { d: Drift; i: number }) {
+const daysOpen = (iso: string) => Math.max(0, Math.floor((Date.now() - new Date(iso).getTime()) / 86400000));
+
+export const cardId = (requirement: string) => `drift-card-${requirement.replace(/[^a-zA-Z0-9_-]/g, "_")}`;
+
+type Phase = "open" | "resolving" | "resolved" | "dismissing" | "dismissed";
+
+function DriftCard({ d, i, flash }: { d: Drift; i: number; flash: boolean }) {
   const { refresh, openPerson, focusOn, specFor, actor } = useBrain();
-  const [busy, setBusy] = useState<string | null>(null);
-  const [done, setDone] = useState<string | null>(null);
+  const still = useStill();
+  const [phase, setPhase] = useState<Phase>("open");
+  const [note, setNote] = useState<string | null>(null);
   const [open, setOpen] = useState(false);
+  const ref = useRef<HTMLElement>(null);
+  const seen = useInView(ref, { once: true, margin: "-80px" });
+  const confidence = (d as Drift & { confidence?: number | null }).confidence;
+  const quote = d.message_text && d.message_text.trim() !== d.requirement_text.trim() ? d.message_text : null;
 
   const act = async (kind: "write-to-ticket" | "dismiss") => {
-    setBusy(kind);
+    setPhase(kind === "dismiss" ? "dismissing" : "resolving");  // optimistic: the card starts resolving at once
     try {
       const r = await api.driftAction(kind, d.requirement, actor);
-      setDone(kind === "dismiss"
-        ? `Dismissed by ${r.by}: (${r.by})-[:MADE]->(Decision)-[:DISMISSES]->(Requirement)`
-        : `Written to ${r.ticket} as ${r.version}: (Ticket)-[:STATES]->(new version)-[:SUPERSEDES]->(chat requirement)`);
-      setTimeout(() => void refresh(), 1400);
+      setNote(kind === "dismiss"
+        ? `Kept the old scope · ${r.by} -[:MADE]-> Decision -[:DISMISSES]-> requirement`
+        : `${r.ticket} now carries the decision as ${r.version} · Ticket -[:STATES]-> new version -[:SUPERSEDES]-> chat requirement`);
+      setPhase(kind === "dismiss" ? "dismissed" : "resolved");
+      setTimeout(() => void refresh(), still ? 400 : 2200);
     } catch (e) {
+      setPhase("open");
       alert((e as Error).message);
-      setBusy(null);
     }
   };
 
+  const done = phase === "resolved" || phase === "dismissed";
+  const tone = phase === "resolving" || phase === "resolved" ? "ok" : phase === "dismissing" || phase === "dismissed" ? "grey" : "drift";
+
   return (
-    <motion.article layout className={`violation ${done ? "resolving" : ""}`}
-      initial={{ opacity: 0, y: 24 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, x: 40, transition: { duration: 0.4 } }}
-      transition={{ duration: 0.7, delay: i * 0.08, ease: [0.2, 0.7, 0.1, 1] }}>
-      <header className="dc__head">
-        <div>
-          <span className="mono dc__tag">Drift {String(i + 1).padStart(2, "0")}</span>
-          <h3>{d.feature_name}</h3>
-        </div>
-        <span className="mono dc__when">{day(d.changed_at)}<br />{d.source} #{d.channel}</span>
-      </header>
+    <motion.article layout ref={ref} id={cardId(d.requirement)}
+      className={`violation violation--${tone} ${done ? "violation--done" : ""} ${flash ? "violation--flash" : ""}`}
+      initial={still ? false : { opacity: 0, x: -28 }} animate={{ opacity: phase === "dismissed" ? 0.55 : 1, x: 0 }}
+      exit={{ opacity: 0, height: 0, marginBottom: 0, transition: { duration: 0.45, ease: EASE } }}
+      transition={{ duration: 0.75, delay: still ? 0 : i * 0.1, ease: EASE }}>
+      <motion.span className="violation__edge" aria-hidden initial={still ? false : { scaleY: 0 }} animate={{ scaleY: 1 }}
+        transition={{ duration: 0.9, delay: still ? 0 : 0.25 + i * 0.1, ease: EASE }} />
 
-      <div className="diff">
-        <div><span className="mono">{d.ticket} still says</span><p>{d.ticket_text}</p></div>
-        <div className="now">
-          <span className="mono">Decided in chat · <button className="person-link" onClick={() => openPerson(d.changed_by)}>{d.changed_by}</button></span>
-          <p>{d.requirement_text}</p>
-        </div>
-      </div>
+      <AnimatePresence initial={false} mode="wait">
+        {done ? (
+          <motion.div key="done" className="dc__done" initial={{ opacity: 0, y: 6 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.4 }}>
+            <span className={`dc__check ${tone}`} aria-hidden>{phase === "resolved" ? "✓" : "–"}</span>
+            <div>
+              <b>{d.feature_name} · {d.ticket}</b>
+              <p className="mono">{phase === "resolved" ? "Resolved" : "Dismissed"} · {note}</p>
+            </div>
+          </motion.div>
+        ) : (
+          <motion.div key="full" exit={{ opacity: 0, height: 0, transition: { duration: 0.45, ease: EASE } }} style={{ overflow: "hidden" }}>
+            <header className="dc__head">
+              <div>
+                <span className="mono dc__tag"><i className="dc__dot" />Drift {String(i + 1).padStart(2, "0")} · {d.ticket}
+                  {typeof confidence === "number" && <span className="dc__conf" title="Extractor confidence">conf {confidence.toFixed(2)}</span>}
+                </span>
+                <h3>{d.feature_name}</h3>
+              </div>
+              <div className="dc__stats">
+                <div><b>{daysOpen(d.changed_at)}</b><span className="mono">days open</span></div>
+                <div><b>{d.stale_prs.filter((p) => p.pr !== null).length}</b><span className="mono">stale PRs</span></div>
+                <div><b>{d.stale_docs.length}</b><span className="mono">stale docs</span></div>
+              </div>
+            </header>
 
-      <div className="trail" aria-label="How the drift happened">
-        <span className="trail__node trail__node--msg"><i />Message<small><Link url={d.message_url}>{d.changed_by} · {day(d.changed_at)}</Link></small></span>
-        <span className="trail__edge">changes</span>
-        <span className="trail__node trail__node--req"><i />Requirement<small>newest · unshipped</small></span>
-        <span className="trail__edge">amends</span>
-        <span className="trail__node trail__node--ticket"><i />{d.ticket}<small>never updated</small></span>
-        {(d.stale_prs.length > 0 || d.stale_docs.length > 0) && <>
-          <span className="trail__edge trail__edge--broken">still on old</span>
-          <span className="trail__stale">
-            {d.stale_prs.map((p) => <span key={p.pr} className="stale-chip"><b>PR</b><Link url={p.url}>#{p.pr}</Link></span>)}
-            {d.stale_docs.map((x) => <span key={x.id} className="stale-chip" title={`${x.title} · updated ${day(x.updated)}`}><b>DOC</b>{x.id}</span>)}
-          </span>
-        </>}
-      </div>
+            <div className="vs">
+              <div className="vs__old">
+                <span className="mono vs__k">{d.ticket} still says <em>old</em></span>
+                <p>{d.ticket_text}</p>
+              </div>
+              <span className="vs__neq" aria-hidden>≠</span>
+              <div className="vs__new">
+                <span className="mono vs__k">Decided in chat <em>new</em></span>
+                <p>{d.requirement_text}</p>
+                <div className="vs__who">
+                  <Avatar name={d.changed_by} size={26} />
+                  <button className="person-link" onClick={() => openPerson(d.changed_by)}>{d.changed_by}</button>
+                  <span className="mono">{day(d.changed_at)} · {d.source} #{d.channel}</span>
+                  {d.message_url && isExternal(d.message_url) && <Link url={d.message_url}>open ↗</Link>}
+                </div>
+              </div>
+            </div>
+            {quote && <blockquote className="dc__quote"><span className="mono">Source message</span>“{quote}”</blockquote>}
 
-      {done && <div className="resolved-note mono">{done}</div>}
+            <EvidenceChain run={seen && !still}
+              nodes={[{ kind: "msg", title: "MESSAGE", sub: `${d.changed_by} · ${day(d.changed_at).slice(5)}` },
+                      { kind: "req", title: "REQUIREMENT", sub: "newest · unshipped" },
+                      { kind: "ticket", title: d.ticket, sub: "never updated" }]}
+              stale={[...d.stale_prs.filter((p) => p.pr !== null).map((p) => ({ kind: "pr" as const, label: `PR #${p.pr}` })),
+                      ...d.stale_docs.map((x) => ({ kind: "doc" as const, label: x.id }))]} />
 
-      <footer className="dc__foot">
-        <div className="dc__actions">
-          <button className="btn btn--sm" disabled={!!busy} onClick={() => act("write-to-ticket")} title="Make the decided requirement the ticket's next version">
-            {busy === "write-to-ticket" ? "Writing…" : `Write to ${d.ticket}`}
-          </button>
-          <button className="btn btn--ghost btn--sm" disabled={!!busy} onClick={() => act("dismiss")} title="Record a decision to keep the old scope">Keep old scope</button>
-        </div>
-        <div className="dc__links mono">
-          <button onClick={() => focusOn(d.feature)}>Graph ↗</button>
-          <button onClick={() => void specFor(d.feature)}>Spec ↗</button>
-          <button onClick={() => setOpen((o) => !o)} aria-expanded={open}>{open ? "Hide path" : "Graph path"} {open ? "▴" : "▾"}</button>
-        </div>
-      </footer>
-      <AnimatePresence initial={false}>
-        {open && (
-          <motion.div className="dc__path" initial={{ height: 0, opacity: 0 }} animate={{ height: "auto", opacity: 1 }} exit={{ height: 0, opacity: 0 }} transition={{ duration: 0.3 }}>
-            <PathChips path={d.path} />
+            <footer className="dc__foot">
+              <div className="dc__actions">
+                <button className="btn btn--sm" disabled={phase !== "open"} onClick={() => act("write-to-ticket")} title="Make the decided requirement the ticket's next version">
+                  {phase === "resolving" ? "Writing…" : `Write to ${d.ticket}`}
+                </button>
+                <button className="btn btn--ghost btn--sm" disabled={phase !== "open"} onClick={() => act("dismiss")} title="Record a decision to keep the old scope">
+                  {phase === "dismissing" ? "Recording…" : "Keep old scope"}
+                </button>
+              </div>
+              <div className="dc__links mono">
+                <button onClick={() => focusOn(d.feature)}>Graph ↗</button>
+                <button onClick={() => void specFor(d.feature)}>Spec ↗</button>
+                <button onClick={() => setOpen((o) => !o)} aria-expanded={open}>{open ? "Hide path" : "Graph path"} {open ? "▴" : "▾"}</button>
+              </div>
+            </footer>
+            <AnimatePresence initial={false}>
+              {open && (
+                <motion.div className="dc__path" initial={{ height: 0, opacity: 0 }} animate={{ height: "auto", opacity: 1 }} exit={{ height: 0, opacity: 0 }} transition={{ duration: 0.3 }}>
+                  <PathChips path={d.path} />
+                </motion.div>
+              )}
+            </AnimatePresence>
           </motion.div>
         )}
       </AnimatePresence>
@@ -91,13 +137,27 @@ function DriftCard({ d, i }: { d: Drift; i: number }) {
 }
 
 export function DriftSection() {
-  const { drift, version } = useBrain();
+  const { drift, version, arrival } = useBrain();
+  const [flash, setFlash] = useState<string | null>(null);
+
+  // A drift that just arrived (Simulate, or a bot over SSE): once its card exists, scroll to it and flash it.
+  useEffect(() => {
+    if (!arrival) return;
+    const target = drift.find((d) => d.requirement === arrival.requirement)
+      || [...drift].filter((d) => d.ticket === arrival.ticket).sort((a, b) => b.changed_ms - a.changed_ms)[0];
+    if (!target) return;
+    setFlash(target.requirement);
+    const t1 = setTimeout(() => { const el = document.getElementById(cardId(target.requirement)); if (el) scrollToEl(el, -110); }, 250);
+    const t2 = setTimeout(() => setFlash(null), 3200);
+    return () => { clearTimeout(t1); clearTimeout(t2); };
+  }, [arrival, drift]);
+
   return (
     <Section id="drift" index="004" kicker="Open drift" title="Open drift"
       intro="A chat message changed a requirement. Nothing newer replaced it, no PR implements it, and nobody chose to keep the old scope.">
       {version > 0 && drift.length === 0 && <p className="empty">No open drift. Tickets, docs and PRs match the latest decisions.</p>}
       <AnimatePresence mode="popLayout">
-        {drift.map((d, i) => <DriftCard key={d.requirement} d={d} i={i} />)}
+        {drift.map((d, i) => <DriftCard key={d.requirement} d={d} i={i} flash={flash === d.requirement} />)}
       </AnimatePresence>
     </Section>
   );

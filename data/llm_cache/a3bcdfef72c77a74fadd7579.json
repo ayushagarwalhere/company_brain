@@ -1,0 +1,10 @@
+{
+ "is_change": false,
+ "kind": "reaffirmation",
+ "old": null,
+ "new": null,
+ "evidence_quote": "Acme wants 8 hours for the SLA settings page. Not agreed, just passing it on (BD-104)",
+ "feature": "feat_sla_breach_notifications",
+ "ticket": "BD-104",
+ "confidence": 0.9
+}

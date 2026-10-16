@@ -1,0 +1,10 @@
+{
+ "is_change": false,
+ "kind": "review",
+ "old": null,
+ "new": null,
+ "evidence_quote": "The fix is right and minimal: both compact branches now reject anything that is not an ASCII digit instead of filtering it out.",
+ "feature": null,
+ "ticket": null,
+ "confidence": 0.9
+}

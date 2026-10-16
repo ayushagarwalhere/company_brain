@@ -1,4 +1,5 @@
-import { createContext, useCallback, useContext, useEffect, useMemo, useState, type ReactNode } from "react";
+import { createContext, useCallback, useContext, useEffect, useMemo, useRef, useState, type ReactNode } from "react";
+import { edgeGlow, scrollToEl } from "./fx";
 import { api, ORG, type Coverage, type Drift, type Feature, type LiveEvent, type SpecResult, type Sprint, type Stats } from "./api";
 
 /** App-wide graph state + cross-section actions (open a person, focus a feature, generate a spec). */
@@ -14,6 +15,10 @@ type Brain = {
   actor: string; setActor: (a: string) => void;
   paletteOpen: boolean; setPaletteOpen: (o: boolean) => void;
   toasts: (LiveEvent & { id: number })[]; dismissToast: (id: number) => void; live: boolean;
+  /** The newest drift that arrived live (Simulate or a bot over SSE): the drift section scrolls to it and flashes it. */
+  arrival: { ticket: string | null; requirement: string | null; nonce: number } | null;
+  announce: (a: { ticket?: string | null; requirement?: string | null }) => void;
+  newDrift: number; clearNew: () => void;
 };
 
 const Ctx = createContext<Brain | null>(null);
@@ -40,7 +45,22 @@ export function BrainProvider({ children }: { children: ReactNode }) {
   const [paletteOpen, setPaletteOpen] = useState(false);
   const [toasts, setToasts] = useState<(LiveEvent & { id: number })[]>([]);
   const [live, setLive] = useState(false);
+  const [arrival, setArrival] = useState<Brain["arrival"]>(null);
+  const [newDrift, setNewDrift] = useState(0);
   const total = 5;
+
+  const lastArrival = useRef<Brain["arrival"]>(null);
+  const announce = useCallback((a: { ticket?: string | null; requirement?: string | null }) => {
+    const prev = lastArrival.current;
+    // Simulate gets the HTTP response AND the SSE event for the same drift: merge them into one arrival
+    const same = prev && prev.ticket === (a.ticket ?? null) && Date.now() - prev.nonce < 4000;
+    const next = same ? { ...prev!, requirement: a.requirement ?? prev!.requirement }
+      : { ticket: a.ticket ?? null, requirement: a.requirement ?? null, nonce: Date.now() };
+    if (!same) { setNewDrift((n) => n + 1); edgeGlow(); }
+    lastArrival.current = next;
+    setArrival(next);
+  }, []);
+  const clearNew = useCallback(() => setNewDrift(0), []);
 
   const refresh = useCallback(async () => {
     const tick = <T,>(p: Promise<T>, set: (v: T) => void) => p.then(set).finally(() => setLoaded((n) => n + 1));
@@ -62,6 +82,7 @@ export function BrainProvider({ children }: { children: ReactNode }) {
     let timer: ReturnType<typeof setTimeout> | undefined;
     const onEvent = (e: MessageEvent) => {
       const evt = JSON.parse(e.data) as LiveEvent;
+      if (evt.type === "drift") announce({ ticket: (evt.ticket as string) || null });
       if (evt.type !== "message") {
         const id = Date.now() + Math.random();
         setToasts((t) => [...t.slice(-3), { ...evt, id }]);
@@ -74,7 +95,7 @@ export function BrainProvider({ children }: { children: ReactNode }) {
     es.onopen = () => setLive(true);
     es.onerror = () => setLive(false);
     return () => { es.close(); clearTimeout(timer); };
-  }, [refresh]);
+  }, [refresh, announce]);
   const dismissToast = useCallback((id: number) => setToasts((t) => t.filter((x) => x.id !== id)), []);
   useEffect(() => {
     if (!feature && features.length) setFeature((features.find((f) => f.drift) || features[0]).id);
@@ -84,19 +105,20 @@ export function BrainProvider({ children }: { children: ReactNode }) {
     if (f) setFeature(f);
     setView("graph");
     setFocus({ feature: f || "", node, nonce: Date.now() });
-    document.getElementById("graph-sec")?.scrollIntoView({ behavior: "smooth" });
+    scrollToEl("graph-sec");
   }, []);
 
   const specFor = useCallback(async (f: string) => {
     const out = await api.spec(f);
     setSpec(out);
-    setTimeout(() => document.getElementById("spec-sec")?.scrollIntoView({ behavior: "smooth" }), 60);
+    setTimeout(() => scrollToEl("spec-sec"), 60);
   }, []);
 
   const value = useMemo<Brain>(() => ({
     stats, drift, features, sprints, coverage, loaded, total, version, refresh, feature, setFeature, focus, focusOn,
     view, setView, person, openPerson, spec, specFor, actor, setActor, paletteOpen, setPaletteOpen, toasts, dismissToast, live,
-  }), [stats, drift, features, sprints, coverage, loaded, version, refresh, feature, focus, focusOn, view, person, spec, specFor, actor, paletteOpen, toasts, dismissToast, live]);
+    arrival, announce, newDrift, clearNew,
+  }), [stats, drift, features, sprints, coverage, loaded, version, refresh, feature, focus, focusOn, view, person, spec, specFor, actor, paletteOpen, toasts, dismissToast, live, arrival, announce, newDrift, clearNew]);
 
   return <Ctx.Provider value={value}>{children}</Ctx.Provider>;
 }

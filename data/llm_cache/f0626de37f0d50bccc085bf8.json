@@ -1,0 +1,10 @@
+{
+ "is_change": true,
+ "kind": "decision",
+ "old": "Users can pick Light / Dark / System with a toggle located in Settings > Appearance (not the navbar).",
+ "new": "Users can pick Light / Dark / System with a toggle located in Settings > Appearance.",
+ "evidence_quote": "Decision after the design review: the theme toggle lives in Settings > Appearance, not in the navbar. I've updated BD-105 to say so.",
+ "feature": "feat_dark_mode_and_theme_customization",
+ "ticket": "BD-105",
+ "confidence": 1
+}

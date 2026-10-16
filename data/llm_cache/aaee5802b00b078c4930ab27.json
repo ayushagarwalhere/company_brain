@@ -1,0 +1,6 @@
+{
+ "implements": [
+  "BD-115:v1"
+ ],
+ "reason": "The PR addresses BD-115:v1 by freezing time in the SLA job test, which resolves the issue of the test depending on wall-clock time."
+}

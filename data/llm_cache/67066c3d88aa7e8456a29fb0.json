@@ -1,0 +1,10 @@
+{
+ "is_change": false,
+ "kind": "request",
+ "old": null,
+ "new": null,
+ "evidence_quote": "Customer request: could the export button default to two clicks? Told them I'd check with product.",
+ "feature": "feat_ticket_export_to_csv",
+ "ticket": "BD-102",
+ "confidence": 0.9
+}

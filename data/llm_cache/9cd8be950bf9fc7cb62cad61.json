@@ -1,0 +1,10 @@
+{
+ "is_change": false,
+ "kind": "review",
+ "old": null,
+ "new": null,
+ "evidence_quote": "I am not sure if this implemented. so, I have implemented it. Please could you review my  https://github.com/excalidraw/excalidraw/pull/12139 MR.",
+ "feature": null,
+ "ticket": null,
+ "confidence": 0.9
+}

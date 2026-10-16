@@ -1,0 +1,34 @@
+{
+ "extractor": "llm",
+ "known_false_positives_still_flagged": "3 / 25",
+ "issue_comments": {
+  "positives": 0,
+  "flagged": 2,
+  "tp": 0,
+  "fp": 2,
+  "fn": 0,
+  "precision": 0.0,
+  "recall": null
+ },
+ "go_proposals": {
+  "positives": 7,
+  "flagged": 2,
+  "tp": 1,
+  "fp": 1,
+  "fn": 6,
+  "precision": 0.5,
+  "recall": 0.143
+ },
+ "all_60": {
+  "positives": 7,
+  "flagged": 4,
+  "tp": 1,
+  "fp": 3,
+  "fn": 6,
+  "precision": 0.25,
+  "recall": 0.143
+ },
+ "guarded": 2,
+ "errors": 0,
+ "model": "qwen3:8b"
+}

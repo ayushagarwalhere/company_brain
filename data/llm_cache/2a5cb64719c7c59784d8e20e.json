@@ -1,0 +1,10 @@
+{
+ "is_change": false,
+ "kind": "status",
+ "old": null,
+ "new": null,
+ "evidence_quote": "A fix for this is in review at #11946 by my collaborator Bo. The PR addresses the canvasPadding / fontSize / 2 mismatch in shouldApplyFrameClip that causes the clip decision and the actual painted area to diverge for text elements. A DPR unit correction is being added following reviewer feedback.",
+ "feature": null,
+ "ticket": "11946",
+ "confidence": 0.9
+}

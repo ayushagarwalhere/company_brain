@@ -1,0 +1,10 @@
+{
+ "is_change": false,
+ "kind": "other",
+ "old": null,
+ "new": null,
+ "evidence_quote": "Change https://go.dev/cl/849766 mentions this issue: `gopls/internal/cache/parsego: pin Go version used by resolver_gen`",
+ "feature": null,
+ "ticket": null,
+ "confidence": 0.9
+}

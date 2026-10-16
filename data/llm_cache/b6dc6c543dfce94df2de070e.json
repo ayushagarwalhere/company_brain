@@ -1,0 +1,10 @@
+{
+ "is_change": false,
+ "kind": "status",
+ "old": null,
+ "new": null,
+ "evidence_quote": "Hi @dwelle — I'd like to take this on. Given the earlier discussion, I'll update the group-selection outline in `packages/excalidraw/renderer/interactiveScene.ts` (`addSelectionForGroupId`) to use the theme's primary/selection color instead of the hardcoded `#000`, consistent with how individual element selection already works. Will open a PR shortly.",
+ "feature": null,
+ "ticket": null,
+ "confidence": 0.9
+}

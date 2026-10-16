@@ -1,0 +1,10 @@
+{
+ "is_change": false,
+ "kind": "request",
+ "old": null,
+ "new": null,
+ "evidence_quote": "I’d like to work on this issue. I’ve checked the current behavior and would like to add the requested domain to the Web Embed allowlist, following the existing project conventions. Please let me know if I can take this up.",
+ "feature": null,
+ "ticket": null,
+ "confidence": 0.9
+}

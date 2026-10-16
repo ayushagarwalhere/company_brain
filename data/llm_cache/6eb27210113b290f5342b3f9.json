@@ -1,0 +1,10 @@
+{
+ "is_change": false,
+ "kind": "analysis",
+ "old": null,
+ "new": null,
+ "evidence_quote": "Unfortunately I haven't had significant time to do research into this, but I think the idea here was that we could improve the performance Go regexp matching while avoid adding the complexity of the RE2 DFA.",
+ "feature": null,
+ "ticket": null,
+ "confidence": 0.9
+}

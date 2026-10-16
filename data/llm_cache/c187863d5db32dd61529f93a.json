@@ -1,0 +1,10 @@
+{
+ "is_change": true,
+ "kind": "requirement_change",
+ "old": "Columns: id, subject, status, created_at",
+ "new": "Columns: id, subject, status, created_at, assignee",
+ "evidence_quote": "Done, BD-101 now lists assignee as a required column.",
+ "feature": "feat_ticket_export_to_csv",
+ "ticket": "BD-101",
+ "confidence": 1
+}

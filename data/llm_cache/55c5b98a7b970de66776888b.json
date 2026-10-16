@@ -1,0 +1,6 @@
+{
+ "implements": [
+  "BD-114:v1"
+ ],
+ "reason": "The PR documents authentication and the tickets endpoints in the repo README, satisfying BD-114:v1."
+}

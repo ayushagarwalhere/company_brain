@@ -1,0 +1,205 @@
+{
+ "ticket_to_feature": {
+  "precision": 0.6,
+  "recall": 1.0,
+  "f1": 0.75,
+  "tp": 9,
+  "fp": [
+   [
+    "BD-107",
+    "feat_user_account_security"
+   ],
+   [
+    "BD-110",
+    "feat_ui_ux_improvements"
+   ],
+   [
+    "BD-111",
+    "feat_backend_and_dependency_upgrades"
+   ],
+   [
+    "BD-112",
+    "feat_ui_ux_improvements"
+   ],
+   [
+    "BD-113",
+    "feat_user_profile_enhancements"
+   ],
+   [
+    "BD-114",
+    "feat_api_documentation"
+   ]
+  ],
+  "fn": []
+ },
+ "message_to_feature": {
+  "precision": 0.591,
+  "recall": 1.0,
+  "f1": 0.743,
+  "tp": 39,
+  "fp": [
+   [
+    "m_noise_010",
+    "feat_ui_ux_improvements"
+   ],
+   [
+    "m_noise_017",
+    "feat_ui_ux_improvements"
+   ],
+   [
+    "m_noise_020",
+    "feat_user_account_security"
+   ],
+   [
+    "m_noise_022",
+    "feat_user_account_security"
+   ],
+   [
+    "m_noise_023",
+    "feat_user_account_security"
+   ],
+   [
+    "m_noise_039",
+    "feat_backend_and_dependency_upgrades"
+   ],
+   [
+    "m_noise_059",
+    "feat_backend_and_dependency_upgrades"
+   ],
+   [
+    "m_noise_072",
+    "feat_user_account_security"
+   ],
+   [
+    "m_noise_075",
+    "feat_backend_and_dependency_upgrades"
+   ],
+   [
+    "m_noise_091",
+    "feat_user_account_security"
+   ],
+   [
+    "m_noise_097",
+    "feat_user_profile_enhancements"
+   ],
+   [
+    "m_noise_126",
+    "feat_backend_and_dependency_upgrades"
+   ],
+   [
+    "m_noise_157",
+    "feat_ui_ux_improvements"
+   ],
+   [
+    "m_noise_185",
+    "feat_ui_ux_improvements"
+   ],
+   [
+    "m_noise_194",
+    "feat_ui_ux_improvements"
+   ],
+   [
+    "m_noise_205",
+    "feat_ui_ux_improvements"
+   ],
+   [
+    "m_noise_207",
+    "feat_user_account_security"
+   ],
+   [
+    "m_noise_208",
+    "feat_backend_and_dependency_upgrades"
+   ],
+   [
+    "m_noise_213",
+    "feat_ui_ux_improvements"
+   ],
+   [
+    "m_noise_228",
+    "feat_user_account_security"
+   ],
+   [
+    "m_noise_230",
+    "feat_backend_and_dependency_upgrades"
+   ],
+   [
+    "m_noise_234",
+    "feat_user_profile_enhancements"
+   ],
+   [
+    "m_noise_249",
+    "feat_backend_and_dependency_upgrades"
+   ],
+   [
+    "m_noise_251",
+    "feat_backend_and_dependency_upgrades"
+   ],
+   [
+    "m_noise_253",
+    "feat_user_account_security"
+   ],
+   [
+    "m_noise_254",
+    "feat_user_account_security"
+   ],
+   [
+    "m_noise_258",
+    "feat_ui_ux_improvements"
+   ]
+  ],
+  "fn": []
+ },
+ "pr_to_ticket": {
+  "precision": 1.0,
+  "recall": 1.0,
+  "f1": 1.0,
+  "tp": 11,
+  "fp": [],
+  "fn": []
+ },
+ "requirement_changes": {
+  "precision": 0.667,
+  "recall": 1.0,
+  "f1": 0.8,
+  "tp": 4,
+  "fp": [
+   "m_exp_07",
+   "m_sla_03"
+  ],
+  "fn": []
+ },
+ "drift": {
+  "precision": 1.0,
+  "recall": 1.0,
+  "f1": 1.0,
+  "tp": 2,
+  "fp": [],
+  "fn": []
+ },
+ "drift_requirements": {
+  "precision": 0.667,
+  "recall": 1.0,
+  "f1": 0.8,
+  "tp": 2,
+  "fp": [
+   "m_exp_07"
+  ],
+  "fn": []
+ },
+ "drift_stale_prs": {
+  "precision": 1.0,
+  "recall": 1.0,
+  "f1": 1.0,
+  "tp": 2,
+  "fp": [],
+  "fn": []
+ },
+ "drift_stale_docs": {
+  "precision": 1.0,
+  "recall": 1.0,
+  "f1": 1.0,
+  "tp": 2,
+  "fp": [],
+  "fn": []
+ }
+}

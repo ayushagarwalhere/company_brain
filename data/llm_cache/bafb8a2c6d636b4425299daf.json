@@ -1,0 +1,10 @@
+{
+ "is_change": false,
+ "kind": "analysis",
+ "old": null,
+ "new": null,
+ "evidence_quote": "The internal function that currently implements this (logically though not exactly) is in the \"linkname hall of shame\", so there's evidence that someone outside of the Go team needs it.",
+ "feature": null,
+ "ticket": null,
+ "confidence": 0.9
+}

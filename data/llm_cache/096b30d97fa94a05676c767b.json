@@ -1,0 +1,10 @@
+{
+ "is_change": false,
+ "kind": "review",
+ "old": null,
+ "new": null,
+ "evidence_quote": "Can someone review my PR? Small one.",
+ "feature": null,
+ "ticket": null,
+ "confidence": 1.0
+}

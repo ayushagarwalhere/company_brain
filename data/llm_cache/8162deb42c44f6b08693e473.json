@@ -1,0 +1,6 @@
+{
+ "implements": [
+  "BD-104:v1"
+ ],
+ "reason": "The PR allows admins to set SLA hours for each priority level, matching the requirement."
+}

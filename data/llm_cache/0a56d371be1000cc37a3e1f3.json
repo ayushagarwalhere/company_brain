@@ -1,0 +1,10 @@
+{
+ "is_change": false,
+ "kind": "analysis",
+ "old": null,
+ "new": null,
+ "evidence_quote": "Verified PR #3167 (head a1598bf77) locally. Its `tests/flow/test_graph_restore.py` crashes the server on `main` @ b033aecc6 (empty payload) and passes 6/6 on the PR, covering an empty payload and a header truncated at every offset.",
+ "feature": null,
+ "ticket": "2537",
+ "confidence": 0.9
+}

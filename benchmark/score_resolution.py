@@ -78,4 +78,12 @@ def print_report(out: dict) -> None:
 
 
 if __name__ == "__main__":
-    print_report(score(get_graph()))
+    import argparse
+    ap = argparse.ArgumentParser()
+    ap.add_argument("--graph", help="score a graph other than the default (e.g. one built with --graph llm_demo)")
+    ap.add_argument("--json", help="also write the scores to this file")
+    a = ap.parse_args()
+    out = score(get_graph(a.graph))
+    print_report(out)
+    if a.json:
+        Path(a.json).write_text(json.dumps(out, indent=1), encoding="utf-8")

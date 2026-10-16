@@ -1,0 +1,6 @@
+{
+ "implements": [
+  "BD-112:v1"
+ ],
+ "reason": "The PR adds 'id' as a tiebreaker in the ORDER BY clause, ensuring stable and non-repeating results across pagination pages, which satisfies BD-112:v1."
+}

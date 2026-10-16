@@ -1,0 +1,10 @@
+{
+ "is_change": false,
+ "kind": "status",
+ "old": null,
+ "new": null,
+ "evidence_quote": "All seven are `MERGEABLE`, rebased onto current `main`, and each has its closing issue attached (`closingIssuesReferences: 1` on every one), so the `PR closes an issue` check should pass as soon as the runs are approved.",
+ "feature": null,
+ "ticket": null,
+ "confidence": 0.9
+}

@@ -1,0 +1,10 @@
+{
+ "is_change": true,
+ "kind": "decision",
+ "old": "The parser folded `MATCH`/`CREATE` into a single clause, leading to incorrect scoping and query plan behavior.",
+ "new": "Un-fold `MATCH`/`CREATE` in the parser so each becomes its own clause, with correct scoping and CREATE visibility, and re-merge adjacent non-optional `MATCH` clauses in the planner for join ordering while preserving per-clause semantics.",
+ "evidence_quote": "Recommendation: 1, landed in two PRs: first the pattern-predicate single-path fix (no plan change), then the un-fold with planner re-merge, with a plan diff over the flow suite and benchmark numbers against C.",
+ "feature": "query_planner",
+ "ticket": "flow_suite_regression",
+ "confidence": 0.95
+}

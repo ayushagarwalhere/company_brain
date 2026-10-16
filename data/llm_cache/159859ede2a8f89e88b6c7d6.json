@@ -1,0 +1,10 @@
+{
+ "is_change": false,
+ "kind": "review",
+ "old": null,
+ "new": null,
+ "evidence_quote": "## Code Review: Handle short reads gracefully during RDB decode",
+ "feature": null,
+ "ticket": null,
+ "confidence": 0.9
+}

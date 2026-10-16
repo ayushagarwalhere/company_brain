@@ -1,0 +1,10 @@
+{
+ "is_change": false,
+ "kind": "status",
+ "old": null,
+ "new": null,
+ "evidence_quote": "Thanks. #11775 is rebased on current master with the reuse-cycle coverage and the `didMount` mount guard, so nothing needs to move over. Closing this one so there’s a single PR is the least friction from my side.",
+ "feature": null,
+ "ticket": "11775",
+ "confidence": 1.0
+}

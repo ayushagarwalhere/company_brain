@@ -1,0 +1,10 @@
+{
+ "is_change": false,
+ "kind": "reaffirmation",
+ "old": null,
+ "new": null,
+ "evidence_quote": "Rate limit for logins (BD-107): 10 attempts / 5 min, then 15 min lock. Sound right?",
+ "feature": "feat_user_account_security",
+ "ticket": "BD-107",
+ "confidence": 1.0
+}

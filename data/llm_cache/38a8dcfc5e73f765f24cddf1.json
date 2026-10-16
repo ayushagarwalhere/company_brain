@@ -1,0 +1,10 @@
+{
+ "is_change": true,
+ "kind": "decision",
+ "old": "When a ticket breaches its SLA, send an email notification to the ticket's assignee.",
+ "new": "Send a warning 15 minutes before the SLA breach, and post it to the team's Slack channel instead of email. We drop email notifications for this entirely.",
+ "evidence_quote": "Agreed. Let's change it: send the warning 15 minutes BEFORE the breach, and post it to the team's Slack channel instead of email. We drop email notifications for this entirely.",
+ "feature": "feat_sla_breach_notifications",
+ "ticket": "BD-103",
+ "confidence": 1
+}

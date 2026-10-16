@@ -1,0 +1,10 @@
+{
+ "is_change": false,
+ "kind": "status",
+ "old": null,
+ "new": null,
+ "evidence_quote": "Yesterday: spacing on the settings page. Today: same, plus code review. Blockers: none.",
+ "feature": null,
+ "ticket": null,
+ "confidence": 1.0
+}

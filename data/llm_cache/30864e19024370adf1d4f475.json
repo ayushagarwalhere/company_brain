@@ -1,0 +1,10 @@
+{
+ "is_change": false,
+ "kind": "other",
+ "old": null,
+ "new": null,
+ "evidence_quote": "Avatar upload mocks for BD-113 are in Figma.",
+ "feature": "feat_user_profile_enhancements",
+ "ticket": "BD-113",
+ "confidence": 0.9
+}
