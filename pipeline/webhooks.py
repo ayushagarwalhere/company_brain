@@ -54,14 +54,14 @@ def recompute_supersession(g, ticket: str, ex=None) -> int:
 
 
 def ticket_updated(g, ticket: str, description: str, actor: str = "maya", at: str | None = None) -> dict:
-    t = Q.rows(
+    found = Q.rows(
         g,
         "MATCH (t:Ticket {id: $t}) OPTIONAL MATCH (t)-[:ABOUT]->(f:Feature) " "RETURN t.versions AS v, t.version_times AS vt, t.description AS d, f.id AS f",
         t=ticket,
     )
-    if not t:
+    if not found:
         raise ValueError(f"unknown ticket {ticket}")
-    t = t[0]
+    t = found[0]
     if (description or "").strip() == (t["d"] or "").strip():
         return {"status": "unchanged", "ticket": ticket}
     before = _drift_ids(g, ticket)

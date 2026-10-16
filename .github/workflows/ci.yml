@@ -24,11 +24,13 @@ jobs:
         with:
           python-version: "3.12"
           cache: pip
-      - run: pip install -r requirements.txt ruff==0.6.9
+      - run: pip install -r requirements.txt ruff==0.6.9 mypy==1.11.2
       - name: Lint and format check (ruff)
         run: |
           ruff check .
           ruff format --check .
+      - name: Type check pipeline/ and graph/ (mypy)
+        run: python -m mypy
       - name: Unit, graph and API tests (no LLM, no API keys)
         run: python -m pytest -q
       - name: Ablation study (fails if the full graph loses drift P/R 1.00 or version reasoning stops mattering)

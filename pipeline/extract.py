@@ -55,7 +55,7 @@ or being only a status update, proposal or remark.
 Return JSON: {"replaces": true|false, "reason": short explanation}"""
 
 
-def _norm(text: str) -> str:
+def _norm(text: str | None) -> str:
     return re.sub(r"\s+", " ", (text or "").lower().replace("\u2019", "'")).strip(" .\"'`*")
 
 

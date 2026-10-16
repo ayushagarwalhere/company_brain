@@ -14,7 +14,9 @@ from pipeline.events import to_ms
 
 def _now() -> tuple[str, int]:
     iso = datetime.now(UTC).strftime("%Y-%m-%dT%H:%M:%SZ")
-    return iso, to_ms(iso)
+    ms = to_ms(iso)
+    assert ms is not None  # iso is never empty here
+    return iso, ms
 
 
 def _open_drift(g, requirement: str) -> dict:

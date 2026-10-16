@@ -102,7 +102,9 @@ def supersession_pairs(chain: list[dict], reflects, replaces=None) -> list[dict]
         extractor) chat never supersedes chat: being the latest message is not evidence. This is the
         fix for benchmark/noise.py, where a misread status update used to bury the real decision.
     """
-    pairs, heads, last_ticket_text = [], [], ""
+    pairs: list[dict] = []
+    heads: list[dict] = []
+    last_ticket_text = ""
     for r in chain:
         if r["origin"] == "ticket":
             r = {**r, "prev_text": last_ticket_text}  # lets reflects() look at what this edit added
@@ -300,13 +302,13 @@ def assign_message_features(
         if m["id"] in msg_feature or m["mentions"] or "semantic" in ablate:
             continue
         if semantic == "llm":
-            f = (cls.get(m["id"]) or {}).get("feature")
-            if f in feat_docs:
-                msg_feature[m["id"]] = (f, "semantic:llm")
+            guess = (cls.get(m["id"]) or {}).get("feature")
+            if isinstance(guess, str) and guess in feat_docs:
+                msg_feature[m["id"]] = (guess, "semantic:llm")
         elif feat_sim:
-            f, s = feat_sim.best(m["text"])
-            if f and s >= MSG_SIM_THRESHOLD:
-                msg_feature[m["id"]] = (f, f"semantic:tfidf:{s:.2f}")
+            best, s = feat_sim.best(m["text"])
+            if best and s >= MSG_SIM_THRESHOLD:
+                msg_feature[m["id"]] = (best, f"semantic:tfidf:{s:.2f}")
     # a root that got a feature semantically passes it to its unlinked replies
     for r, members in threads.members.items():
         if r in msg_feature:
@@ -473,6 +475,7 @@ def link_implements(g, ex, prs: list[dict], pr_links: dict, reqs_by_ticket: dict
                 if not merged or merged <= r["at_ms"] or r["ticket"] not in [t for t, _, _ in pr_links.get(pr["id"], [])]:
                     continue
                 text = f"{pr['title']} {pr['body']}"
+                assert req_sim is not None  # built whenever there are chat requirements to check
                 if nums(r["text"]) <= nums(text) and req_sim.scores(text).get(r["id"], 0) >= IMPL_SIM_THRESHOLD:
                     fallback.append({"pr": pr["id"], "r": r["id"]})
     g.query(
