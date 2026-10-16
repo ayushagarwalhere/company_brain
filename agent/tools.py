@@ -18,7 +18,8 @@ def drift_path(d: dict) -> str:
     stale = [x for x in d["stale_prs"] if x["pr"] is not None]
     if stale:
         p += " ; " + " ; ".join(f"(PullRequest #{x['pr']})-[:REFERENCES]->(Ticket {d['ticket']})"
-                                + (f", IMPLEMENTS older \"{x['implements']}\"" if x.get("implements") else ", implements nothing current")
+                                + (", merged after the decision but not matched to it (check)" if x.get("merged_after") else ", merged before the decision")
+                                + (f", IMPLEMENTS older \"{x['implements']}\"" if x.get("implements") else "")
                                 for x in stale)
     for doc in d.get("stale_docs", []):
         p += f" ; (Document {doc['id']} \"{doc['title']}\", updated {(doc['updated'] or '')[:10]})-[:MENTIONS]->(Ticket {d['ticket']}), older than the change"

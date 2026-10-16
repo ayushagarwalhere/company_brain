@@ -19,6 +19,7 @@ CONFIGS = [
     ("− thread structure (REPLY_TO)", frozenset({"threads"})),
     ("− person/time proximity for PRs", frozenset({"pr_proximity"})),
     ("− version reasoning (SUPERSEDES / IMPLEMENTS)", frozenset({"supersession"})),
+    ("− time-aware IMPLEMENTS fallback", frozenset({"implements_fallback"})),
     ("Ticket IDs only (no threads, proximity or semantic)", frozenset({"threads", "pr_proximity", "semantic"})),
 ]
 METRICS = [("message_to_feature", "Msg→feature"), ("pr_to_ticket", "PR→ticket"),

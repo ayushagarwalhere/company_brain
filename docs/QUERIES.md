@@ -61,6 +61,7 @@ RETURN f.id AS feature, f.name AS feature_name, t.id AS ticket, t.title AS ticke
        prev.text AS previous_requirement,
        r.at_ms AS changed_ms,
        collect(DISTINCT {pr: pr.number, title: pr.title, url: pr.url, merged: pr.merged,
+                         merged_after: coalesce(pr.merged_ms, pr.created_ms) > r.at_ms,
                          implements: old.text}) AS stale_prs,
        collect(DISTINCT {id: doc.id, title: doc.title, updated: doc.updated, url: doc.url}) AS stale_docs
 ORDER BY changed_ms

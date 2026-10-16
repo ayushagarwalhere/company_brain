@@ -375,6 +375,91 @@
   }
  },
  {
+  "config": "\u2212 time-aware IMPLEMENTS fallback",
+  "ablate": [
+   "implements_fallback"
+  ],
+  "scores": {
+   "ticket_to_feature": {
+    "precision": 1.0,
+    "recall": 1.0,
+    "f1": 1.0,
+    "tp": 9,
+    "fp": [],
+    "fn": []
+   },
+   "message_to_feature": {
+    "precision": 1.0,
+    "recall": 0.923,
+    "f1": 0.96,
+    "tp": 36,
+    "fp": [],
+    "fn": [
+     [
+      "m_sla_03",
+      "feat_sla"
+     ],
+     [
+      "m_sla_06",
+      "feat_sla"
+     ],
+     [
+      "m_sla_07",
+      "feat_sla"
+     ]
+    ]
+   },
+   "pr_to_ticket": {
+    "precision": 1.0,
+    "recall": 1.0,
+    "f1": 1.0,
+    "tp": 11,
+    "fp": [],
+    "fn": []
+   },
+   "requirement_changes": {
+    "precision": 1.0,
+    "recall": 1.0,
+    "f1": 1.0,
+    "tp": 4,
+    "fp": [],
+    "fn": []
+   },
+   "drift": {
+    "precision": 1.0,
+    "recall": 1.0,
+    "f1": 1.0,
+    "tp": 2,
+    "fp": [],
+    "fn": []
+   },
+   "drift_requirements": {
+    "precision": 1.0,
+    "recall": 1.0,
+    "f1": 1.0,
+    "tp": 2,
+    "fp": [],
+    "fn": []
+   },
+   "drift_stale_prs": {
+    "precision": 1.0,
+    "recall": 1.0,
+    "f1": 1.0,
+    "tp": 2,
+    "fp": [],
+    "fn": []
+   },
+   "drift_stale_docs": {
+    "precision": 1.0,
+    "recall": 1.0,
+    "f1": 1.0,
+    "tp": 2,
+    "fp": [],
+    "fn": []
+   }
+  }
+ },
+ {
   "config": "Ticket IDs only (no threads, proximity or semantic)",
   "ablate": [
    "pr_proximity",

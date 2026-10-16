@@ -7,7 +7,7 @@ export type Stats = {
   build: { extractor: string; model?: string | null; at: string } | null;
   llm: { model: string; available: boolean; reason: string };
 };
-export type StalePR = { pr: number; title: string; url: string; merged: string | null; implements: string | null };
+export type StalePR = { pr: number; title: string; url: string; merged: string | null; merged_after?: boolean; implements: string | null };
 export type StaleDoc = { id: string; title: string; updated: string; url: string };
 export type Drift = {
   feature: string; feature_name: string; ticket: string; ticket_title: string; ticket_url: string; ticket_text: string;

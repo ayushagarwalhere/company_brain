@@ -104,7 +104,7 @@ function DriftCard({ d, i, flash }: { d: Drift; i: number; flash: boolean }) {
               nodes={[{ kind: "msg", title: "MESSAGE", sub: `${d.changed_by} · ${day(d.changed_at).slice(5)}` },
                       { kind: "req", title: "REQUIREMENT", sub: "newest · unshipped" },
                       { kind: "ticket", title: d.ticket, sub: "never updated" }]}
-              stale={[...d.stale_prs.filter((p) => p.pr !== null).map((p) => ({ kind: "pr" as const, label: `PR #${p.pr}` })),
+              stale={[...d.stale_prs.filter((p) => p.pr !== null).map((p) => ({ kind: "pr" as const, label: `PR #${p.pr} · ${p.merged_after ? "after, unmatched" : "before"}` })),
                       ...d.stale_docs.map((x) => ({ kind: "doc" as const, label: x.id }))]} />
 
             <footer className="dc__foot">

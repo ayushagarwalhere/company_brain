@@ -17,7 +17,7 @@ Resolution signals, applied in order, each recorded on the edge as `via`:
 from collections import defaultdict
 
 from pipeline.events import from_ms
-from pipeline.extract import CHANGE_KINDS, get_extractor
+from pipeline.extract import CHANGE_KINDS, HeuristicExtractor, get_extractor
 from pipeline.textsim import TfIdf, tokens
 
 MIN_CONFIDENCE = 0.6  # below this an extracted "change" is not written (same bar as the live monitor)
@@ -120,7 +120,8 @@ def reset_derived(g):
     g.query("MATCH ()-[r:REFERENCES]->() WHERE r.via = 'resolved' DELETE r")
 
 
-ABLATIONS = {"threads", "pr_proximity", "semantic", "supersession"}
+ABLATIONS = {"threads", "pr_proximity", "semantic", "supersession", "implements_fallback"}
+IMPL_SIM_THRESHOLD = 0.25  # time-aware IMPLEMENTS fallback: PR text vs. the new requirement
 
 
 def has_decision_rights(author: str | None, ticket: dict) -> bool:
@@ -327,9 +328,30 @@ def resolve(g, extractor_name: str = "llm", semantic: str | None = None, log=pri
         cands = [r for t in tickets_for_pr for r in reqs_by_ticket[t] if r["at_ms"] <= cutoff]
         if cands and "supersession" not in ablate:
             impl += [{"pr": pr["id"], "r": rid} for rid in ex.implements(pr, cands)]
+    # Fallback when the extractor makes no judgment for a chat requirement: a PR on the same ticket that was
+    # merged AFTER the change, states every number the change states, and is textually close to it counts as
+    # implementing it. A PR merged before the change cannot implement it. Keeps precision from depending on
+    # the extractor's recall of IMPLEMENTS (benchmark/ablation.py, tests/test_implements_fallback.py).
+    fallback = []
+    if "supersession" not in ablate and "implements_fallback" not in ablate:
+        from pipeline.events import TICKET_REF
+        nums = lambda s: set(HeuristicExtractor.NUM.findall(TICKET_REF.sub("", s or "")))  # noqa: E731
+        done = {x["r"] for x in impl} | {p["old"] for p in pairs}  # implemented already, or superseded (can't be drift)
+        chat = [r for rs in reqs_by_ticket.values() for r in rs if r["origin"] == "chat" and r["id"] not in done]
+        req_sim = TfIdf({r["id"]: r["text"] for rs in reqs_by_ticket.values() for r in rs}) if chat else None
+        for r in chat:
+            for pr in prs:
+                merged = pr["merged_ms"]
+                if not merged or merged <= r["at_ms"] or r["ticket"] not in [t for t, _, _ in pr_links.get(pr["id"], [])]:
+                    continue
+                text = f"{pr['title']} {pr['body']}"
+                if nums(r["text"]) <= nums(text) and req_sim.scores(text).get(r["id"], 0) >= IMPL_SIM_THRESHOLD:
+                    fallback.append({"pr": pr["id"], "r": r["id"]})
     g.query("""UNWIND $xs AS x MATCH (pr:PullRequest {id: x.pr}), (q:Requirement {id: x.r})
-               MERGE (pr)-[:IMPLEMENTS]->(q)""", {"xs": impl})
-    log(f"IMPLEMENTS edges: {len(impl)}")
+               MERGE (pr)-[e:IMPLEMENTS]->(q) SET e.via = x.via""",
+            {"xs": [{**x, "via": "extractor"} for x in impl] + [{**x, "via": "time+semantic"} for x in fallback]})
+    log(f"IMPLEMENTS edges: {len(impl)} from the extractor, {len(fallback)} from the time-aware fallback")
+    impl = impl + fallback
 
     # 8. Human actions (dismissals, write-backs) re-attached by stable id ------------
     from pipeline.human import relink
