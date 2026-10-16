@@ -1,0 +1,10 @@
+{
+ "is_change": false,
+ "kind": "review",
+ "old": null,
+ "new": null,
+ "evidence_quote": "## Code Review: test(cluster): wait for announced hostnames before building the client",
+ "feature": null,
+ "ticket": null,
+ "confidence": 1.0
+}

@@ -1,0 +1,10 @@
+{
+ "is_change": false,
+ "kind": "other",
+ "old": null,
+ "new": null,
+ "evidence_quote": "Closing in favor of #11970 which has tests — CanReader noted that on a predicate that exists solely to recognize vendor-specific error shapes, tests are the deciding factor. Also simplifying to a single boolean expression as suggested.",
+ "feature": null,
+ "ticket": "BD-115",
+ "confidence": 0.9
+}

@@ -1,0 +1,10 @@
+{
+ "is_change": false,
+ "kind": "status",
+ "old": null,
+ "new": null,
+ "evidence_quote": "Thanks for the PR! Error feedback for invalid hex color input landed in #11782, so I'm closing this as superseded.",
+ "feature": null,
+ "ticket": null,
+ "confidence": 1.0
+}

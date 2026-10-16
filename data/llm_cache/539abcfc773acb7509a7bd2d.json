@@ -1,0 +1,10 @@
+{
+ "is_change": false,
+ "kind": "request",
+ "old": null,
+ "new": null,
+ "evidence_quote": "Customer asked whether dark mode could support settings instead of the header. Logging it as a request.",
+ "feature": "feat_dark_mode_and_theme_customization",
+ "ticket": null,
+ "confidence": 0.9
+}

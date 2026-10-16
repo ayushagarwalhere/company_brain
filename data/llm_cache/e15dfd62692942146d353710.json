@@ -1,0 +1,10 @@
+{
+ "is_change": false,
+ "kind": "reaffirmation",
+ "old": null,
+ "new": null,
+ "evidence_quote": "That seems perfect to me, exactly what I requested. I guess I would set **Wrap** as default for Rectangle and **Overlap** for Lasso. But that is my _personal_ preference _and_ the previous Excalidaraw behavior, the app records the preferences so not a big deal.",
+ "feature": null,
+ "ticket": null,
+ "confidence": 0.9
+}

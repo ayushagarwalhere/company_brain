@@ -1,0 +1,10 @@
+{
+ "is_change": false,
+ "kind": "other",
+ "old": null,
+ "new": null,
+ "evidence_quote": "Azerbaijani is available on Crowdin (https://crowdin.com/project/excalidraw), so you can translate it there. It's about 23% translated so far, and it will show up in the language picker once it's about 85% translated.",
+ "feature": null,
+ "ticket": null,
+ "confidence": 0.9
+}

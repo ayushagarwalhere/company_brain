@@ -1,0 +1,10 @@
+{
+ "is_change": false,
+ "kind": "status",
+ "old": null,
+ "new": null,
+ "evidence_quote": "Done in #7441, released in 0.18.0: the package now ships as an ESM build.",
+ "feature": null,
+ "ticket": null,
+ "confidence": 1.0
+}

@@ -1,0 +1,10 @@
+{
+ "is_change": false,
+ "kind": "other",
+ "old": null,
+ "new": null,
+ "evidence_quote": "This fix looks solid — nice catch on case (c) too (elements entirely outside their own frame's bounds never triggered the border-intersection check).",
+ "feature": null,
+ "ticket": null,
+ "confidence": 0.9
+}

@@ -1,0 +1,10 @@
+{
+ "is_change": false,
+ "kind": "proposal",
+ "old": null,
+ "new": null,
+ "evidence_quote": "I'd like to pick up BD-106. I'll start with the the theme tokens part and open a draft PR.",
+ "feature": "feat_dark_mode_and_theme_customization",
+ "ticket": "BD-106",
+ "confidence": 0.9
+}

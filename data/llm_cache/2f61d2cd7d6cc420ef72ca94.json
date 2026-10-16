@@ -1,0 +1,10 @@
+{
+ "is_change": false,
+ "kind": "status",
+ "old": null,
+ "new": null,
+ "evidence_quote": "Architecture: alpine-x64\nHigh or critical vulnerabilities were detected by Trivy. Please review and address them before merging.",
+ "feature": null,
+ "ticket": null,
+ "confidence": 1.0
+}

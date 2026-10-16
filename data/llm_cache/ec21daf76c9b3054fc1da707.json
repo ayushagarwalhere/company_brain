@@ -1,0 +1,10 @@
+{
+ "is_change": true,
+ "kind": "requirement_change",
+ "old": "tickets created in the last 30 days",
+ "new": "tickets created in the last 12 months",
+ "evidence_quote": "Acme wants 12 months for the CSV export. Not agreed, just passing it on (BD-101)",
+ "feature": "feat_ticket_export_to_csv",
+ "ticket": "BD-101",
+ "confidence": 1.0
+}

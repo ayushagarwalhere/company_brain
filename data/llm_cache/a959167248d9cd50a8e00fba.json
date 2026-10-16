@@ -1,0 +1,10 @@
+{
+ "is_change": false,
+ "kind": "status",
+ "old": null,
+ "new": null,
+ "evidence_quote": "Thanks CanReader. Closing this in favor of #11970 which has tests.",
+ "feature": null,
+ "ticket": "11970",
+ "confidence": 1.0
+}

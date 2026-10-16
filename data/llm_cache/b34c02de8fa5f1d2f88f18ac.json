@@ -1,0 +1,10 @@
+{
+ "is_change": false,
+ "kind": "other",
+ "old": null,
+ "new": null,
+ "evidence_quote": "The behaviour when not setting the environment variables for Google drive API and ClientID stays the same as before. Thus, the Google Drive integration will not show in the preview.",
+ "feature": null,
+ "ticket": null,
+ "confidence": 1.0
+}

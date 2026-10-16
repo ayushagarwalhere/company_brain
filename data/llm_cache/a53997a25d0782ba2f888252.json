@@ -1,0 +1,10 @@
+{
+ "is_change": false,
+ "kind": "request",
+ "old": null,
+ "new": null,
+ "evidence_quote": "I'd like to work on this issue and contribute to fixing the Docker build failure.",
+ "feature": null,
+ "ticket": null,
+ "confidence": 0.9
+}

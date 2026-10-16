@@ -1,0 +1,10 @@
+{
+ "is_change": false,
+ "kind": "other",
+ "old": null,
+ "new": null,
+ "evidence_quote": "Self-review follow-up: pushed f6517d3. The test only covered \"frame\", so restoring \"magicframe\" on its own passed the whole suite. Now parameterised over both types, restoring either one alone fails.",
+ "feature": null,
+ "ticket": null,
+ "confidence": 0.9
+}

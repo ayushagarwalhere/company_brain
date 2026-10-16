@@ -1,0 +1,10 @@
+{
+ "is_change": false,
+ "kind": "review",
+ "old": null,
+ "new": null,
+ "evidence_quote": "The fix is right: at the PR head `MAX_LIST_DEPTH` (L46) and the `depth` parameter (L48) exist and `depth + 1` is threaded through the recursive call (L68-69).",
+ "feature": null,
+ "ticket": null,
+ "confidence": 0.9
+}

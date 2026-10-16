@@ -1,0 +1,9 @@
+{
+ "implements": [
+  "BD-101:v1",
+  "m_exp_06",
+  "BD-101:v2",
+  "m_exp_07"
+ ],
+ "reason": "The PR provides a CSV export for tickets created in the last 30 days with columns id, subject, status, created_at, and assignee, satisfying BD-101:v1, m_exp_06, BD-101:v2, and m_exp_07."
+}

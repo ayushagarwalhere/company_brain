@@ -1,0 +1,10 @@
+{
+ "is_change": false,
+ "kind": "status",
+ "old": null,
+ "new": null,
+ "evidence_quote": "Thanks for the PR! The issue it addresses, #9541, has been closed, so I'm closing this too.",
+ "feature": null,
+ "ticket": "9541",
+ "confidence": 1.0
+}

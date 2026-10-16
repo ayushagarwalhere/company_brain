@@ -1,0 +1,10 @@
+{
+ "is_change": false,
+ "kind": "status",
+ "old": null,
+ "new": null,
+ "evidence_quote": "Thanks for the interest! I filed this along with a fix and tests — PR is up at #11922. Happy to have your review on it.",
+ "feature": null,
+ "ticket": null,
+ "confidence": 1.0
+}

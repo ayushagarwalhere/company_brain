@@ -1,0 +1,10 @@
+{
+ "is_change": false,
+ "kind": "other",
+ "old": null,
+ "new": null,
+ "evidence_quote": "Fixed the es-ES typo ({{mix}} to {{max}}) and added a vitest placeholder-parity suite covering all locales: unknown placeholders fail everywhere, missing ones fail except si-LK which stays documented since Crowdin owns those strings. Suite proven to fail on the old file and pass fixed, 56/56 green. Opened #12109, happy to route the typo through Crowdin instead if you prefer.",
+ "feature": null,
+ "ticket": null,
+ "confidence": 0.9
+}

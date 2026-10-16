@@ -3,8 +3,8 @@
  "messages": 20800,
  "tickets": 600,
  "prs": 200,
- "ingest_s": 1.92,
- "resolve_s": 1.97,
+ "ingest_s": 2.23,
+ "resolve_s": 3.08,
  "nodes": 22940,
  "relationships": 27700,
  "drift_expected": 100,
@@ -12,23 +12,23 @@
  "drift_precision": 1.0,
  "drift_recall": 1.0,
  "query_drift_all": {
-  "p50_ms": 31.79,
-  "p95_ms": 33.0
+  "p50_ms": 39.23,
+  "p95_ms": 40.79
  },
  "query_drift_one_ticket": {
-  "p50_ms": 1.26,
-  "p95_ms": 1.58
+  "p50_ms": 2.4,
+  "p95_ms": 2.83
  },
  "query_connection": {
-  "p50_ms": 3.9,
-  "p95_ms": 4.45
+  "p50_ms": 6.1,
+  "p95_ms": 6.95
  },
  "query_requirements_of_ticket": {
-  "p50_ms": 0.45,
-  "p95_ms": 0.57
+  "p50_ms": 0.89,
+  "p95_ms": 1.39
  },
  "live_message": {
-  "p50_ms": 19.99,
-  "p95_ms": 21.85
+  "p50_ms": 38.13,
+  "p95_ms": 40.53
  }
 }

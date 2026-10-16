@@ -1,0 +1,10 @@
+{
+ "is_change": false,
+ "kind": "review",
+ "old": null,
+ "new": null,
+ "evidence_quote": "LGTM on the the SLA settings page PR, one small suggestion about the error message.",
+ "feature": "feat_sla_breach_notifications",
+ "ticket": "BD-104",
+ "confidence": 0.9
+}

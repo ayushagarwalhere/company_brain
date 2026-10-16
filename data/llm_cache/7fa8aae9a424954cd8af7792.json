@@ -1,0 +1,10 @@
+{
+ "is_change": false,
+ "kind": "idea",
+ "old": null,
+ "new": null,
+ "evidence_quote": "Idea: we could do 15 minutes before instead of at breach for SLA breach notifications someday. Parking it here.",
+ "feature": "feat_sla_breach_notifications",
+ "ticket": "BD-103",
+ "confidence": 0.9
+}

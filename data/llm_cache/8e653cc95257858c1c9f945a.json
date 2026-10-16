@@ -1,0 +1,10 @@
+{
+ "is_change": false,
+ "kind": "analysis",
+ "old": null,
+ "new": null,
+ "evidence_quote": "Tests for this issue: ...",
+ "feature": null,
+ "ticket": null,
+ "confidence": 0.9
+}

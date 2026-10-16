@@ -1,0 +1,10 @@
+{
+ "is_change": false,
+ "kind": "other",
+ "old": null,
+ "new": null,
+ "evidence_quote": "Support ticket: user confused by the theme tokens, they expected a JS theme object. FYI for BD-106.",
+ "feature": "feat_dark_mode_and_theme_customization",
+ "ticket": "BD-106",
+ "confidence": 0.9
+}

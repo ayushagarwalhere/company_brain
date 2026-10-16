@@ -1,0 +1,10 @@
+{
+ "is_change": false,
+ "kind": "other",
+ "old": null,
+ "new": null,
+ "evidence_quote": "Karakalpak is available on Crowdin (https://crowdin.com/project/excalidraw), so you can translate it there. It will show up in the language picker once it's about 85% translated.",
+ "feature": null,
+ "ticket": null,
+ "confidence": 1.0
+}

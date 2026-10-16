@@ -1,0 +1,10 @@
+{
+ "is_change": false,
+ "kind": "status",
+ "old": null,
+ "new": null,
+ "evidence_quote": "## [Codecov](https://app.codecov.io/gh/FalkorDB/FalkorDB/pull/3252?dropdown=coverage&src=pr&el=h1&utm_medium=referral&utm_source=github&utm_content=comment&utm_campaign=pr+comments&utm_term=FalkorDB) Report",
+ "feature": null,
+ "ticket": null,
+ "confidence": 1.0
+}

@@ -1,0 +1,10 @@
+{
+ "is_change": false,
+ "kind": "analysis",
+ "old": null,
+ "new": null,
+ "evidence_quote": "Support ticket: user confused by the SLA settings page, they expected free text. FYI for BD-104.",
+ "feature": "feat_sla_breach_notifications",
+ "ticket": "BD-104",
+ "confidence": 0.9
+}

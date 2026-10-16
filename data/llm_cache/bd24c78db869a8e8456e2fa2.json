@@ -1,0 +1,10 @@
+{
+ "is_change": false,
+ "kind": "question",
+ "old": null,
+ "new": null,
+ "evidence_quote": "Is the SLA settings page (BD-104) going out this sprint?",
+ "feature": "feat_sla_breach_notifications",
+ "ticket": "BD-104",
+ "confidence": 0.9
+}

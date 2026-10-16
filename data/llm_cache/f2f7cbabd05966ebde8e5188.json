@@ -1,0 +1,10 @@
+{
+ "is_change": false,
+ "kind": "review",
+ "old": null,
+ "new": null,
+ "evidence_quote": "I'd be happy to help move this forward — I can try to reproduce on a touch device/emulator and report back, or rebase the change against current master if that would help unblock review.",
+ "feature": null,
+ "ticket": null,
+ "confidence": 0.9
+}

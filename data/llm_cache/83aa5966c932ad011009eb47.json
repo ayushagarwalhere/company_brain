@@ -1,0 +1,10 @@
+{
+ "is_change": true,
+ "kind": "request",
+ "old": "tickets created in the last 30 days",
+ "new": "CSV export default to 12 months",
+ "evidence_quote": "Customer request: could the CSV export default to 12 months? Told them I'd check with product.",
+ "feature": "feat_ticket_export_to_csv",
+ "ticket": "BD-101",
+ "confidence": 0.9
+}

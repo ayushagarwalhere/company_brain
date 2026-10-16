@@ -1,0 +1,101 @@
+{
+ "noise": {
+  "real_github_comments": 250,
+  "synthetic_on_topic": 250,
+  "seed": 0
+ },
+ "extractor": "llm (qwen3:8b)",
+ "configs": {
+  "1. original (anyone can change a ticket; the latest chat change wins)": {
+   "drift_alerts": 4,
+   "false_drift_alerts": 0,
+   "false_drift_alerts_by_noise_kind": {},
+   "true_drifts_found": 1,
+   "true_drifts_total": 2,
+   "requirement_changes_from_noise": 4,
+   "requirement_changes_from_scenario": 9,
+   "unverified_candidates_from_noise": 0,
+   "unverified_candidates_from_scenario": 0
+  },
+  "2. + decision rights (ticket creator or assignee only)": {
+   "drift_alerts": 4,
+   "false_drift_alerts": 1,
+   "false_drift_alerts_by_noise_kind": {
+    "customer": 1
+   },
+   "true_drifts_found": 2,
+   "true_drifts_total": 2,
+   "requirement_changes_from_noise": 3,
+   "requirement_changes_from_scenario": 6,
+   "unverified_candidates_from_noise": 0,
+   "unverified_candidates_from_scenario": 0
+  },
+  "3. + decision rights + no burial (chat supersedes chat only when judged to)": {
+   "drift_alerts": 4,
+   "false_drift_alerts": 1,
+   "false_drift_alerts_by_noise_kind": {
+    "customer": 1
+   },
+   "true_drifts_found": 2,
+   "true_drifts_total": 2,
+   "requirement_changes_from_noise": 3,
+   "requirement_changes_from_scenario": 6,
+   "unverified_candidates_from_noise": 0,
+   "unverified_candidates_from_scenario": 0
+  },
+  "4. + unverified candidates (non-owner change on a guessed ticket kept, not as drift)": {
+   "drift_alerts": 4,
+   "false_drift_alerts": 1,
+   "false_drift_alerts_by_noise_kind": {
+    "customer": 1
+   },
+   "true_drifts_found": 2,
+   "true_drifts_total": 2,
+   "requirement_changes_from_noise": 3,
+   "requirement_changes_from_scenario": 6,
+   "unverified_candidates_from_noise": 0,
+   "unverified_candidates_from_scenario": 0
+  }
+ },
+ "min_confidence_sweep": {
+  "min_confidence=0.4": {
+   "drift_alerts": 4,
+   "false_drift_alerts": 1,
+   "false_drift_alerts_by_noise_kind": {
+    "customer": 1
+   },
+   "true_drifts_found": 2,
+   "true_drifts_total": 2,
+   "requirement_changes_from_noise": 3,
+   "requirement_changes_from_scenario": 6,
+   "unverified_candidates_from_noise": 0,
+   "unverified_candidates_from_scenario": 0
+  },
+  "min_confidence=0.6": {
+   "drift_alerts": 4,
+   "false_drift_alerts": 1,
+   "false_drift_alerts_by_noise_kind": {
+    "customer": 1
+   },
+   "true_drifts_found": 2,
+   "true_drifts_total": 2,
+   "requirement_changes_from_noise": 3,
+   "requirement_changes_from_scenario": 6,
+   "unverified_candidates_from_noise": 0,
+   "unverified_candidates_from_scenario": 0
+  },
+  "min_confidence=0.8": {
+   "drift_alerts": 4,
+   "false_drift_alerts": 1,
+   "false_drift_alerts_by_noise_kind": {
+    "customer": 1
+   },
+   "true_drifts_found": 2,
+   "true_drifts_total": 2,
+   "requirement_changes_from_noise": 3,
+   "requirement_changes_from_scenario": 6,
+   "unverified_candidates_from_noise": 0,
+   "unverified_candidates_from_scenario": 0
+  }
+ }
+}

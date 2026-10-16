@@ -1,0 +1,10 @@
+{
+ "is_change": false,
+ "kind": "status",
+ "old": null,
+ "new": null,
+ "evidence_quote": "See #12027 - I cannot reproduce the original issue so until we can resolve that, I'm closing this.",
+ "feature": null,
+ "ticket": "12027",
+ "confidence": 1.0
+}

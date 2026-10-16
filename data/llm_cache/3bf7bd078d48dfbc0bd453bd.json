@@ -1,0 +1,10 @@
+{
+ "is_change": false,
+ "kind": "idea",
+ "old": null,
+ "new": null,
+ "evidence_quote": "Idea: we could do 8 hours instead of 4 hours for the SLA settings page someday. Parking it here.",
+ "feature": "feat_sla_breach_notifications",
+ "ticket": "BD-104",
+ "confidence": 0.9
+}

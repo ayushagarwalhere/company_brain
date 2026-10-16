@@ -1,0 +1,10 @@
+{
+ "is_change": false,
+ "kind": "status",
+ "old": null,
+ "new": null,
+ "evidence_quote": "Deployment failed for project [excalidraw](https://vercel.com/excalidraw/excalidraw/dpl_Ctf1E7nWRRxhwfG1xyFtp7AUNycu) with the following error: ~~~ The `vercel.json` schema validation failed with the following message: should NOT have additional property `public` ~~~",
+ "feature": null,
+ "ticket": null,
+ "confidence": 1.0
+}

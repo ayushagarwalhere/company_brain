@@ -1,0 +1,10 @@
+{
+ "is_change": false,
+ "kind": "other",
+ "old": null,
+ "new": null,
+ "evidence_quote": "Text inside a group already scales with it when you resize. We're unlikely to scale stroke widths on resize, but we may add opt-in stroke width scaling based on zoom in the future (#11557)",
+ "feature": null,
+ "ticket": null,
+ "confidence": 0.9
+}

@@ -1,0 +1,10 @@
+{
+ "is_change": false,
+ "kind": "status",
+ "old": null,
+ "new": null,
+ "evidence_quote": "BD-106 update: tests are green, the theme tokens works with CSS variables on staging.",
+ "feature": "feat_dark_mode_and_theme_customization",
+ "ticket": "BD-106",
+ "confidence": 1.0
+}

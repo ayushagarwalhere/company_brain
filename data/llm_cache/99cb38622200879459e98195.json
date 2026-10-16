@@ -1,0 +1,10 @@
+{
+ "is_change": false,
+ "kind": "other",
+ "old": null,
+ "new": null,
+ "evidence_quote": "I'd like to work on this one. Just reproduced it on current master branch and Ctrl+Z does nothing while an arrow is mid-draw (extra waypoint added by mistake), instead of undoing the last point. Will dig into the undo/history handling for in-progress linear elements and follow up with a PR.",
+ "feature": null,
+ "ticket": null,
+ "confidence": 0.9
+}

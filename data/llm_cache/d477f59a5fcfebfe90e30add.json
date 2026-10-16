@@ -1,0 +1,10 @@
+{
+ "is_change": false,
+ "kind": "request",
+ "old": null,
+ "new": null,
+ "evidence_quote": "Hi! I’d be happy to fix this typo and open a small pull request. Are you currently planning to work on it yourself? If not, may I take it?",
+ "feature": "feat_ui_ux_improvements",
+ "ticket": "BD-110",
+ "confidence": 0.9
+}

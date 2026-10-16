@@ -1,0 +1,10 @@
+{
+ "is_change": false,
+ "kind": "other",
+ "old": null,
+ "new": null,
+ "evidence_quote": "Hi! I would like to work on this. Planning to remove the document.documentElement writes and scope dir/lang to the excalidraw container + portal container instead. Let me know if you have already started a PR for this.",
+ "feature": null,
+ "ticket": null,
+ "confidence": 0.9
+}

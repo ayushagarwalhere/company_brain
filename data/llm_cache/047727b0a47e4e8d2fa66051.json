@@ -1,0 +1,10 @@
+{
+ "is_change": false,
+ "kind": "other",
+ "old": null,
+ "new": null,
+ "evidence_quote": "Hi @koryuoh123, I tested the issue on my laptop, but unfortunately I don't have a graphics tablet, so I'm unable to reproduce the behavior you're experiencing. Since the issue seems to be specific to tablet/stylus input, I don't want to make changes without being able to properly verify the fix.",
+ "feature": null,
+ "ticket": null,
+ "confidence": 0.9
+}

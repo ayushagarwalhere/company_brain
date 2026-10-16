@@ -1,0 +1,10 @@
+{
+ "is_change": false,
+ "kind": "other",
+ "old": null,
+ "new": null,
+ "evidence_quote": "Implemented in #10839: arrow binding can be turned off in the main menu, and the setting is remembered on that device for all drawings.",
+ "feature": null,
+ "ticket": null,
+ "confidence": 0.9
+}

@@ -1,0 +1,10 @@
+{
+ "is_change": false,
+ "kind": "other",
+ "old": null,
+ "new": null,
+ "evidence_quote": "The critical finding on `common.py:479` - `_slots_have_unresolved_endpoint` undefined, with the broad `except` swallowing the resulting `NameError` - was against an earlier commit, and the concern about it is a good one. The helper is now defined at `common.py:382`, above `_bootstrap_cluster`, and the current diff carries all three hunks.",
+ "feature": null,
+ "ticket": null,
+ "confidence": 0.9
+}

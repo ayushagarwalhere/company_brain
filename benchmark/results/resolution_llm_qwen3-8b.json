@@ -177,13 +177,11 @@
   "fn": []
  },
  "drift_requirements": {
-  "precision": 0.667,
+  "precision": 1.0,
   "recall": 1.0,
-  "f1": 0.8,
+  "f1": 1.0,
   "tp": 2,
-  "fp": [
-   "m_exp_07"
-  ],
+  "fp": [],
   "fn": []
  },
  "drift_stale_prs": {

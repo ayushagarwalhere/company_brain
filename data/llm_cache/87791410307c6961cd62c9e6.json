@@ -1,0 +1,4 @@
+{
+ "replaces": true,
+ "reason": "The LATER message revises the EARLIER requirement by expanding the date range from a fixed 30 days to any custom date range up to 12 months and adding the requirement to include all custom fields as extra columns."
+}

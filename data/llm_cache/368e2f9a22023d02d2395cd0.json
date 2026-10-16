@@ -1,0 +1,10 @@
+{
+ "is_change": false,
+ "kind": "idea",
+ "old": null,
+ "new": null,
+ "evidence_quote": "Idea: we could do 12 months instead of 30 days for the CSV export someday. Parking it here.",
+ "feature": "feat_ticket_export_to_csv",
+ "ticket": "BD-101",
+ "confidence": 0.9
+}

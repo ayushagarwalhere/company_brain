@@ -1,0 +1,10 @@
+{
+ "is_change": false,
+ "kind": "review",
+ "old": null,
+ "new": null,
+ "evidence_quote": "Your PR also changed how multi-point arrows behave, specifically it removed the whole multi-point arrow when I pressed Esc after `points.length > 2` which is not the expected behavior.",
+ "feature": null,
+ "ticket": null,
+ "confidence": 0.9
+}

@@ -1,0 +1,4 @@
+{
+ "replaces": true,
+ "reason": "The LATER message changes the focus from defining columns to filtering tickets by creation date, which revises the earlier requirement."
+}

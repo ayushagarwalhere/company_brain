@@ -1,0 +1,10 @@
+{
+ "is_change": false,
+ "kind": "analysis",
+ "old": null,
+ "new": null,
+ "evidence_quote": "Confirming the mechanism, and endorsing option 1 - but with one correction to where the fix has to live, because option 3 (a per-version `Indexer`) is the only variant that closes this completely.",
+ "feature": null,
+ "ticket": null,
+ "confidence": 0.9
+}

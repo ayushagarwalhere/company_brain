@@ -1,0 +1,10 @@
+{
+ "is_change": false,
+ "kind": "other",
+ "old": null,
+ "new": null,
+ "evidence_quote": "This still reproduces on the **6.0.1** release (`falkordb/falkordb:6.0.1`, module version 60001), with the same plan as B above. LDBC SNB SF1 (3.18M nodes, 17.3M edges), `Person(ID)` range index, `person` has 55,357 `*2..2` friend paths:",
+ "feature": null,
+ "ticket": null,
+ "confidence": 0.9
+}

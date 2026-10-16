@@ -1,0 +1,10 @@
+{
+ "is_change": false,
+ "kind": "review",
+ "old": null,
+ "new": null,
+ "evidence_quote": "Code review (2cf4a74): The null-IO guard makes a truncated `GRAPH.RESTORE` payload return an error instead of calling Redis through a null handle. I also checked the final branch for payload-driven `with_capacity` calls in the serializer, attribute store, and value decoder; the changed decode paths now cap their initial allocations or check vector byte length. The new malformed-payload tests cover the reported crash and oversized counts. I found no further concrete issue in this patch. I reviewed code and tests but did not run the flow suite.",
+ "feature": null,
+ "ticket": null,
+ "confidence": 1
+}

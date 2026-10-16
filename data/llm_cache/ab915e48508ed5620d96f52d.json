@@ -1,0 +1,10 @@
+{
+ "is_change": false,
+ "kind": "other",
+ "old": null,
+ "new": null,
+ "evidence_quote": "Duplicate of #8657: distributing elements with equal spacing is available. Select three or more elements and use Distribute horizontally / vertically in the Align section.",
+ "feature": null,
+ "ticket": null,
+ "confidence": 0.9
+}

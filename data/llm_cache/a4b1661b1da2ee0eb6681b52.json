@@ -1,0 +1,10 @@
+{
+ "is_change": false,
+ "kind": "other",
+ "old": null,
+ "new": null,
+ "evidence_quote": "I tested this on `falkordb/falkordb:v4.14.8` and reproduced the string `\"[2, 1]\"` from `GRAPH.QUERY` without `--compact`. A plain list (`RETURN [2,1]`) is displayed the same way. FalkorDB’s [result format documentation](https://docs.falkordb.com/design/result-structure#arrays) says the default response represents lists as strings.",
+ "feature": null,
+ "ticket": null,
+ "confidence": 0.9
+}

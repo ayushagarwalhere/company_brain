@@ -1,0 +1,10 @@
+{
+ "is_change": false,
+ "kind": "other",
+ "old": null,
+ "new": null,
+ "evidence_quote": "Thanks for the flag @nawazish2 — I didn't have #11775 in view when I put this together, and your PR is unambiguously the prior art here (opened a month earlier, same root cause, same three files).",
+ "feature": null,
+ "ticket": null,
+ "confidence": 0.9
+}

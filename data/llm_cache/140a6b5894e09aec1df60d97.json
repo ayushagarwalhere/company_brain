@@ -1,0 +1,10 @@
+{
+ "is_change": false,
+ "kind": "other",
+ "old": null,
+ "new": null,
+ "evidence_quote": "Verified locally (macOS, release build): the new `test_graph_restore.py` kills the server on `main` @ b033aecc6 (`test01_empty_payload`) and passes 6/6 on this branch. This also fixes #2537, the earlier report of the same crash. Could you add `Closes #2537` to the description?",
+ "feature": null,
+ "ticket": null,
+ "confidence": 1.0
+}

@@ -1,0 +1,10 @@
+{
+ "is_change": false,
+ "kind": "status",
+ "old": null,
+ "new": null,
+ "evidence_quote": "Fixed in 0.18.0 by #7441: the package now ships an ESM build, so the bundled css-loader code behind this App Router error is gone.",
+ "feature": null,
+ "ticket": null,
+ "confidence": 1.0
+}

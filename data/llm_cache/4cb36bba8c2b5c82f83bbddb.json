@@ -1,0 +1,10 @@
+{
+ "is_change": false,
+ "kind": "question",
+ "old": null,
+ "new": null,
+ "evidence_quote": "I’m still experiencing this issue with the current version when selecting objects with a mouse. Even a very small movement between pointer-down and pointer-up can unintentionally reposition an element, especially when double-clicking text.",
+ "feature": null,
+ "ticket": null,
+ "confidence": 0.9
+}

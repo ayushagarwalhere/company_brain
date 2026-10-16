@@ -1,0 +1,10 @@
+{
+ "is_change": false,
+ "kind": "status",
+ "old": null,
+ "new": null,
+ "evidence_quote": "Fixed the red Vercel build: my new test mocked `actionSaveFileToDisk.perform` with a bare `false`, but `perform` is async, so `tsc` rejected the file with `TS2322`. Vitest does not typecheck, which is why the test itself kept passing and hid it.",
+ "feature": null,
+ "ticket": null,
+ "confidence": 1.0
+}

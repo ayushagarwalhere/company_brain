@@ -1,0 +1,10 @@
+{
+ "is_change": false,
+ "kind": "other",
+ "old": null,
+ "new": null,
+ "evidence_quote": "Done in #6581, which added `fitToViewport`. The viewport API has since moved to `excalidrawAPI.setViewport({ target, fit: \"contain\" | \"scale-down\" })`.",
+ "feature": null,
+ "ticket": null,
+ "confidence": 0.9
+}

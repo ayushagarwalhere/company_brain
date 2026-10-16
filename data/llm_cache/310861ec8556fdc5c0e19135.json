@@ -1,0 +1,10 @@
+{
+ "is_change": false,
+ "kind": "review",
+ "old": null,
+ "new": null,
+ "evidence_quote": "Review on the the theme tokens PR (BD-106): let's use a constant instead of the magic number in the handler.",
+ "feature": "feat_dark_mode_and_theme_customization",
+ "ticket": "BD-106",
+ "confidence": 0.9
+}

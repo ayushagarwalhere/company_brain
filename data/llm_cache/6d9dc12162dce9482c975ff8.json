@@ -1,0 +1,10 @@
+{
+ "is_change": false,
+ "kind": "status",
+ "old": null,
+ "new": null,
+ "evidence_quote": "Fixed in 0.18.0: the package ships its TypeScript types (a `types` entry plus an exports map with `types` conditions), and #9308 fixed the remaining incorrect type imports.",
+ "feature": null,
+ "ticket": null,
+ "confidence": 1.0
+}

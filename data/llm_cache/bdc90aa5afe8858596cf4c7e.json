@@ -1,0 +1,10 @@
+{
+ "is_change": false,
+ "kind": "status",
+ "old": null,
+ "new": null,
+ "evidence_quote": "Fixed by #9031: box-selecting frames now includes their contents, so resizing several frames scales them together with everything inside.",
+ "feature": null,
+ "ticket": "9031",
+ "confidence": 1.0
+}

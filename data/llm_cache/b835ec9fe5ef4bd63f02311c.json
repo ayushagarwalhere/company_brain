@@ -1,0 +1,10 @@
+{
+ "is_change": false,
+ "kind": "request",
+ "old": null,
+ "new": null,
+ "evidence_quote": "I’d like to work on this issue. From what I understand, the Marathi translation for \"paste\" needs to be corrected, and translations for the missing signUp and signIn entries need to be added.",
+ "feature": null,
+ "ticket": null,
+ "confidence": 1.0
+}
