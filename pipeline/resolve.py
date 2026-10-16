@@ -285,12 +285,19 @@ def assign_message_features(g, msgs: list[dict], threads: Threads, features: lis
 
 def extract_chat_changes(g, msgs: list[dict], cls: dict, msg_feature: dict, feat_docs: dict, features: list[dict],
                          tix: dict, threads: Threads, ticket_sim: TfIdf, decision_rights: bool = True,
-                         log=print) -> list[dict]:
-    """5. Requirement changes and decisions from chat. Returns the changes written."""
-    changes = []
+                         log=print, keep_candidates: bool = True,
+                         min_confidence: float = MIN_CONFIDENCE) -> tuple[list[dict], list[dict]]:
+    """5. Requirement changes and decisions from chat. Returns (changes written, unverified candidates).
+
+    A change whose author lacks decision rights on its ticket is dropped, EXCEPT when that ticket was only a
+    TF-IDF guess (no ticket id in the message or its thread, and none from the extractor): then the guess may
+    be the problem, not the author, so it is kept as an unverified candidate. Candidates are
+    Requirement {status: 'candidate'} reached by SUGGESTS / MAY_AMEND, so no drift query, chain or
+    IMPLEMENTS step ever sees them; the dashboard lists them as "unverified"."""
+    changes, candidates = [], []
     for m in msgs:
         c = cls.get(m["id"]) or {}
-        if c.get("kind") not in CHANGE_KINDS or not c.get("requirement") or (c.get("confidence") or 0) < MIN_CONFIDENCE:
+        if c.get("kind") not in CHANGE_KINDS or not c.get("requirement") or (c.get("confidence") or 0) < min_confidence:
             continue
         feat = msg_feature.get(m["id"], (c.get("feature"), "llm"))[0] or c.get("feature")
         if feat not in feat_docs:
@@ -299,9 +306,17 @@ def extract_chat_changes(g, msgs: list[dict], cls: dict, msg_feature: dict, feat
         thread_mentions = [t for x in threads.members[threads.root(m["id"])] for t in x["mentions"]]
         ticket = c.get("ticket") if c.get("ticket") in f_tickets else None
         ticket = ticket or next((t for t in m["mentions"] + thread_mentions if t in f_tickets), None)
+        guessed = False
         if not ticket and f_tickets:
             ticket, _ = ticket_sim.best(f"{c['requirement']} {m['text']}", among=f_tickets)
-        if not ticket or (decision_rights and not has_decision_rights(m["author"], tix[ticket])):
+            guessed = True
+        if not ticket:
+            continue
+        if decision_rights and not has_decision_rights(m["author"], tix[ticket]):
+            if guessed and keep_candidates:
+                candidates.append({"id": f"cand:{m['id']}", "msg": m["id"], "author": m["author"], "ticket": ticket,
+                                   "feature": feat, "text": c["requirement"], "at_ms": m["ts_ms"], "at": m["ts"],
+                                   "confidence": c.get("confidence")})
             continue
         changes.append({"id": f"req:{m['id']}", "msg": m["id"], "author": m["author"], "ticket": ticket,
                         "feature": feat, "text": c["requirement"], "at_ms": m["ts_ms"], "at": m["ts"],
@@ -321,14 +336,23 @@ def extract_chat_changes(g, msgs: list[dict], cls: dict, msg_feature: dict, feat
                MERGE (p)-[:MADE]->(d)
                MERGE (d)-[:RECORDED_IN]->(m)
                MERGE (d)-[:CHANGES]->(q)""", {"cs": changes})
-    log(f"requirement changes from chat: {len(changes)} ({', '.join(c['msg'] for c in changes)})")
-    return changes
+    g.query("""UNWIND $cs AS c
+               MATCH (m:Message {id: c.msg}), (t:Ticket {id: c.ticket})
+               MERGE (q:Requirement {id: c.id})
+               SET q.text = c.text, q.at_ms = c.at_ms, q.at = c.at, q.origin = 'chat', q.status = 'candidate',
+                   q.ticket = c.ticket, q.confidence = c.confidence, q.feature = c.feature
+               MERGE (m)-[:SUGGESTS]->(q)
+               MERGE (q)-[:MAY_AMEND]->(t)""", {"cs": candidates})
+    log(f"requirement changes from chat: {len(changes)} ({', '.join(c['msg'] for c in changes)}); "
+        f"unverified candidates: {len(candidates)}")
+    return changes, candidates
 
 
 def build_supersession(g, ex, ablate: frozenset = frozenset(), latest_wins: bool = False) -> tuple[dict, list[dict]]:
     """6. SUPERSEDES chains per ticket. Returns (requirements per ticket in time order, pairs written)."""
     reqs_by_ticket = defaultdict(list)
-    for r in _rows_paged(g, """MATCH (q:Requirement) RETURN q.id AS id, q.ticket AS ticket, q.text AS text, q.origin AS origin,
+    for r in _rows_paged(g, """MATCH (q:Requirement) WHERE q.status IS NULL
+                                RETURN q.id AS id, q.ticket AS ticket, q.text AS text, q.origin AS origin,
                                                        q.at AS at, q.at_ms AS at_ms, q.confidence AS confidence
                                 ORDER BY at_ms, id"""):
         reqs_by_ticket[r["ticket"]].append(r)
@@ -377,7 +401,8 @@ def link_implements(g, ex, prs: list[dict], pr_links: dict, reqs_by_ticket: dict
 
 
 def resolve(g, extractor_name: str = "llm", semantic: str | None = None, log=print,
-            ablate: frozenset = frozenset(), decision_rights: bool = True, latest_wins: bool = False) -> dict:
+            ablate: frozenset = frozenset(), decision_rights: bool = True, latest_wins: bool = False,
+            keep_candidates: bool = True, min_confidence: float = MIN_CONFIDENCE) -> dict:
     """Runs every stage in order. `ablate` switches off graph capabilities one at a time (benchmark/ablation.py):
     threads (REPLY_TO), pr_proximity (author + time window), semantic, supersession (SUPERSEDES/IMPLEMENTS),
     implements_fallback. `decision_rights=False` lets anyone's chat message change any ticket, and
@@ -400,8 +425,8 @@ def resolve(g, extractor_name: str = "llm", semantic: str | None = None, log=pri
     cls = classify_messages(ex, msgs, threads, features, tix, log)
     msg_feature, feat_docs = assign_message_features(g, msgs, threads, features, tix, prs, pr_feature, feat_of_ticket,
                                                      cls, semantic, ablate)
-    changes = extract_chat_changes(g, msgs, cls, msg_feature, feat_docs, features, tix, threads, ticket_sim,
-                                   decision_rights, log)
+    changes, candidates = extract_chat_changes(g, msgs, cls, msg_feature, feat_docs, features, tix, threads, ticket_sim,
+                                               decision_rights, log, keep_candidates, min_confidence)
     reqs_by_ticket, pairs = build_supersession(g, ex, ablate, latest_wins)
     impl = link_implements(g, ex, prs, pr_links, reqs_by_ticket, pairs, ablate, log)
 
@@ -409,7 +434,7 @@ def resolve(g, extractor_name: str = "llm", semantic: str | None = None, log=pri
     relink(g)
 
     return {"features": features, "msg_feature": msg_feature, "pr_links": pr_links,
-            "classification": cls, "changes": changes, "implements": impl,
+            "classification": cls, "changes": changes, "candidates": candidates, "implements": impl,
             # plain-data copies of what was written, for consumers that must not read the graph (benchmark/sql_baseline.py)
             "requirements": [r for rs in reqs_by_ticket.values() for r in rs], "supersedes": pairs, "prs": prs,
             "ticket_feature": feat_of_ticket}

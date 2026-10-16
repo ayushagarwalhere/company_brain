@@ -162,3 +162,6 @@
 
 .dc__tag::before { display: none !important; }
 .chain__rel--start { text-anchor: start; font-size: 9.5px; }
+
+.cov2--req { --c: var(--n-req); }
+.cov { grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)) !important; }

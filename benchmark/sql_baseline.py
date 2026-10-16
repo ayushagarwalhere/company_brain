@@ -64,7 +64,7 @@ SELECT d.id, p.number FROM drift d JOIN pr_ticket pt ON pt.ticket = d.ticket JOI
 """
 
 SQL_CURRENT_CHAIN = "SELECT r.ticket, r.id FROM requirement r WHERE NOT EXISTS (SELECT 1 FROM supersedes s WHERE s.old = r.id)"
-GRAPH_CURRENT = "MATCH (q:Requirement) WHERE NOT (q)<-[:SUPERSEDES]-(:Requirement) RETURN q.ticket AS ticket, q.id AS id"
+GRAPH_CURRENT = "MATCH (q:Requirement) WHERE q.status IS NULL AND NOT (q)<-[:SUPERSEDES]-(:Requirement) RETURN q.ticket AS ticket, q.id AS id"
 
 
 def load(out: dict, dismissed=()) -> sqlite3.Connection:

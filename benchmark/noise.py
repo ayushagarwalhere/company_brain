@@ -106,6 +106,7 @@ def measure(g) -> dict:
     found = drift(g)
     flagged = [d["message"] for d in found]
     changes = [r["m"] for r in rows(g, "MATCH (m:Message)-[:CHANGES]->(:Requirement) RETURN m.id AS m")]
+    cands = [r["m"] for r in rows(g, "MATCH (m:Message)-[:SUGGESTS]->(:Requirement {status: 'candidate'}) RETURN m.id AS m")]
     by_kind: dict[str, int] = {}
     for m in flagged:
         if m.startswith("noise:"):
@@ -116,7 +117,9 @@ def measure(g) -> dict:
             "false_drift_alerts_by_noise_kind": dict(sorted(by_kind.items())),
             "true_drifts_found": len(GOLD_DRIFT_MESSAGES & set(flagged)), "true_drifts_total": len(GOLD_DRIFT_MESSAGES),
             "requirement_changes_from_noise": sum(m.startswith("noise:") for m in changes),
-            "requirement_changes_from_scenario": sum(not m.startswith("noise:") for m in changes)}
+            "requirement_changes_from_scenario": sum(not m.startswith("noise:") for m in changes),
+            "unverified_candidates_from_noise": sum(m.startswith("noise:") for m in cands),
+            "unverified_candidates_from_scenario": sum(not m.startswith("noise:") for m in cands)}
 
 
 def run(extractor: str = "heuristic", **resolve_kwargs) -> dict:
@@ -132,10 +135,13 @@ def run(extractor: str = "heuristic", **resolve_kwargs) -> dict:
 
 
 CONFIGS = {
-    "1. original (anyone can change a ticket; the latest chat change wins)": dict(decision_rights=False, latest_wins=True),
-    "2. + decision rights (ticket creator or assignee only)": dict(decision_rights=True, latest_wins=True),
-    "3. + decision rights + no burial (chat supersedes chat only when judged to)": dict(decision_rights=True, latest_wins=False),
+    "1. original (anyone can change a ticket; the latest chat change wins)": dict(decision_rights=False, latest_wins=True, keep_candidates=False),
+    "2. + decision rights (ticket creator or assignee only)": dict(decision_rights=True, latest_wins=True, keep_candidates=False),
+    "3. + decision rights + no burial (chat supersedes chat only when judged to)": dict(decision_rights=True, latest_wins=False, keep_candidates=False),
+    "4. + unverified candidates (non-owner change on a guessed ticket kept, not as drift)": dict(decision_rights=True, latest_wins=False, keep_candidates=True),
 }
+# MIN_CONFIDENCE sensitivity, on the current default pipeline (configuration 4)
+SWEEP = {f"min_confidence={v}": dict(decision_rights=True, latest_wins=False, keep_candidates=True, min_confidence=v) for v in (0.4, 0.6, 0.8)}
 
 
 def main():
@@ -147,7 +153,8 @@ def main():
     a = ap.parse_args()
     label = "heuristic (rules, no LLM)" if a.extractor == "heuristic" else f"llm ({model_name()})"
     out = {"noise": {"real_github_comments": N_REAL, "synthetic_on_topic": N_SYNTH, "seed": SEED},
-           "extractor": label, "configs": {name: run(a.extractor, **kw) for name, kw in CONFIGS.items()}}
+           "extractor": label, "configs": {name: run(a.extractor, **kw) for name, kw in CONFIGS.items()},
+           "min_confidence_sweep": {name: run(a.extractor, **kw) for name, kw in SWEEP.items()}}
     print(json.dumps(out, indent=1))
     name = "noise.json" if a.extractor == "heuristic" else f"noise_llm_{model_name().replace(':', '-').replace('/', '-')}.json"
     (HERE / "results" / name).write_text(json.dumps(out, indent=1), encoding="utf-8")

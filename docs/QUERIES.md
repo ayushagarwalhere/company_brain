@@ -33,6 +33,7 @@ Drift definition (time-ordered path query):
 - [`ORPHAN_PRS`](#orphan_prs): Coverage: merged work that no ticket explains
 - [`DONE_WITHOUT_PR`](#done_without_pr): Coverage: tickets closed as Done with no PR referencing them
 - [`UNDISCUSSED_TICKETS`](#undiscussed_tickets): Coverage: tickets no chat message ever mentions
+- [`UNVERIFIED_CHANGES`](#unverified_changes): Unverified changes: a chat message that reads as a requirement change, from someone who doesn't own the ticket it was matched to, where that ticket was only a text-similarity guess. Kept visible instead of dropped; never counted as drift.
 - [`KNOWLEDGE_RISK`](#knowledge_risk): Knowledge concentration ("bus factor"): share of a feature's weighted involvement held by its top person
 - [`FEATURE_EVENTS`](#feature_events): Everything on a feature's time axis: requirement versions (ticket + chat) and PRs
 - [`DRIFT_FOR_TICKET`](#drift_for_ticket): Same query anchored on one ticket: starts from the Requirement(ticket) index instead of a label scan
@@ -224,6 +225,18 @@ Coverage: tickets no chat message ever mentions
 MATCH (t:Ticket) WHERE NOT (:Message)-[:MENTIONS]->(t)
 OPTIONAL MATCH (t)-[:ABOUT]->(f:Feature)
 RETURN t.id AS ticket, t.title AS title, t.state AS state, f.name AS feature ORDER BY ticket
+```
+
+Used by: [`api/main.py`](../api/main.py)
+
+## UNVERIFIED_CHANGES
+
+Unverified changes: a chat message that reads as a requirement change, from someone who doesn't own the ticket it was matched to, where that ticket was only a text-similarity guess. Kept visible instead of dropped; never counted as drift.
+
+```cypher
+MATCH (p:Person)-[:POSTED]->(m:Message)-[:SUGGESTS]->(q:Requirement {status: 'candidate'})-[:MAY_AMEND]->(t:Ticket)
+RETURN q.id AS id, q.text AS text, q.at AS at, m.id AS message, m.source AS source, m.channel AS channel,
+       p.id AS author, t.id AS ticket, t.title AS ticket_title ORDER BY q.at_ms DESC
 ```
 
 Used by: [`api/main.py`](../api/main.py)

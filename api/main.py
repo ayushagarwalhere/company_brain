@@ -284,6 +284,7 @@ def _coverage():
         "orphan_prs": Q.rows(g, Q.ORPHAN_PRS),
         "done_without_pr": Q.rows(g, Q.DONE_WITHOUT_PR),
         "undiscussed_tickets": Q.rows(g, Q.UNDISCUSSED_TICKETS),
+        "unverified_changes": Q.rows(g, Q.UNVERIFIED_CHANGES),
         "knowledge_risk": Q.rows(g, Q.KNOWLEDGE_RISK),
     }
 

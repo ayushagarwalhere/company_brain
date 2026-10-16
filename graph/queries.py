@@ -161,6 +161,14 @@ OPTIONAL MATCH (t)-[:ABOUT]->(f:Feature)
 RETURN t.id AS ticket, t.title AS title, t.state AS state, f.name AS feature ORDER BY ticket
 """
 
+# Unverified changes: a chat message that reads as a requirement change, from someone who doesn't own the ticket it was
+# matched to, where that ticket was only a text-similarity guess. Kept visible instead of dropped; never counted as drift.
+UNVERIFIED_CHANGES = """
+MATCH (p:Person)-[:POSTED]->(m:Message)-[:SUGGESTS]->(q:Requirement {status: 'candidate'})-[:MAY_AMEND]->(t:Ticket)
+RETURN q.id AS id, q.text AS text, q.at AS at, m.id AS message, m.source AS source, m.channel AS channel,
+       p.id AS author, t.id AS ticket, t.title AS ticket_title ORDER BY q.at_ms DESC
+"""
+
 # Knowledge concentration ("bus factor"): share of a feature's weighted involvement held by its top person
 KNOWLEDGE_RISK = """
 MATCH (f:Feature)

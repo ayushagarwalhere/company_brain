@@ -36,6 +36,7 @@ export type Coverage = {
   done_without_pr: { ticket: string; title: string; owner: string | null }[];
   undiscussed_tickets: { ticket: string; title: string; state: string; feature: string | null }[];
   knowledge_risk: { feature: string; name: string; top_person: string; top_share: number; people: number; total: number }[];
+  unverified_changes?: { id: string; text: string; at: string; message: string; author: string; ticket: string; ticket_title: string }[];
 };
 export type AskResult = {
   answer: string; tool_calls: { tool: string; args: Record<string, string>; rows: number }[]; paths: string[];

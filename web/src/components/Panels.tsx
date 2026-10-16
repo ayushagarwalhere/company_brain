@@ -348,6 +348,7 @@ const COV_ICON = {
   orphan: <svg viewBox="0 0 24 24" aria-hidden><path d="M12 3 L21 12 L12 21 L3 12 Z" /><path d="M16 8 L8 16" /></svg>,
   done: <svg viewBox="0 0 24 24" aria-hidden><rect x="5" y="5" width="14" height="14" /><path d="M8.5 12.5 L11 15 L15.5 9.5" /></svg>,
   silent: <svg viewBox="0 0 24 24" aria-hidden><path d="M4 6 h16 v10 h-9 l-4 3 v-3 h-3 z" /><path d="M8 11 h8" /></svg>,
+  unverified: <svg viewBox="0 0 24 24" aria-hidden><circle cx="12" cy="12" r="8" /><path d="M10 9.5 a2 2 0 1 1 2.5 2 v1.5" /><path d="M12 16 v.5" /></svg>,
 };
 
 function CovCard({ tone, icon, title, sub, items }: { tone: string; icon: React.ReactNode; title: string; sub: string; items: React.ReactNode[] }) {
@@ -376,6 +377,8 @@ export function CoverageSection() {
             items={c.done_without_pr.map((x) => <><span className="mono">{x.ticket}</span> {x.title}</>)} />
           <CovCard tone="msg" icon={COV_ICON.silent} title="Never discussed" sub="tickets no message mentions"
             items={c.undiscussed_tickets.map((x) => <><span className="mono">{x.ticket}</span> {x.title} <span className="muted">· {x.state}</span></>)} />
+          <CovCard tone="req" icon={COV_ICON.unverified} title="Unverified changes" sub="decisions by non-owners on a guessed ticket"
+            items={(c.unverified_changes || []).map((x) => <><span className="mono">{x.ticket}?</span> “{x.text}” <span className="muted">· {x.author}</span></>)} />
         </div>
         <div className="mono kicker risk__h">Knowledge concentration · share of a feature's involvement held by one person</div>
         {c.knowledge_risk.map((r) => {
