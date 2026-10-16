@@ -7,11 +7,11 @@ data/llm_cache/ are reused, so a committed cache reproduces the published run
 without a key. With neither, it falls back to the rule-based heuristic extractor,
 and the dashboard says which one built the graph.
 """
+
 import os
 import time
 
 import uvicorn
-
 from config import settings
 from graph.db import get_db, get_graph
 from pipeline.llm import CACHE_DIR
@@ -40,13 +40,16 @@ def ensure_graph():
         return
     from pipeline.ingest import ingest
     from pipeline.resolve import resolve
+
     has_cache = CACHE_DIR.exists() and any(CACHE_DIR.glob("*.json"))
     from pipeline import llm
+
     extractor = "deepseek" if (llm.available() or has_cache) else "heuristic"
     print(f"building graph with {extractor} extraction ...")
     ingest(reset=True)
     resolve(get_graph(), extractor)
     from pipeline.build import mark_build
+
     mark_build(get_graph(), extractor)
 
 
