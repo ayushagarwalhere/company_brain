@@ -23,9 +23,8 @@ from pipeline.events import from_ms
 from pipeline.extract import CHANGE_KINDS, HeuristicExtractor, get_extractor
 from pipeline.textsim import TfIdf, tokens
 
-MIN_CONFIDENCE = 0.6  # below this an extracted "change" is not written (same bar as the live monitor)
-MSG_SIM_THRESHOLD = 0.22
-PR_SIM_THRESHOLD = 0.25
+from config import IMPL_SIM_THRESHOLD, MIN_CONFIDENCE, MSG_SIM_THRESHOLD, PR_SIM_THRESHOLD  # noqa: F401 - re-exported
+
 DAY_MS = 86_400_000
 
 
@@ -124,7 +123,6 @@ def reset_derived(g):
 
 
 ABLATIONS = {"threads", "pr_proximity", "semantic", "supersession", "implements_fallback"}
-IMPL_SIM_THRESHOLD = 0.25  # time-aware IMPLEMENTS fallback: PR text vs. the new requirement
 
 
 def has_decision_rights(author: str | None, ticket: dict) -> bool:

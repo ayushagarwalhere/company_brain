@@ -17,9 +17,11 @@ def main():
     lines = text.splitlines()
     tree = ast.parse(text)
     queries = []
+    import graph.queries as module  # final values, including queries assembled from shared fragments (WEIGHT_EXPR)
     for node in tree.body:
         if (isinstance(node, ast.Assign) and len(node.targets) == 1 and isinstance(node.targets[0], ast.Name)
-                and node.targets[0].id.isupper() and isinstance(node.value, ast.Constant) and isinstance(node.value.value, str)):
+                and node.targets[0].id.isupper() and isinstance(getattr(module, node.targets[0].id, None), str)
+                and node.targets[0].id != "WEIGHT_EXPR"):
             name = node.targets[0].id
             comment, i = [], node.lineno - 2
             while i >= 0 and lines[i].lstrip().startswith("#"):
@@ -31,7 +33,7 @@ def main():
             used = sorted({str(p.relative_to(ROOT)).replace("\\", "/")
                            for d in SEARCH_DIRS for p in (ROOT / d).rglob("*.py")
                            if p != SRC and re.search(pattern, p.read_text(encoding="utf-8"))})
-            queries.append((name, " ".join(comment), node.value.value.strip(), used))
+            queries.append((name, " ".join(comment), getattr(module, name).strip(), used))
 
     doc = ast.get_docstring(tree) or ""
     out = ["# Cypher queries the product depends on", "",

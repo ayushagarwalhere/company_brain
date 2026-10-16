@@ -56,5 +56,16 @@ settings = Settings()
 
 
 # ---------------------------------------------------------------- tuning constants (one place, with reasons)
+# Extraction: an extracted "requirement change" below this confidence is not written as a change, in the batch
+# build and in the live monitor alike. The rules extractor emits 0.7 for every change it finds.
+MIN_CONFIDENCE = 0.6
+# Resolution: minimum TF-IDF similarity (0..1) for the semantic signals, used only when no hard link exists.
+MSG_SIM_THRESHOLD = 0.22   # message -> feature, when the message names no ticket and its thread has no feature
+PR_SIM_THRESHOLD = 0.25    # PR -> ticket, among tickets its author owned around the PR's time
+IMPL_SIM_THRESHOLD = 0.25  # time-aware IMPLEMENTS fallback: PR text vs. the new chat requirement
 # Rules agent: minimum TF-IDF similarity between a question and a feature's name/titles to call it a match.
 ROUTER_FEATURE_MIN_SIM = 0.12
+# Involvement weights for "who knows" and knowledge risk (bus factor): one source for both queries.
+# Making a decision says more about ownership than writing a PR, a PR more than a ticket, a ticket more than a message.
+INVOLVEMENT_WEIGHTS = {"Decision": 5, "PullRequest": 4, "Ticket": 3}
+INVOLVEMENT_DEFAULT_WEIGHT = 1  # messages

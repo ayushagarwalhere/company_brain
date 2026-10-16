@@ -11,6 +11,11 @@ Drift definition (time-ordered path query):
   mentioning the ticket that were last updated before the change (stale docs).
 """
 
+# One source for the involvement weights (config.INVOLVEMENT_WEIGHTS), used by WHO_KNOWS and KNOWLEDGE_RISK.
+from config import INVOLVEMENT_DEFAULT_WEIGHT, INVOLVEMENT_WEIGHTS
+WEIGHT_EXPR = ("CASE " + " ".join(f"WHEN x:{label} THEN {w}" for label, w in INVOLVEMENT_WEIGHTS.items())
+               + f" ELSE {INVOLVEMENT_DEFAULT_WEIGHT} END")
+
 # The core query: chat-originated requirements that are still current, unimplemented and not dismissed, with evidence.
 DRIFT = """
 MATCH (m:Message)-[:CHANGES]->(r:Requirement)-[:AMENDS]->(t:Ticket)-[:ABOUT]->(f:Feature)
@@ -103,10 +108,10 @@ WHO_KNOWS = """
 MATCH (f:Feature {id: $feature})
 MATCH (p:Person)-[rel:POSTED|AUTHORED|MADE]->(x)
 WHERE (x)-[:ABOUT]->(f) OR (x)-[:CHANGES]->(:Requirement)-[:ABOUT]->(f)
-WITH p, x, CASE WHEN x:Decision THEN 5 WHEN x:PullRequest THEN 4 WHEN x:Ticket THEN 3 ELSE 1 END AS w
+WITH p, x, __W__ AS w
 RETURN p.id AS person, p.name AS name, p.role AS role, sum(w) AS score, count(x) AS items
 ORDER BY score DESC
-"""
+""".replace("__W__", WEIGHT_EXPR)
 
 # Impact: everything reachable downstream of a decision (requirement -> ticket -> PRs, people)
 DECISION_IMPACT = """
@@ -161,13 +166,13 @@ KNOWLEDGE_RISK = """
 MATCH (f:Feature)
 MATCH (p:Person)-[:POSTED|AUTHORED|MADE]->(x)
 WHERE (x)-[:ABOUT]->(f) OR (x)-[:CHANGES]->(:Requirement)-[:ABOUT]->(f)
-WITH f, p, sum(CASE WHEN x:Decision THEN 5 WHEN x:PullRequest THEN 4 WHEN x:Ticket THEN 3 ELSE 1 END) AS w
+WITH f, p, sum(__W__) AS w
 ORDER BY w DESC
 WITH f, collect({person: p.id, name: p.name, w: w}) AS people, sum(w) AS total
 RETURN f.id AS feature, f.name AS name, people[0].name AS top_person, people[0].w * 1.0 / total AS top_share,
        size(people) AS people, total
 ORDER BY top_share DESC
-"""
+""".replace("__W__", WEIGHT_EXPR)
 
 # Everything on a feature's time axis: requirement versions (ticket + chat) and PRs
 FEATURE_EVENTS = """

@@ -23,7 +23,7 @@ from pipeline.extract import CHANGE_KINDS, HeuristicExtractor  # noqa: F401 - re
 from pipeline.resolve import has_decision_rights
 from pipeline.textsim import TfIdf
 
-from pipeline.resolve import MIN_CONFIDENCE  # noqa: E402 - one threshold for batch and live
+from config import MIN_CONFIDENCE  # noqa: E402 - one threshold for batch and live
 TICKET_COOLDOWN_S = 300
 _last_alert: dict[str, float] = {}
 

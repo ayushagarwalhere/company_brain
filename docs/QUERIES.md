@@ -35,6 +35,7 @@ Drift definition (time-ordered path query):
 - [`UNDISCUSSED_TICKETS`](#undiscussed_tickets): Coverage: tickets no chat message ever mentions
 - [`KNOWLEDGE_RISK`](#knowledge_risk): Knowledge concentration ("bus factor"): share of a feature's weighted involvement held by its top person
 - [`FEATURE_EVENTS`](#feature_events): Everything on a feature's time axis: requirement versions (ticket + chat) and PRs
+- [`DRIFT_FOR_TICKET`](#drift_for_ticket): Same query anchored on one ticket: starts from the Requirement(ticket) index instead of a label scan
 
 ## DRIFT
 
@@ -67,7 +68,7 @@ RETURN f.id AS feature, f.name AS feature_name, t.id AS ticket, t.title AS ticke
 ORDER BY changed_ms
 ```
 
-Used by: [`agent/retro.py`](../agent/retro.py), [`agent/tools.py`](../agent/tools.py), [`api/main.py`](../api/main.py), [`benchmark/noise.py`](../benchmark/noise.py), [`benchmark/real_data.py`](../benchmark/real_data.py), [`benchmark/scale.py`](../benchmark/scale.py), [`benchmark/score_resolution.py`](../benchmark/score_resolution.py), [`bots/digest.py`](../bots/digest.py), [`graph/explore.py`](../graph/explore.py), [`pipeline/actions.py`](../pipeline/actions.py), [`pipeline/build.py`](../pipeline/build.py), [`pipeline/live.py`](../pipeline/live.py), [`pipeline/webhooks.py`](../pipeline/webhooks.py)
+Used by: [`agent/retro.py`](../agent/retro.py), [`agent/tools.py`](../agent/tools.py), [`api/main.py`](../api/main.py), [`benchmark/noise.py`](../benchmark/noise.py), [`benchmark/real_data.py`](../benchmark/real_data.py), [`benchmark/scale.py`](../benchmark/scale.py), [`benchmark/score_resolution.py`](../benchmark/score_resolution.py), [`benchmark/sql_baseline.py`](../benchmark/sql_baseline.py), [`bots/digest.py`](../bots/digest.py), [`graph/explore.py`](../graph/explore.py), [`pipeline/actions.py`](../pipeline/actions.py), [`pipeline/build.py`](../pipeline/build.py), [`pipeline/live.py`](../pipeline/live.py), [`pipeline/webhooks.py`](../pipeline/webhooks.py)
 
 ## SPRINT_DECISIONS
 
@@ -273,6 +274,38 @@ RETURN lane, id, at, title, text, ref, who ORDER BY at
 ```
 
 Used by: [`api/main.py`](../api/main.py)
+
+## DRIFT_FOR_TICKET
+
+Same query anchored on one ticket: starts from the Requirement(ticket) index instead of a label scan
+
+```cypher
+MATCH (r:Requirement {ticket: $ticket})
+MATCH (m:Message)-[:CHANGES]->(r)-[:AMENDS]->(t:Ticket)-[:ABOUT]->(f:Feature)
+WHERE NOT (r)<-[:SUPERSEDES]-(:Requirement)
+  AND NOT (:PullRequest)-[:IMPLEMENTS]->(r)
+  AND NOT (:Decision)-[:DISMISSES]->(r)
+  AND ($feature IS NULL OR f.id = $feature)
+  AND ($ticket IS NULL OR t.id = $ticket)
+MATCH (author:Person)-[:POSTED]->(m)
+OPTIONAL MATCH (r)-[:SUPERSEDES]->(prev:Requirement)
+OPTIONAL MATCH (d:Decision)-[:CHANGES]->(r)
+OPTIONAL MATCH (pr:PullRequest)-[:REFERENCES]->(t)
+OPTIONAL MATCH (pr)-[:IMPLEMENTS]->(old:Requirement)
+OPTIONAL MATCH (doc:Document)-[:MENTIONS]->(t) WHERE doc.updated_ms < r.at_ms
+RETURN f.id AS feature, f.name AS feature_name, t.id AS ticket, t.title AS ticket_title, t.url AS ticket_url,
+       t.description AS ticket_text, t.desc_updated_ms AS ticket_updated_ms,
+       r.id AS requirement, r.text AS requirement_text, r.at AS changed_at,
+       m.id AS message, m.text AS message_text, m.url AS message_url, m.source AS source, m.channel AS channel,
+       author.id AS changed_by, d.id AS decision,
+       prev.text AS previous_requirement,
+       r.at_ms AS changed_ms,
+       collect(DISTINCT {pr: pr.number, title: pr.title, url: pr.url, merged: pr.merged,
+                         merged_after: coalesce(pr.merged_ms, pr.created_ms) > r.at_ms,
+                         implements: old.text}) AS stale_prs,
+       collect(DISTINCT {id: doc.id, title: doc.title, updated: doc.updated, url: doc.url}) AS stale_docs
+ORDER BY changed_ms
+```
 
 ## Also used
 
