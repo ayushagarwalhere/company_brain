@@ -13,6 +13,9 @@ Resolution signals, applied in order, each recorded on the edge as `via`:
   1. hard       ticket ids in text (MENTIONS / REFERENCES from ingestion)
   2. proximity  thread structure for messages; shared person + time window for PRs
   3. semantic   LLM feature guess (deepseek) or TF-IDF over feature text (fallback)
+
+resolve() runs one function per stage (group_features ... link_implements); each takes explicit inputs,
+writes its part of the graph and returns explicit outputs.
 """
 from collections import defaultdict
 
@@ -131,20 +134,10 @@ def has_decision_rights(author: str | None, ticket: dict) -> bool:
     return author is not None and author in (ticket.get("creator"), ticket.get("assignee"))
 
 
-def resolve(g, extractor_name: str = "llm", semantic: str | None = None, log=print,
-            ablate: frozenset = frozenset(), decision_rights: bool = True, latest_wins: bool = False) -> dict:
-    """`ablate` switches off graph capabilities one at a time (benchmark/ablation.py):
-    threads (REPLY_TO), pr_proximity (author + time window), semantic, supersession (SUPERSEDES/IMPLEMENTS).
-    `decision_rights=False` lets anyone's chat message change any ticket, and `latest_wins=True` lets every chat
-    change supersede the open ones: both are the behaviour before benchmark/noise.py, kept to reproduce it."""
-    assert set(ablate) <= ABLATIONS, ablate
-    ex = get_extractor(extractor_name)
-    semantic = semantic or ("llm" if extractor_name in ("llm", "deepseek") else "tfidf")
-    reset_derived(g)
-    tickets = load_tickets(g)
-    tix = {t["id"]: t for t in tickets}
+# ---------------------------------------------------------------- stages
 
-    # 1. Features from tickets ------------------------------------------------
+def group_features(g, ex, tickets: list[dict], tix: dict, log=print) -> tuple[list[dict], dict]:
+    """1. Features from tickets. Returns (features, feature id per ticket)."""
     features = ex.group_tickets([{"id": t["id"], "title": t["title"], "description": t["description"],
                                   "labels": t["labels"] or []} for t in tickets])
     feat_of_ticket = {}
@@ -157,8 +150,11 @@ def resolve(g, extractor_name: str = "llm", semantic: str | None = None, log=pri
                MERGE (t)-[:ABOUT {via: 'grouping'}]->(f)""",
             {"pairs": [{"t": t, "f": f} for t, f in feat_of_ticket.items()]})
     log(f"features: {len(features)} ({', '.join(f['id'] for f in features)})")
+    return features, feat_of_ticket
 
-    # 2. Ticket requirements: one Requirement per description version ----------
+
+def write_ticket_requirements(g, tickets: list[dict], feat_of_ticket: dict) -> list[dict]:
+    """2. One Requirement per ticket description version. Returns the rows written."""
     req_rows = []
     for t in tickets:
         for i, (text, at) in enumerate(zip(t["versions"] or [t["description"]], t["version_times"] or [t["created_ms"]])):
@@ -170,10 +166,13 @@ def resolve(g, extractor_name: str = "llm", semantic: str | None = None, log=pri
                MERGE (t)-[:STATES {at_ms: r.at_ms}]->(q)""", {"rs": req_rows})
     g.query("""UNWIND $rs AS r WITH r WHERE r.feature IS NOT NULL
                MATCH (q:Requirement {id: r.id}), (f:Feature {id: r.feature}) MERGE (q)-[:ABOUT]->(f)""", {"rs": req_rows})
+    return req_rows
 
-    # 3. PRs -> tickets (proximity + semantic for unlinked) -> features ---------
-    prs = load_prs(g)
-    ticket_sim = TfIdf({t["id"]: f"{t['title']} {t['description']}" for t in tickets})
+
+def link_prs(g, prs: list[dict], tickets: list[dict], feat_of_ticket: dict, ticket_sim: TfIdf,
+             ablate: frozenset = frozenset()) -> tuple[dict, dict]:
+    """3. PRs -> tickets (hard ids; proximity + semantic for PRs that name none) -> features, and docs -> features.
+    Returns (pr_links {pr: [(ticket, via, score)]}, pr_feature {pr: (feature, via)})."""
     pr_links = {}
     for pr in prs:
         if pr["refs"]:
@@ -199,41 +198,53 @@ def resolve(g, extractor_name: str = "llm", semantic: str | None = None, log=pri
     g.query("""UNWIND $ps AS p MATCH (pr:PullRequest {id: p.pr}), (f:Feature {id: p.f})
                MERGE (pr)-[:ABOUT {via: p.via}]->(f)""",
             {"ps": [{"pr": p, "f": f, "via": v} for p, (f, v) in pr_feature.items()]})
-
     # Docs: hard link through the tickets they mention
     g.query("""MATCH (d:Document)-[:MENTIONS]->(:Ticket)-[:ABOUT]->(f:Feature)
                MERGE (d)-[:ABOUT {via: 'hard'}]->(f)""")
+    return pr_links, pr_feature
 
-    # 4. Messages -> features ---------------------------------------------------
-    msgs = load_messages(g)
-    by_id = {m["id"]: m for m in msgs}
 
-    def root(mid):
-        if "threads" in ablate:
+class Threads:
+    """Reply chains: every message's thread root, and the members of each thread."""
+
+    def __init__(self, msgs: list[dict], ablate: frozenset = frozenset()):
+        self.off = "threads" in ablate
+        self.by_id = {m["id"]: m for m in msgs}
+        self.members = defaultdict(list)
+        for m in msgs:
+            self.members[self.root(m["id"])].append(m)
+
+    def root(self, mid: str) -> str:
+        if self.off:
             return mid
         seen = set()
-        while by_id.get(mid, {}).get("parent") and mid not in seen:
+        while self.by_id.get(mid, {}).get("parent") and mid not in seen:
             seen.add(mid)
-            mid = by_id[mid]["parent"]
+            mid = self.by_id[mid]["parent"]
         return mid
 
-    threads = defaultdict(list)
-    for m in msgs:
-        threads[root(m["id"])].append(m)
 
-    # Extraction first: the LLM also proposes a feature (semantic signal) for deepseek mode
+def classify_messages(ex, msgs: list[dict], threads: Threads, features: list[dict], tix: dict, log=print) -> dict:
+    """The extractor's judgment per message, with up to 6 earlier thread messages as context.
+    Runs before feature assignment because the LLM's feature guess is a semantic signal there."""
     feat_ctx = [{**f, "ticket_objs": [{"id": t, "title": tix[t]["title"], "description": tix[t]["description"]}
                                       for t in f["tickets"]]} for f in features]
     items = []
     for m in msgs:
         if len(tokens(m["text"])) < 3 and not m["mentions"]:
             continue
-        thread = [x for x in threads[root(m["id"])] if x["ts_ms"] < m["ts_ms"]][-6:]
+        thread = [x for x in threads.members[threads.root(m["id"])] if x["ts_ms"] < m["ts_ms"]][-6:]
         items.append({"id": m["id"], "author": m["author"], "ts": m["ts"], "text": m["text"],
                       "thread": [{"author": x["author"], "text": x["text"]} for x in thread]})
     log(f"classifying {len(items)} messages with {ex.name} ...")
-    cls = ex.classify(items, feat_ctx)
+    return ex.classify(items, feat_ctx)
 
+
+def assign_message_features(g, msgs: list[dict], threads: Threads, features: list[dict], tix: dict, prs: list[dict],
+                            pr_feature: dict, feat_of_ticket: dict, cls: dict, semantic: str,
+                            ablate: frozenset = frozenset()) -> tuple[dict, dict]:
+    """4. Messages -> features: hard (ticket id), then thread, then semantic.
+    Returns (msg_feature {msg: (feature, via)}, feat_docs {feature: text})."""
     feat_docs = {}
     for f in features:
         parts = [f"{tix[t]['title']} {' '.join(tix[t]['versions'] or [tix[t]['description']])}" for t in f["tickets"]]
@@ -246,7 +257,7 @@ def resolve(g, extractor_name: str = "llm", semantic: str | None = None, log=pri
         fs = [feat_of_ticket[t] for t in m["mentions"] if t in feat_of_ticket]
         if fs:
             msg_feature[m["id"]] = (fs[0], "hard")
-    for r, members in threads.items():  # signal 2: proximity (same thread)
+    for _, members in threads.members.items():  # signal 2: proximity (same thread)
         linked = [msg_feature[x["id"]][0] for x in members if x["id"] in msg_feature]
         if linked:
             for x in members:
@@ -264,15 +275,20 @@ def resolve(g, extractor_name: str = "llm", semantic: str | None = None, log=pri
             if f and s >= MSG_SIM_THRESHOLD:
                 msg_feature[m["id"]] = (f, f"semantic:tfidf:{s:.2f}")
     # a root that got a feature semantically passes it to its unlinked replies
-    for r, members in threads.items():
+    for r, members in threads.members.items():
         if r in msg_feature:
             for x in members:
                 msg_feature.setdefault(x["id"], (msg_feature[r][0], "thread"))
     g.query("""UNWIND $ms AS x MATCH (m:Message {id: x.m}), (f:Feature {id: x.f})
                MERGE (m)-[:ABOUT {via: x.via}]->(f)""",
             {"ms": [{"m": m, "f": f, "via": v} for m, (f, v) in msg_feature.items()]})
+    return msg_feature, feat_docs
 
-    # 5. Requirement changes and decisions from chat ------------------------------
+
+def extract_chat_changes(g, msgs: list[dict], cls: dict, msg_feature: dict, feat_docs: dict, features: list[dict],
+                         tix: dict, threads: Threads, ticket_sim: TfIdf, decision_rights: bool = True,
+                         log=print) -> list[dict]:
+    """5. Requirement changes and decisions from chat. Returns the changes written."""
     changes = []
     for m in msgs:
         c = cls.get(m["id"]) or {}
@@ -282,7 +298,7 @@ def resolve(g, extractor_name: str = "llm", semantic: str | None = None, log=pri
         if feat not in feat_docs:
             continue
         f_tickets = [t for t in next(f for f in features if f["id"] == feat)["tickets"] if tix[t]["created_ms"] <= m["ts_ms"]]
-        thread_mentions = [t for x in threads[root(m["id"])] for t in x["mentions"]]
+        thread_mentions = [t for x in threads.members[threads.root(m["id"])] for t in x["mentions"]]
         ticket = c.get("ticket") if c.get("ticket") in f_tickets else None
         ticket = ticket or next((t for t in m["mentions"] + thread_mentions if t in f_tickets), None)
         if not ticket and f_tickets:
@@ -308,19 +324,27 @@ def resolve(g, extractor_name: str = "llm", semantic: str | None = None, log=pri
                MERGE (d)-[:RECORDED_IN]->(m)
                MERGE (d)-[:CHANGES]->(q)""", {"cs": changes})
     log(f"requirement changes from chat: {len(changes)} ({', '.join(c['msg'] for c in changes)})")
+    return changes
 
-    # 6. SUPERSEDES chains per ticket ----------------------------------------------
+
+def build_supersession(g, ex, ablate: frozenset = frozenset(), latest_wins: bool = False) -> tuple[dict, list[dict]]:
+    """6. SUPERSEDES chains per ticket. Returns (requirements per ticket in time order, pairs written)."""
     reqs_by_ticket = defaultdict(list)
     for r in _rows_paged(g, """MATCH (q:Requirement) RETURN q.id AS id, q.ticket AS ticket, q.text AS text, q.origin AS origin,
                                                        q.at AS at, q.at_ms AS at_ms, q.confidence AS confidence
                                 ORDER BY at_ms, id"""):
         reqs_by_ticket[r["ticket"]].append(r)
+    replaces = (lambda n, o: True) if latest_wins else ex.replaces
     pairs = [] if "supersession" in ablate else [
-        p for chain in reqs_by_ticket.values() for p in supersession_pairs(chain, ex.reflects, (lambda n, o: True) if latest_wins else ex.replaces)]
+        p for chain in reqs_by_ticket.values() for p in supersession_pairs(chain, ex.reflects, replaces)]
     g.query("""UNWIND $ps AS p MATCH (n:Requirement {id: p.new}), (o:Requirement {id: p.old})
                MERGE (n)-[:SUPERSEDES]->(o)""", {"ps": pairs})
+    return reqs_by_ticket, pairs
 
-    # 7. IMPLEMENTS: which requirement version each PR actually delivers ----------
+
+def link_implements(g, ex, prs: list[dict], pr_links: dict, reqs_by_ticket: dict, pairs: list[dict],
+                    ablate: frozenset = frozenset(), log=print) -> list[dict]:
+    """7. IMPLEMENTS: which requirement version each PR actually delivers. Returns every edge written."""
     impl = []
     for pr in prs:
         tickets_for_pr = [t for t, _, _ in pr_links.get(pr["id"], [])]
@@ -351,10 +375,39 @@ def resolve(g, extractor_name: str = "llm", semantic: str | None = None, log=pri
                MERGE (pr)-[e:IMPLEMENTS]->(q) SET e.via = x.via""",
             {"xs": [{**x, "via": "extractor"} for x in impl] + [{**x, "via": "time+semantic"} for x in fallback]})
     log(f"IMPLEMENTS edges: {len(impl)} from the extractor, {len(fallback)} from the time-aware fallback")
-    impl = impl + fallback
+    return impl + fallback
 
-    # 8. Human actions (dismissals, write-backs) re-attached by stable id ------------
-    from pipeline.human import relink
+
+def resolve(g, extractor_name: str = "llm", semantic: str | None = None, log=print,
+            ablate: frozenset = frozenset(), decision_rights: bool = True, latest_wins: bool = False) -> dict:
+    """Runs every stage in order. `ablate` switches off graph capabilities one at a time (benchmark/ablation.py):
+    threads (REPLY_TO), pr_proximity (author + time window), semantic, supersession (SUPERSEDES/IMPLEMENTS),
+    implements_fallback. `decision_rights=False` lets anyone's chat message change any ticket, and
+    `latest_wins=True` lets every chat change supersede the open ones: both are the behaviour before
+    benchmark/noise.py, kept to reproduce it."""
+    assert set(ablate) <= ABLATIONS, ablate
+    ex = get_extractor(extractor_name)
+    semantic = semantic or ("llm" if extractor_name in ("llm", "deepseek") else "tfidf")
+    reset_derived(g)
+    tickets = load_tickets(g)
+    tix = {t["id"]: t for t in tickets}
+
+    features, feat_of_ticket = group_features(g, ex, tickets, tix, log)
+    write_ticket_requirements(g, tickets, feat_of_ticket)
+    prs = load_prs(g)
+    ticket_sim = TfIdf({t["id"]: f"{t['title']} {t['description']}" for t in tickets})
+    pr_links, pr_feature = link_prs(g, prs, tickets, feat_of_ticket, ticket_sim, ablate)
+    msgs = load_messages(g)
+    threads = Threads(msgs, ablate)
+    cls = classify_messages(ex, msgs, threads, features, tix, log)
+    msg_feature, feat_docs = assign_message_features(g, msgs, threads, features, tix, prs, pr_feature, feat_of_ticket,
+                                                     cls, semantic, ablate)
+    changes = extract_chat_changes(g, msgs, cls, msg_feature, feat_docs, features, tix, threads, ticket_sim,
+                                   decision_rights, log)
+    reqs_by_ticket, pairs = build_supersession(g, ex, ablate, latest_wins)
+    impl = link_implements(g, ex, prs, pr_links, reqs_by_ticket, pairs, ablate, log)
+
+    from pipeline.human import relink  # 8. human actions (dismissals, write-backs) re-attached by stable id
     relink(g)
 
     return {"features": features, "msg_feature": msg_feature, "pr_links": pr_links,
