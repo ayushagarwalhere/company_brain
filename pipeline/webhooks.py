@@ -105,3 +105,24 @@ def pr_event(g, payload: dict) -> dict:
     resolved = sorted(r for t in tickets for r in before[t] - _drift_ids(g, t))
     return {"status": "linked" if tickets else "no-ticket", "pr": ev.extra["number"], "tickets": tickets,
             "implements": implemented, "resolved": resolved, "at": from_ms(cutoff)}
+
+
+def doc_updated(g, doc_id: str, text: str, actor: str = "maya", title: str | None = None, at: str | None = None) -> dict:
+    """A doc (PRD, design note) was edited: new text + updated time. Docs count as stale for a drift when they
+    were last updated before the chat change, so an edit after the decision clears the stale flag."""
+    d = Q.rows(g, "MATCH (d:Document {id: $id}) OPTIONAL MATCH (d)-[:MENTIONS]->(t:Ticket) RETURN d.title AS title, collect(t.id) AS tickets", id=doc_id)
+    if not d:
+        raise ValueError(f"unknown doc {doc_id}")
+    tickets = d[0]["tickets"]
+    stale_before = {x["id"] for t in tickets for dr in Q.drift(g, ticket=t) for x in dr["stale_docs"]}
+    at = at or _now_iso()
+    g.query("""MATCH (d:Document {id: $id})
+               SET d.text = $text, d.title = coalesce($title, d.title), d.updated = $at, d.updated_ms = $ms""",
+            {"id": doc_id, "text": text, "title": title, "at": at, "ms": to_ms(at)})
+    from pipeline.events import find_ticket_refs
+    new_refs = [r for r in find_ticket_refs(text) if r not in tickets]
+    g.query("""UNWIND $refs AS ref MATCH (d:Document {id: $id}), (t:Ticket {id: ref}) MERGE (d)-[:MENTIONS]->(t)""",
+            {"id": doc_id, "refs": new_refs})
+    stale_after = {x["id"] for t in tickets + new_refs for dr in Q.drift(g, ticket=t) for x in dr["stale_docs"]}
+    return {"status": "updated", "doc": doc_id, "by": actor, "no_longer_stale": doc_id in stale_before and doc_id not in stale_after,
+            "tickets": tickets + new_refs}

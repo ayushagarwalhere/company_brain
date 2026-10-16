@@ -253,6 +253,7 @@ python -m bots.digest --discord 1234567890   # post to Discord (REST, no gateway
 | Endpoint | What it does |
 |---|---|
 | `POST /api/ingest/ticket` `{ticket, description, actor}` | Ticket-tracker webhook (Linear/Jira-style). Adds the new description as a `Requirement` version (`STATES`) and recomputes that ticket's `SUPERSEDES` chain with the `reflects` check. An edit that carries the chat decision resolves the drift; a cosmetic edit ("typo fixed") doesn't. The response lists `resolved`, `still_drifting` and `new_drift`. |
+| `POST /api/ingest/doc` `{doc, text, title?, actor}` | Docs webhook (Notion/Confluence-style). Updates the page and links any new ticket mentions. A doc edited after the decision is no longer reported as stale (`no_longer_stale` in the response). |
 | `POST /api/ingest/github` | GitHub `pull_request` webhook. Verifies `X-Hub-Signature-256` when `GITHUB_WEBHOOK_SECRET` is set, links the PR to the tickets it names, decides which requirement version it `IMPLEMENTS`, and re-checks drift. A PR that delivers the latest decision clears it. |
 | `GET /api/events` | **Server-Sent Events**: `drift`, `resolved`, `ticket`, `pr` and `rebuild` events are pushed to every open dashboard, which shows a toast and refreshes. [`api/bus.py`](api/bus.py) delivers locally and also publishes on a Redis channel of the FalkorDB server (it speaks Redis). The API forwards events from other processes, so a drift the **Slack or Discord bot** detects appears live on every dashboard. |
 
@@ -271,6 +272,7 @@ The dashboard's **Simulate the team** section drives both: post a chat message, 
 | Drift query, whole graph | p50 32 ms |
 | Drift query, one ticket (anchored on the `Requirement.ticket` index) | p50 1.3 ms |
 | Connection query (`algo.SPpaths`) | p50 3.8 ms |
+| Live monitor, one incoming message (write, resolve, classify, drift query) | p50 24 ms |
 
 **Problems the tooling caught** (each one now has a test or a CI check):
 - **Silent truncation at 10k rows.** The FalkorDB Docker image caps result sets (`RESULTSET_SIZE 10000`). At 20k messages the resolver only saw half of them, and drift recall fell to 0.70 with no error. Large reads now page with a stable `ORDER BY … SKIP/LIMIT` ([`_rows_paged`](pipeline/resolve.py)).
@@ -281,11 +283,11 @@ The dashboard's **Simulate the team** section drives both: post a chat message, 
 
 **Multi-tenancy.** One isolated FalkorDB graph per organisation (`company_brain__<org>`). Each request picks its org with an `X-Org` header, or `?org=` for EventSource, which can't send headers; the dashboard forwards `?org=acme` from its own URL. Caches and live events are scoped per org, so one tenant never sees another's alerts. `POST /api/orgs/{org}/bootstrap` seeds a new org with the demo data, and `GET /api/orgs` lists them. Org ids are validated (`[a-z0-9_-]`), so a header can't address an arbitrary graph.
 
-**API.** Optional `INGEST_TOKEN` protects the write endpoints (constant-time compare); the GitHub webhook verifies `X-Hub-Signature-256`; CORS is opt-in (`CORS_ORIGINS`). Heavy reads are cached with a short TTL and invalidated whenever the API writes (each write bumps the event-bus version). Every response carries a `Server-Timing` header, and slow requests are logged. The OpenAPI docs are at `/docs`.
+**API.** Optional `INGEST_TOKEN` protects the write endpoints (constant-time compare); the GitHub webhook verifies `X-Hub-Signature-256`; CORS is opt-in (`CORS_ORIGINS`). Heavy reads are cached with a short TTL and invalidated whenever the API writes (each write bumps the event-bus version). Every response carries a `Server-Timing` header, and slow requests are logged. **`GET /api/metrics`** serves Prometheus-format metrics: request counts and latency histograms per route, cache hits and misses, SSE subscribers, event-bus version and open drift per org. The expensive POSTs (`/api/ask`, `/api/simulate`, `/api/spec`) are rate-limited per client with a token bucket (`RATE_LIMIT_PER_MIN`, default 30) and return `429` with `Retry-After`. The OpenAPI docs are at `/docs`.
 
 ## Tests and CI
 
-`python -m pytest -q` runs 34 tests: units, end-to-end graph tests on throwaway graphs, HTTP tests of the API (both webhooks, the signature and token checks, cache invalidation, org isolation, cross-process events over FalkorDB pub/sub) and a paging regression test. None of them need an LLM or API keys. [`.github/workflows/ci.yml`](.github/workflows/ci.yml) runs the same suite on every push against a FalkorDB service container, reruns the ablation study, builds the demo graph and checks query plans use indexes, runs a smaller scale test, checks that `docs/QUERIES.md` matches the code, and type-checks and builds the React app.
+`python -m pytest -q` runs 36 tests: units, end-to-end graph tests on throwaway graphs, HTTP tests of the API (both webhooks, the signature and token checks, cache invalidation, org isolation, cross-process events over FalkorDB pub/sub, metrics, rate limiting, the doc webhook) and a paging regression test. None of them need an LLM or API keys. [`.github/workflows/ci.yml`](.github/workflows/ci.yml) runs the same suite on every push against a FalkorDB service container, reruns the ablation study, builds the demo graph and checks query plans use indexes, runs a smaller scale test, checks that `docs/QUERIES.md` matches the code, and type-checks and builds the React app.
 
 ## Benchmark
 

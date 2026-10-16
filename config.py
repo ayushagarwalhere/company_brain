@@ -1,10 +1,20 @@
 """Central settings loaded from .env. Import `settings` everywhere instead of reading os.environ."""
 import os
+import sys
 from dataclasses import dataclass
 
 from dotenv import load_dotenv
 
 load_dotenv()
+
+# Windows consoles default to cp1252, which can't print the arrows and quotes our CLIs use
+# (ablation tables, digests, retros). Every entry point imports this module, so fix it once here.
+for _stream in (sys.stdout, sys.stderr):
+    if hasattr(_stream, "reconfigure") and (_stream.encoding or "").lower() not in ("utf-8", "utf8"):
+        try:
+            _stream.reconfigure(encoding="utf-8", errors="replace")
+        except (ValueError, OSError):
+            pass
 
 
 def _get(name: str, default: str = "") -> str:

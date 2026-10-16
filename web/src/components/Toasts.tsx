@@ -10,6 +10,7 @@ const label = (e: LiveEvent): [string, string, "warn" | "ok" | "info"] => {
     case "ticket": return [`Ticket ${e.ticket} updated`, list(e.resolved) ? `resolves ${list(e.resolved)}` : list(e.still_drifting) ? `still drifting: ${list(e.still_drifting)}` : `by ${e.by}`,
       list(e.resolved) ? "ok" : list(e.still_drifting) ? "warn" : "info"];
     case "pr": return [`PR #${e.pr} received`, list(e.resolved) ? `implements the latest decision · resolves ${list(e.resolved)}` : `linked to ${list(e.tickets) || "no ticket"}`, list(e.resolved) ? "ok" : "info"];
+    case "doc": return [`Doc ${e.doc} updated`, e.no_longer_stale ? "no longer describes the old version" : `by ${e.by}`, e.no_longer_stale ? "ok" : "info"];
     case "rebuild": return ["Graph rebuilt", `extraction: ${e.extractor}`, "info"];
     default: return [e.type, "", "info"];
   }

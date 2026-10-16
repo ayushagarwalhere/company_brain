@@ -18,6 +18,7 @@ from agent import retro as retro_mod
 from api import bus
 from api.cache import cached
 from api.cache import stats as cache_stats
+from api.observability import RateLimiter, observe, render
 from agent import tools
 from graph import queries as Q
 from graph.db import get_graph
@@ -69,16 +70,28 @@ async def org_scope(request: Request, call_next):
         _org.reset(token)
 
 
+LIMITED = {"/api/ask", "/api/simulate", "/api/spec"}  # expensive POSTs (LLM / graph writes)
+limiter = RateLimiter(rate=int(__import__("os").getenv("RATE_LIMIT_PER_MIN", "30")), per=60.0)
+
+
 @app.middleware("http")
 async def timing(request: Request, call_next):
-    """Server-Timing header on every response (shows in browser dev tools); slow requests are logged."""
+    """Rate limit for expensive POSTs; Server-Timing header; per-route metrics; slow-request log."""
+    path = request.url.path
+    if request.method == "POST" and path in LIMITED:
+        client = request.headers.get("x-forwarded-for", "").split(",")[0].strip() or (request.client.host if request.client else "?")
+        if not limiter.allow(client, path):
+            from fastapi.responses import JSONResponse
+            return JSONResponse({"detail": "rate limit exceeded, try again shortly"}, status_code=429, headers={"Retry-After": "5"})
     t0 = time.perf_counter()
     response = await call_next(request)
     ms = (time.perf_counter() - t0) * 1000
-    if request.url.path != "/api/events":  # the SSE stream is long-lived by design
+    if path != "/api/events":  # the SSE stream is long-lived by design
         response.headers["Server-Timing"] = f"app;dur={ms:.1f}"
+        route = request.scope.get("route")
+        observe(request.method, getattr(route, "path", "unmatched"), response.status_code, ms)
         if ms > SLOW_MS:
-            log.warning("slow request %s %s %.0fms", request.method, request.url.path, ms)
+            log.warning("slow request %s %s %.0fms", request.method, path, ms)
     return response
 
 
@@ -434,6 +447,20 @@ def bootstrap_org(org: str):
     return {"org": org, "graph": name, "extractor": extractor, "nodes": sum(counts["nodes"].values())}
 
 
+@app.get("/api/metrics")
+def metrics():
+    """Prometheus text format: request counts and latency per route, cache, live clients, open drift per org."""
+    from fastapi.responses import PlainTextResponse
+    from graph.db import current_org
+    hits, misses = cache_stats["hits"], cache_stats["misses"]
+    extra = {
+        "drift_cache_hits_total": hits, "drift_cache_misses_total": misses,
+        "drift_event_bus_version": bus.version, "drift_sse_subscribers": len(bus._subscribers),
+        f'drift_open_total{{org="{current_org()}"}}': len(_drift()),
+    }
+    return PlainTextResponse(render(extra), media_type="text/plain; version=0.0.4")
+
+
 @app.get("/api/cache")
 def cache_info():
     return {"version": bus.version, **cache_stats}
@@ -467,6 +494,25 @@ def ingest_ticket(body: TicketUpdateIn):
         raise HTTPException(404, str(e))
     if out["status"] == "updated":
         bus.publish("ticket", ticket=body.ticket, by=body.actor, resolved=out["resolved"], still_drifting=out["still_drifting"])
+    return out
+
+
+class DocUpdateIn(BaseModel):
+    doc: str
+    text: str
+    title: str | None = None
+    actor: str = "maya"
+
+
+@app.post("/api/ingest/doc", dependencies=[Depends(require_ingest_token)])
+def ingest_doc(body: DocUpdateIn):
+    """Docs webhook (Notion/Confluence-style): a page's content changed."""
+    from pipeline.webhooks import doc_updated
+    try:
+        out = doc_updated(get_graph(), body.doc, body.text, body.actor, body.title)
+    except ValueError as e:
+        raise HTTPException(404, str(e))
+    bus.publish("doc", doc=body.doc, by=body.actor, no_longer_stale=out["no_longer_stale"])
     return out
 
 

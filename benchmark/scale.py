@@ -129,6 +129,14 @@ def main():
     out["query_drift_one_ticket"] = timeit(lambda: Q.drift(g, ticket=random.choice(sample)))
     out["query_connection"] = timeit(lambda: Q.connection(g, "p0", "PR-1"))
     out["query_requirements_of_ticket"] = timeit(lambda: g.query("MATCH (q:Requirement {ticket: $t}) RETURN q.id", {"t": random.choice(sample)}))
+
+    # live path: one incoming chat message -> write, resolve, classify, requirement chain, drift query
+    from pipeline.extract import HeuristicExtractor
+    from pipeline.live import process_message
+    ex, n = HeuristicExtractor(), iter(range(10**6))
+    out["live_message"] = timeit(lambda: process_message(Event(
+        "slack", "message", f"live{next(n)}", "p1", "2026-06-01T10:00:00Z",
+        f"Decision: the {WORDS[0]}0 report must include the last {random.randint(500, 900)} entries.", channel="product"), g=g, extractor=ex))
     g.delete()
 
     print(json.dumps(out, indent=1))

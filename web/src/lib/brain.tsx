@@ -70,7 +70,7 @@ export function BrainProvider({ children }: { children: ReactNode }) {
       clearTimeout(timer);
       timer = setTimeout(() => void refresh(), 250);  // coalesce bursts
     };
-    for (const type of ["drift", "message", "resolved", "ticket", "pr", "rebuild"]) es.addEventListener(type, onEvent as EventListener);
+    for (const type of ["drift", "message", "resolved", "ticket", "pr", "doc", "rebuild"]) es.addEventListener(type, onEvent as EventListener);
     es.onopen = () => setLive(true);
     es.onerror = () => setLive(false);
     return () => { es.close(); clearTimeout(timer); };

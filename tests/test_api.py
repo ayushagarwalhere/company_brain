@@ -161,3 +161,23 @@ def test_events_from_other_processes_reach_this_one(client):
             break
         _t.sleep(0.05)
     assert any(e.get("ticket") == "BD-999" for e in bus.recent)
+
+
+def test_metrics_and_rate_limit(client, monkeypatch):
+    from api import main as api_main
+    from api.observability import RateLimiter
+    client.get("/api/drift")
+    text = client.get("/api/metrics").text
+    assert 'drift_http_requests_total{method="GET",route="/api/drift",status="200"}' in text
+    assert "drift_open_total" in text and 'route="/api/drift",le="+Inf"' in text
+    monkeypatch.setattr(api_main, "limiter", RateLimiter(rate=2, per=60.0))
+    codes = [client.post("/api/ask", json={"question": "What drifted?"}).status_code for _ in range(3)]
+    assert codes[:2] == [200, 200] and codes[2] == 429
+
+
+def test_doc_webhook_clears_stale_doc(client):
+    stale = {x["id"] for d in client.get("/api/drift").json() for x in d["stale_docs"]}
+    assert "DOC-1" in stale
+    out = client.post("/api/ingest/doc", json={"doc": "DOC-1", "text": "Export any date range up to 12 months, with custom fields. BD-101"}).json()
+    assert out["no_longer_stale"] is True
+    assert "DOC-1" not in {x["id"] for d in client.get("/api/drift").json() for x in d["stale_docs"]}

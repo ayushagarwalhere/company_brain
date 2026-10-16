@@ -58,7 +58,7 @@ export type Person = {
 export type SpecResult = { feature: string; markdown: string; engine: string };
 export type TicketRow = { id: string; title: string; description: string; state: string; feature: string | null };
 export type TicketUpdate = { status: string; ticket: string; version?: string; resolved?: string[]; still_drifting?: string[]; new_drift?: string[] };
-export type LiveEvent = { type: "drift" | "message" | "resolved" | "ticket" | "pr" | "rebuild"; at: number; [k: string]: unknown };
+export type LiveEvent = { type: "drift" | "message" | "resolved" | "ticket" | "pr" | "doc" | "rebuild"; at: number; [k: string]: unknown };
 
 /** Multi-tenancy: ?org=acme in the page URL scopes every request to that org's graph. */
 export const ORG = typeof window !== "undefined" ? new URLSearchParams(window.location.search).get("org") : null;
