@@ -1,7 +1,8 @@
 """The common event format every connector produces, plus small shared helpers."""
+
 import re
 from dataclasses import dataclass, field
-from datetime import datetime, timezone
+from datetime import UTC, datetime
 
 # BD-101, bd 101, "Fixes BD-101", "(BD-107)". Ticket IDs are the hard-link signal.
 TICKET_REF = re.compile(r"\b([A-Z]{2,5})-(\d{1,5})\b")
@@ -9,15 +10,15 @@ TICKET_REF = re.compile(r"\b([A-Z]{2,5})-(\d{1,5})\b")
 
 @dataclass
 class Event:
-    source: str                 # slack | discord | github | tickets
-    kind: str                   # message | ticket | pull_request
-    id: str                     # stable, globally unique; scenario ids when available
-    author: str                 # Person id (resolved by the connector)
-    ts: str                     # ISO-8601 UTC, when the thing happened
+    source: str  # slack | discord | github | tickets
+    kind: str  # message | ticket | pull_request
+    id: str  # stable, globally unique; scenario ids when available
+    author: str  # Person id (resolved by the connector)
+    ts: str  # ISO-8601 UTC, when the thing happened
     text: str
     url: str = ""
     channel: str | None = None
-    thread_of: str | None = None   # parent message id for replies
+    thread_of: str | None = None  # parent message id for replies
     extra: dict = field(default_factory=dict)  # kind-specific fields (ticket state, PR number, ...)
 
     @property
@@ -44,4 +45,4 @@ def to_ms(iso: str | None) -> int | None:
 def from_ms(ms: int | None) -> str | None:
     if ms is None:
         return None
-    return datetime.fromtimestamp(ms / 1000, tz=timezone.utc).strftime("%Y-%m-%dT%H:%M:%SZ")
+    return datetime.fromtimestamp(ms / 1000, tz=UTC).strftime("%Y-%m-%dT%H:%M:%SZ")

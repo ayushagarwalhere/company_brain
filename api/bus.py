@@ -10,6 +10,7 @@ live on every dashboard.
 
 Events: {"type": "drift" | "message" | "resolved" | "ticket" | "pr" | "rebuild", "org": ..., ...payload}
 """
+
 import asyncio
 import json
 import logging
@@ -30,10 +31,12 @@ version = 0  # bumped on every published event; api/cache.py uses it to invalida
 
 def publish(event_type: str, **payload) -> dict:
     from graph.db import current_org
+
     evt = {"type": event_type, "at": time.time(), "org": current_org(), **payload}
     _deliver(evt)
     try:  # cross-process fan-out; never let a broker hiccup break the request that published
         from graph.db import get_db
+
         get_db().connection.publish(CHANNEL, json.dumps({"origin": _ORIGIN, "event": evt}, default=str))
     except Exception as e:  # noqa: BLE001
         log.debug("redis publish failed: %s", e)
@@ -60,6 +63,7 @@ def _deliver(evt: dict) -> None:
 def listen_forever(stop: threading.Event | None = None) -> None:
     """Forwards events published by OTHER processes to this process's subscribers. Run in a daemon thread."""
     from graph.db import get_db
+
     while not (stop and stop.is_set()):
         try:
             ps = get_db().connection.pubsub(ignore_subscribe_messages=True)
@@ -102,7 +106,7 @@ async def stream(q: asyncio.Queue, heartbeat: float = 15.0):
             try:
                 evt = await asyncio.wait_for(q.get(), timeout=heartbeat)
                 yield f"event: {evt['type']}\ndata: {json.dumps(evt, default=str)}\n\n"
-            except asyncio.TimeoutError:
+            except TimeoutError:
                 yield ": keep-alive\n\n"
     finally:
         unsubscribe(q)

@@ -20,6 +20,7 @@ passages are shorter and TF-IDF ranks them first. Retrieval's score on "which ti
 reflects that, not understanding. Reported, not corrected.
 The graph side is the rules agent (agent/router.py); retrieval is extractive TF-IDF top-25 and top-100.
 """
+
 import json
 import random
 import re
@@ -37,6 +38,7 @@ def build():
     from graph import writer
     from graph.db import get_graph, org_graph_name, set_org
     from pipeline.resolve import resolve
+
     people, msgs, tickets, prs, expected = synth(200, 20000)
     name = org_graph_name(ORG)
     try:
@@ -67,6 +69,7 @@ def corpus(msgs, tickets, prs) -> dict[str, str]:
 def questions(tickets, expected) -> list[dict]:
     """Per-feature questions for 6 drifted and 6 clean features, plus 4 cross-feature questions."""
     from benchmark.scale import WORDS
+
     rng = random.Random(SEED)
     feats = [f for f in range(200)]
     drifted = [f for f in feats if f"SC-{f * 3}" in expected]
@@ -74,20 +77,34 @@ def questions(tickets, expected) -> list[dict]:
     qs = []
     for f in rng.sample(drifted, 6) + rng.sample(clean, 6):
         topic, new_n = f"{WORDS[f % len(WORDS)]}{f}", 100 + f
-        qs.append({"id": f"cur_{f}", "kind": "per-feature", "q": f"What is the current requirement for the {topic} report?",
-                   "must": [[str(new_n)]]})
+        qs.append({"id": f"cur_{f}", "kind": "per-feature", "q": f"What is the current requirement for the {topic} report?", "must": [[str(new_n)]]})
         if f in drifted:
-            qs.append({"id": f"pr_{f}", "kind": "per-feature", "q": f"Which PR shipped the old version of the {topic} report requirement?",
-                       "must": [[f"#{f + 1}", f"PR-{f + 1}", f"PR #{f + 1}"]]})
+            qs.append(
+                {
+                    "id": f"pr_{f}",
+                    "kind": "per-feature",
+                    "q": f"Which PR shipped the old version of the {topic} report requirement?",
+                    "must": [[f"#{f + 1}", f"PR-{f + 1}", f"PR #{f + 1}"]],
+                }
+            )
     stale_tickets = sorted(expected)
     stale_prs = sorted(f"#{int(t.split('-')[1]) // 3 + 1}" for t in expected)
     qs += [
-        {"id": "x_stale_tickets", "kind": "cross-feature", "q": "Which tickets are stale compared with what was decided in chat?",
-         "ids": stale_tickets, "pattern": r"SC-\d+"},
-        {"id": "x_drift_features", "kind": "cross-feature", "q": "Which features have requirement drift?",
-         "ids": stale_tickets, "pattern": r"SC-\d+"},
-        {"id": "x_stale_prs", "kind": "cross-feature", "q": "Which pull requests shipped a requirement that was later changed in chat?",
-         "ids": stale_prs, "pattern": r"#\d+"},
+        {
+            "id": "x_stale_tickets",
+            "kind": "cross-feature",
+            "q": "Which tickets are stale compared with what was decided in chat?",
+            "ids": stale_tickets,
+            "pattern": r"SC-\d+",
+        },
+        {"id": "x_drift_features", "kind": "cross-feature", "q": "Which features have requirement drift?", "ids": stale_tickets, "pattern": r"SC-\d+"},
+        {
+            "id": "x_stale_prs",
+            "kind": "cross-feature",
+            "q": "Which pull requests shipped a requirement that was later changed in chat?",
+            "ids": stale_prs,
+            "pattern": r"#\d+",
+        },
         # Removed after the first run: "How many features have open drift?" (expected "100") was answered by
         # EVERY system, because feature 0's requirement is literally "the last 100 entries". Broken question.
     ]
@@ -110,6 +127,7 @@ def grade_q(answer: str, q: dict) -> float:
 
 def main():
     from agent.router import ask
+
     t = time.time()
     msgs, tickets, prs, expected = build()
     built_s = round(time.time() - t, 1)
@@ -120,26 +138,32 @@ def main():
         ranked = sorted(index.scores(q).items(), key=lambda kv: -kv[1])[:k]
         return "\n".join(docs[d] for d, _ in ranked)
 
-    systems = {"graph (rules agent, no LLM)": lambda q: ask(q)["answer"],
-               "retrieval top-25 (extractive, no LLM)": lambda q: extractive(q, 25),
-               "retrieval top-100 (extractive, no LLM)": lambda q: extractive(q, 100)}
+    systems = {
+        "graph (rules agent, no LLM)": lambda q: ask(q)["answer"],
+        "retrieval top-25 (extractive, no LLM)": lambda q: extractive(q, 25),
+        "retrieval top-100 (extractive, no LLM)": lambda q: extractive(q, 100),
+    }
     qs = questions(tickets, expected)
     results = {s: [] for s in systems}
     for q in qs:
         for s, fn in systems.items():
             answer = fn(q["q"])
-            results[s].append({"id": q["id"], "kind": q["kind"], "q": q["q"], "score": grade_q(answer, q),
-                               "chars": len(answer), "answer_head": answer[:400]})
+            results[s].append({"id": q["id"], "kind": q["kind"], "q": q["q"], "score": grade_q(answer, q), "chars": len(answer), "answer_head": answer[:400]})
     summary = {}
     for s, rs in results.items():
-        summary[s] = {kind: {"questions": len(x), "mean_score": round(sum(r["score"] for r in x) / len(x), 3),
-                             "fully_correct": sum(r["score"] == 1.0 for r in x)}
-                      for kind in ("per-feature", "cross-feature") for x in [[r for r in rs if r["kind"] == kind]]}
+        summary[s] = {
+            kind: {"questions": len(x), "mean_score": round(sum(r["score"] for r in x) / len(x), 3), "fully_correct": sum(r["score"] == 1.0 for r in x)}
+            for kind in ("per-feature", "cross-feature")
+            for x in [[r for r in rs if r["kind"] == kind]]
+        }
         summary[s]["mean_answer_chars"] = round(sum(r["chars"] for r in rs) / len(rs))
-    out = {"org": {"features": 200, "messages": len(msgs), "tickets": len(tickets), "prs": len(prs),
-                   "drifted_features": len(expected), "build_s": built_s},
-           "grader": "per-feature: required facts; cross-feature: F1 over ticket/PR ids named", "seed": SEED,
-           "summary": summary, "results": results}
+    out = {
+        "org": {"features": 200, "messages": len(msgs), "tickets": len(tickets), "prs": len(prs), "drifted_features": len(expected), "build_s": built_s},
+        "grader": "per-feature: required facts; cross-feature: F1 over ticket/PR ids named",
+        "seed": SEED,
+        "summary": summary,
+        "results": results,
+    }
     (HERE / "results" / "qa_scale.json").write_text(json.dumps(out, indent=1), encoding="utf-8")
     print(json.dumps(summary, indent=1))
     for i, q in enumerate(qs):

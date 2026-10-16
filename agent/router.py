@@ -9,6 +9,7 @@ LLM. Routing is explicit and testable:
   failure   a question that needs an entity it can't resolve gets an explicit "couldn't match" answer with
             examples that work, instead of falling through to an unrelated overview.
 """
+
 import re
 from dataclasses import dataclass, field
 
@@ -23,10 +24,27 @@ INTENT_RULES: dict[str, list[tuple[str, int]]] = {
     "connect": [(r"\bconnect(ed|ion)?\b", 3), (r"\blink(ed)? between\b", 3), (r"\bpath (from|between)\b", 3), (r"→", 3)],
     "who": [(r"^\s*who\b", 2), (r"\bwho\b", 2), (r"\bknows?\b", 1), (r"\bowns?\b", 1), (r"\bexpert", 2), (r"\bworked\b", 1), (r"\bask\b", 1)],
     "impact": [(r"\bimpact", 3), (r"\baffect(ed|s)?\b", 3)],
-    "drift": [(r"\bdrift", 3), (r"\bdiverg", 2), (r"\bout of (sync|date)\b", 2), (r"\bstale\b", 2), (r"\bmismatch", 2),
-              (r"\bstill accurate\b", 2), (r"\blater changed\b", 2), (r"\bchanged in chat\b", 2)],
-    "decided": [(r"\bwho decided\b", 3), (r"\bdecid", 2), (r"\bdecision", 2), (r"\bship(ped)?\b", 1), (r"\bimplement", 1), (r"\bmatch(es)?\b", 2),
-                (r"\bcurrent requirement", 3), (r"\bagreed\b", 2), (r"\bfollow(ed)? the latest\b", 3)],
+    "drift": [
+        (r"\bdrift", 3),
+        (r"\bdiverg", 2),
+        (r"\bout of (sync|date)\b", 2),
+        (r"\bstale\b", 2),
+        (r"\bmismatch", 2),
+        (r"\bstill accurate\b", 2),
+        (r"\blater changed\b", 2),
+        (r"\bchanged in chat\b", 2),
+    ],
+    "decided": [
+        (r"\bwho decided\b", 3),
+        (r"\bdecid", 2),
+        (r"\bdecision", 2),
+        (r"\bship(ped)?\b", 1),
+        (r"\bimplement", 1),
+        (r"\bmatch(es)?\b", 2),
+        (r"\bcurrent requirement", 3),
+        (r"\bagreed\b", 2),
+        (r"\bfollow(ed)? the latest\b", 3),
+    ],
     "history": [(r"\bhistory\b", 3), (r"\btimeline\b", 3), (r"\bevolv", 2), (r"\bchanged?\b", 1), (r"\bwritten back\b", 2)],
     "prs": [(r"\b(which|what) (pr|pull request)s?\b", 2), (r"\bpull requests?\b", 1), (r"\bPRs?\b", 1)],
     "overview": [(r"\boverview\b", 3), (r"\bsummar", 3), (r"\bwhat'?s (going on|new)\b", 3)],
@@ -58,8 +76,11 @@ def entities(question: str) -> list[str]:
 
 
 def _features(g):
-    return Q.rows(g, """MATCH (f:Feature) OPTIONAL MATCH (t:Ticket)-[:ABOUT]->(f)
-                        RETURN f.id AS id, f.name AS name, collect(t.id) AS tickets, collect(t.title) AS titles""")
+    return Q.rows(
+        g,
+        """MATCH (f:Feature) OPTIONAL MATCH (t:Ticket)-[:ABOUT]->(f)
+                        RETURN f.id AS id, f.name AS name, collect(t.id) AS tickets, collect(t.title) AS titles""",
+    )
 
 
 def feature_for(q: str, feats: list[dict]) -> dict | None:
@@ -105,13 +126,13 @@ def unmatched(ctx: Ctx, what: str = "a feature, person or ticket") -> list[str]:
 
 # ---------------------------------------------------------------- one function per intent
 
+
 def answer_connect(ctx: Ctx) -> list[str]:
     ids = person_in(ctx.question, ctx.people) + ctx.ents
     if len(ids) < 2:
-        return ["Name two things to connect, e.g. a person and a PR: \"How is liam connected to PR-6?\""]
+        return ['Name two things to connect, e.g. a person and a PR: "How is liam connected to PR-6?"']
     rows = ctx.run("how_connected", a=ids[0], b=ids[1])
-    return [f"{ids[0]} and {ids[1]} are {rows[0]['hops']} hops apart." if rows
-            else f"No causal path within 7 hops between {ids[0]} and {ids[1]}."]
+    return [f"{ids[0]} and {ids[1]} are {rows[0]['hops']} hops apart." if rows else f"No causal path within 7 hops between {ids[0]} and {ids[1]}."]
 
 
 def answer_prs(ctx: Ctx) -> list[str]:
@@ -145,14 +166,19 @@ def answer_who_ticket(ctx: Ctx, tid: str) -> list[str]:
     for d in ctx.run("drift_for_feature", **({"feature": ctx.feature["id"]} if ctx.feature else {})):
         if d["ticket"] == tid:
             stale = ", ".join(f"#{p['pr']}" for p in d["stale_prs"] if p["pr"] is not None)
-            lines.append(f"Their shipped work ({stale}) is stale because of {d['changed_by']}'s decision on "
-                         f"{d['changed_at'][:10]}: \"{d['requirement_text']}\".")
+            lines.append(
+                f"Their shipped work ({stale}) is stale because of {d['changed_by']}'s decision on " f"{d['changed_at'][:10]}: \"{d['requirement_text']}\"."
+            )
     return lines or [f"I couldn't find a ticket {tid} in the graph."]
 
 
 def answer_who_pr(ctx: Ctx, pid: str) -> list[str]:
-    rows = Q.rows(ctx.g, """MATCH (a:Person)-[:AUTHORED]->(pr:PullRequest {id: $pr}) OPTIONAL MATCH (pr)-[:REFERENCES]->(t:Ticket)
-                            RETURN a.id AS author, pr.number AS n, pr.title AS title, collect(t.id) AS tickets""", pr=pid)
+    rows = Q.rows(
+        ctx.g,
+        """MATCH (a:Person)-[:AUTHORED]->(pr:PullRequest {id: $pr}) OPTIONAL MATCH (pr)-[:REFERENCES]->(t:Ticket)
+                            RETURN a.id AS author, pr.number AS n, pr.title AS title, collect(t.id) AS tickets""",
+        pr=pid,
+    )
     if not rows:
         return [f"I couldn't find {pid} in the graph."]
     r = rows[0]
@@ -166,9 +192,12 @@ def answer_impact(ctx: Ctx) -> list[str]:
     if not decs:
         return [f"No decisions recorded in chat for {ctx.feature['name']}."]
     d = decs[-1]
-    return [f"{d['by']}'s decision on {d['at'][:10]} (\"{d['text']}\") changes {r['ticket']} "
-            f"(owner {r['owner']}); PRs on it: {', '.join('#' + str(n) for n in r['prs']) or 'none'}; "
-            f"related tickets: {', '.join(r['related_tickets']) or 'none'}." for r in ctx.run("decision_impact", decision=d["id"])]
+    return [
+        f"{d['by']}'s decision on {d['at'][:10]} (\"{d['text']}\") changes {r['ticket']} "
+        f"(owner {r['owner']}); PRs on it: {', '.join('#' + str(n) for n in r['prs']) or 'none'}; "
+        f"related tickets: {', '.join(r['related_tickets']) or 'none'}."
+        for r in ctx.run("decision_impact", decision=d["id"])
+    ]
 
 
 def history_lines(ctx: Ctx) -> list[str]:
@@ -201,11 +230,13 @@ def drift_lines(ctx: Ctx) -> list[str]:
         before = [p for p in d["stale_prs"] if p["pr"] is not None and not p.get("merged_after")]
         after = [p for p in d["stale_prs"] if p["pr"] is not None and p.get("merged_after")]
         stale = ", ".join(f"#{p['pr']}" for p in before) or "none"
-        lines.append(f"DRIFT on {d['feature_name']}: {d['changed_by']} decided \"{d['requirement_text']}\" on "
-                     f"{d['changed_at'][:10]} ({d['source']} #{d['channel']}), but {d['ticket']} still says "
-                     f"\"{d['ticket_text']}\". PRs that shipped the old version: {stale}."
-                     + (f" Merged after the decision but not matched to it: {', '.join('#' + str(p['pr']) for p in after)}." if after else "")
-                     + (f" Docs still describing the old version: {', '.join(x['title'] for x in d['stale_docs'])}." if d["stale_docs"] else ""))
+        lines.append(
+            f"DRIFT on {d['feature_name']}: {d['changed_by']} decided \"{d['requirement_text']}\" on "
+            f"{d['changed_at'][:10]} ({d['source']} #{d['channel']}), but {d['ticket']} still says "
+            f"\"{d['ticket_text']}\". PRs that shipped the old version: {stale}."
+            + (f" Merged after the decision but not matched to it: {', '.join('#' + str(p['pr']) for p in after)}." if after else "")
+            + (f" Docs still describing the old version: {', '.join(x['title'] for x in d['stale_docs'])}." if d["stale_docs"] else "")
+        )
     if not drift:
         lines.append(f"No open drift on {ctx.feature['name']}: its tickets and PRs match the latest decision." if ctx.feature else "No open drift.")
     return lines
@@ -231,12 +262,22 @@ def answer_history(ctx: Ctx) -> list[str]:
 def answer_overview(ctx: Ctx) -> list[str]:
     rows = ctx.run("list_features")
     drift = ctx.run("drift_for_feature")
-    return ["Features: " + ", ".join(f"{r['name']} ({', '.join(r['tickets'])})" for r in rows) + ".",
-            f"Open drift: {len(drift)}" + (": " + ", ".join(d["feature_name"] for d in drift) if drift else "") + "."]
+    return [
+        "Features: " + ", ".join(f"{r['name']} ({', '.join(r['tickets'])})" for r in rows) + ".",
+        f"Open drift: {len(drift)}" + (": " + ", ".join(d["feature_name"] for d in drift) if drift else "") + ".",
+    ]
 
 
-HANDLERS = {"connect": answer_connect, "prs": answer_prs, "who": answer_who, "impact": answer_impact,
-            "drift": answer_drift, "decided": answer_decided, "history": answer_history, "overview": answer_overview}
+HANDLERS = {
+    "connect": answer_connect,
+    "prs": answer_prs,
+    "who": answer_who,
+    "impact": answer_impact,
+    "drift": answer_drift,
+    "decided": answer_decided,
+    "history": answer_history,
+    "overview": answer_overview,
+}
 
 
 def route(question: str, feature: dict | None, ents: list[str]) -> str:

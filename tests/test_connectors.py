@@ -4,8 +4,9 @@ The fakes return payloads shaped like the real APIs (cursor pagination, thread r
 conversations.replies, bot_message subtypes, GitHub page/per_page and rate-limit headers), so the
 parsing, pagination, filtering and retry logic is exercised exactly as it would be against the services.
 """
+
 import json
-from datetime import datetime, timezone
+from datetime import UTC, datetime
 from types import SimpleNamespace
 
 import pytest
@@ -15,11 +16,12 @@ from connectors import github as gh
 from connectors import scenario, seed_map
 from connectors import slack as slack_conn
 
-
 # ----------------------------------------------------------------------------- Slack
+
 
 class FakeSlack:
     """Minimal Slack Web API: chat.postMessage, conversations.list/history/replies, users.info."""
+
     PAGE = 7  # small pages so pagination paths actually run
 
     def __init__(self, channels):
@@ -31,7 +33,7 @@ class FakeSlack:
 
     def _page(self, items, cursor):
         start = int(cursor or 0)
-        chunk = items[start:start + self.PAGE]
+        chunk = items[start : start + self.PAGE]
         nxt = start + self.PAGE if start + self.PAGE < len(items) else None
         return {"ok": True, "items": chunk, "response_metadata": {"next_cursor": str(nxt) if nxt else ""}}
 
@@ -83,6 +85,7 @@ class FakeSlack:
 def tmp_seed_maps(monkeypatch):
     import tempfile
     from pathlib import Path
+
     with tempfile.TemporaryDirectory(prefix="seedmaps-") as d:  # own temp dir: works where pytest's tmp root is locked
         monkeypatch.setattr(seed_map, "DIR", Path(d))
         yield Path(d)
@@ -91,6 +94,7 @@ def tmp_seed_maps(monkeypatch):
 def test_slack_seed_then_ingest_round_trip(monkeypatch, tmp_seed_maps):
     """Seeder posts the scenario into Slack; the connector reads it back with original ids, authors, times, threads."""
     import scripts.seed_slack as seeder
+
     fake = FakeSlack(["product", "engineering", "support-escalations", "random"])
     monkeypatch.setattr(seeder, "client", lambda: fake)
     monkeypatch.setattr(seeder.time, "sleep", lambda s: None)
@@ -116,36 +120,43 @@ def test_slack_live_messages_and_own_alerts(monkeypatch, tmp_seed_maps):
     by_text = {e.text: e for e in events}
     assert set(by_text) == {"Decision: exports go to 12 months now, BD-101", "noted"}
     top, reply = by_text["Decision: exports go to 12 months now, BD-101"], by_text["noted"]
-    assert top.author == "maya" and reply.author == "zara"                 # handles mapped to people.json
+    assert top.author == "maya" and reply.author == "zara"  # handles mapped to people.json
     assert top.id == f"slack:{fake.channels['engineering']}:{root['ts']}" and reply.thread_of == top.id
     assert top.ts.endswith("Z") and top.url.startswith("https://slack.com/app_redirect")
 
 
 # ----------------------------------------------------------------------------- Discord
 
+
 def _dmsg(mid, content, author="maya_pm", bot=False, ref=None, channel="engineering"):
-    return SimpleNamespace(id=mid, content=content, jump_url=f"https://discord.com/channels/1/2/{mid}",
-                           channel=SimpleNamespace(name=channel), created_at=datetime(2026, 10, 1, 7, 5, tzinfo=timezone.utc),
-                           author=SimpleNamespace(name=author, display_name=author, bot=bot),
-                           reference=SimpleNamespace(message_id=ref) if ref else None)
+    return SimpleNamespace(
+        id=mid,
+        content=content,
+        jump_url=f"https://discord.com/channels/1/2/{mid}",
+        channel=SimpleNamespace(name=channel),
+        created_at=datetime(2026, 10, 1, 7, 5, tzinfo=UTC),
+        author=SimpleNamespace(name=author, display_name=author, bot=bot),
+        reference=SimpleNamespace(message_id=ref) if ref else None,
+    )
 
 
 def test_discord_mapping_and_filters():
     people = discord_conn._people_by_name()
     smap = {"111": {"id": "m_sla_05", "author": "maya", "ts": "2026-09-17T05:31:00Z", "thread_of": "m_sla_03"}}
-    seeded = _dmsg(111, "Agreed. Let's change it…", author="Maya Chen", bot=True)       # webhook-posted scenario message
+    seeded = _dmsg(111, "Agreed. Let's change it…", author="Maya Chen", bot=True)  # webhook-posted scenario message
     live = _dmsg(222, "Decision: warn 30 minutes before breach", author="devp")
     reply = _dmsg(333, "ok", author="zara_qa", ref=111)
-    alert = _dmsg(444, "⚠️ Requirement drift on SLA", author="drift-bot", bot=True)   # our own alert
+    alert = _dmsg(444, "⚠️ Requirement drift on SLA", author="drift-bot", bot=True)  # our own alert
     assert [discord_conn.keep(m, smap) for m in (seeded, live, reply, alert)] == [True, True, True, False]
     e = discord_conn.to_event(seeded, smap, people)
     assert (e.id, e.author, e.ts, e.thread_of) == ("m_sla_05", "maya", "2026-09-17T05:31:00Z", "m_sla_03")
     e = discord_conn.to_event(live, smap, people)
     assert (e.id, e.author, e.ts) == ("discord:222", "dev", "2026-10-01T07:05:00Z")
-    assert discord_conn.to_event(reply, smap, people).thread_of == "m_sla_05"   # reply to a seeded message
+    assert discord_conn.to_event(reply, smap, people).thread_of == "m_sla_05"  # reply to a seeded message
 
 
 # ----------------------------------------------------------------------------- GitHub
+
 
 class Resp:
     def __init__(self, status, payload=None, headers=None):
@@ -160,9 +171,16 @@ class Resp:
 
 
 def _pr(n, body="", merged=True, login="dakshhhhh-ops"):
-    return {"number": n, "title": f"PR {n}", "body": body, "html_url": f"https://github.com/o/r/pull/{n}",
-            "state": "closed", "merged_at": "2026-10-02T09:30:00Z" if merged else None,
-            "created_at": "2026-10-02T07:00:00Z", "user": {"login": login}}
+    return {
+        "number": n,
+        "title": f"PR {n}",
+        "body": body,
+        "html_url": f"https://github.com/o/r/pull/{n}",
+        "state": "closed",
+        "merged_at": "2026-10-02T09:30:00Z" if merged else None,
+        "created_at": "2026-10-02T07:00:00Z",
+        "user": {"login": login},
+    }
 
 
 def test_github_pagination_trailers_and_rate_limit(monkeypatch):
@@ -184,7 +202,12 @@ def test_github_pagination_trailers_and_rate_limit(monkeypatch):
     assert calls == [1, 1, 2] and sleeps == [2.0]
     assert len(events) == 101
     e6 = next(e for e in events if e.extra["number"] == 6)
-    assert (e6.author, e6.ts, e6.extra["merged_at"], e6.extra["body"]) == ("sofia", "2026-09-24T10:00:00Z", "2026-09-25T05:44:00Z", "Fixes BD-101. Streams CSV.")
+    assert (e6.author, e6.ts, e6.extra["merged_at"], e6.extra["body"]) == (
+        "sofia",
+        "2026-09-24T10:00:00Z",
+        "2026-09-25T05:44:00Z",
+        "Fixes BD-101. Streams CSV.",
+    )
     assert e6.ticket_refs == ["BD-101"]
     live = events[-1]
     assert (live.author, live.extra["state"], live.extra["merged_at"]) == ("dakshhhhh-ops", "closed", None)
@@ -203,9 +226,11 @@ def test_seed_maps_are_json_round_trippable(tmp_seed_maps):
 
 # ----------------------------------------------------------------------------- live mode, end to end
 
+
 def _falkordb_up():
     try:
         from graph.db import get_db
+
         get_db().list_graphs()
         return True
     except Exception:  # noqa: BLE001
@@ -216,6 +241,7 @@ def _falkordb_up():
 def test_live_ingest_through_fake_apis_finds_the_planted_drift(monkeypatch, tmp_seed_maps):
     """`ingest(live=True)` reads Slack and GitHub through their (fake) APIs, then resolve() finds the planted drift."""
     import json as _json
+
     import scripts.seed_slack as seeder
     from benchmark.score_resolution import score
     from graph.db import get_graph
@@ -230,10 +256,19 @@ def test_live_ingest_through_fake_apis_finds_the_planted_drift(monkeypatch, tmp_
     # Discord's gateway client can't be faked cheaply; its mapping is covered above, so feed its scenario events
     monkeypatch.setattr(discord_conn, "fetch_history", lambda limit=2000: [m for m in scenario.messages() if m.source == "discord"])
     prs = _json.loads(gh.SCENARIO_PRS.read_text(encoding="utf-8"))
-    api_prs = [{"number": p["seq"], "title": p["title"], "html_url": f"https://github.com/o/r/pull/{p['seq']}",
-                "body": p["body"] + gh.trailer_block(p["author"], p["created"], p.get("merged")), "state": "closed",
-                "merged_at": "2026-10-16T00:00:00Z", "created_at": "2026-10-16T00:00:00Z", "user": {"login": "dakshhhhh-ops"}}
-               for p in prs]
+    api_prs = [
+        {
+            "number": p["seq"],
+            "title": p["title"],
+            "html_url": f"https://github.com/o/r/pull/{p['seq']}",
+            "body": p["body"] + gh.trailer_block(p["author"], p["created"], p.get("merged")),
+            "state": "closed",
+            "merged_at": "2026-10-16T00:00:00Z",
+            "created_at": "2026-10-16T00:00:00Z",
+            "user": {"login": "dakshhhhh-ops"},
+        }
+        for p in prs
+    ]
     monkeypatch.setattr(gh.requests, "get", lambda url, params=None, headers=None, timeout=None: Resp(200, api_prs if params["page"] == 1 else []))
 
     name = "test_live_ingest"

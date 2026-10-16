@@ -5,6 +5,7 @@
 Reports precision / recall for: message->feature links, PR->ticket links,
 requirement-change detection, and drift detection.
 """
+
 import json
 from pathlib import Path
 
@@ -19,8 +20,7 @@ def prf(pred: set, gold: set) -> dict:
     p = tp / len(pred) if pred else 1.0
     r = tp / len(gold) if gold else 1.0
     f = 2 * p * r / (p + r) if p + r else 0.0
-    return {"precision": round(p, 3), "recall": round(r, 3), "f1": round(f, 3), "tp": tp,
-            "fp": sorted(pred - gold), "fn": sorted(gold - pred)}
+    return {"precision": round(p, 3), "recall": round(r, 3), "f1": round(f, 3), "tp": tp, "fp": sorted(pred - gold), "fn": sorted(gold - pred)}
 
 
 def feature_map(g) -> dict[str, str]:
@@ -73,12 +73,16 @@ def score(g) -> dict:
 
 def print_report(out: dict) -> None:
     for name, s in out.items():
-        print(f"{name:22s} P={s['precision']:.2f} R={s['recall']:.2f} F1={s['f1']:.2f}"
-              + (f"  FP={s['fp'][:6]}" if s["fp"] else "") + (f"  FN={s['fn'][:6]}" if s["fn"] else ""))
+        print(
+            f"{name:22s} P={s['precision']:.2f} R={s['recall']:.2f} F1={s['f1']:.2f}"
+            + (f"  FP={s['fp'][:6]}" if s["fp"] else "")
+            + (f"  FN={s['fn'][:6]}" if s["fn"] else "")
+        )
 
 
 if __name__ == "__main__":
     import argparse
+
     ap = argparse.ArgumentParser()
     ap.add_argument("--graph", help="score a graph other than the default (e.g. one built with --graph llm_demo)")
     ap.add_argument("--json", help="also write the scores to this file")

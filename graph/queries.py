@@ -13,8 +13,8 @@ Drift definition (time-ordered path query):
 
 # One source for the involvement weights (config.INVOLVEMENT_WEIGHTS), used by WHO_KNOWS and KNOWLEDGE_RISK.
 from config import INVOLVEMENT_DEFAULT_WEIGHT, INVOLVEMENT_WEIGHTS
-WEIGHT_EXPR = ("CASE " + " ".join(f"WHEN x:{label} THEN {w}" for label, w in INVOLVEMENT_WEIGHTS.items())
-               + f" ELSE {INVOLVEMENT_DEFAULT_WEIGHT} END")
+
+WEIGHT_EXPR = "CASE " + " ".join(f"WHEN x:{label} THEN {w}" for label, w in INVOLVEMENT_WEIGHTS.items()) + f" ELSE {INVOLVEMENT_DEFAULT_WEIGHT} END"
 
 # The core query: chat-originated requirements that are still current, unimplemented and not dismissed, with evidence.
 DRIFT = """
@@ -206,16 +206,19 @@ CALL {
 RETURN lane, id, at, title, text, ref, who ORDER BY at
 """
 
+
 def rows(g, query: str, **params) -> list[dict]:
     res = g.query(query, params)
     cols = [c[1] if isinstance(c, (list, tuple)) else c for c in res.header]
-    return [dict(zip(cols, r)) for r in res.result_set]
+    return [dict(zip(cols, r, strict=False)) for r in res.result_set]
 
 
 # Same query anchored on one ticket: starts from the Requirement(ticket) index instead of a label scan
 DRIFT_FOR_TICKET = DRIFT.replace(
     "MATCH (m:Message)-[:CHANGES]->(r:Requirement)-[:AMENDS]->(t:Ticket)-[:ABOUT]->(f:Feature)",
-    "MATCH (r:Requirement {ticket: $ticket})\nMATCH (m:Message)-[:CHANGES]->(r)-[:AMENDS]->(t:Ticket)-[:ABOUT]->(f:Feature)", 1)
+    "MATCH (r:Requirement {ticket: $ticket})\nMATCH (m:Message)-[:CHANGES]->(r)-[:AMENDS]->(t:Ticket)-[:ABOUT]->(f:Feature)",
+    1,
+)
 assert DRIFT_FOR_TICKET != DRIFT, "DRIFT's first MATCH changed; update DRIFT_FOR_TICKET"
 
 LABELS = ("Person", "Ticket", "PullRequest", "Message", "Document", "Requirement", "Decision", "Feature", "Sprint")

@@ -3,14 +3,16 @@
 Times are stored twice: `*_ms` (epoch ms, used in Cypher comparisons) and the ISO string
 (for display).
 """
+
 from pipeline.events import Event, find_ticket_refs, to_ms
 
 
 def apply_schema(g) -> None:
     # every MERGE/lookup is on id; the rest are the hot non-id lookups (verified with GRAPH.EXPLAIN,
     # see scripts/explain_queries.py): requirements of a ticket, messages by time, PRs by number
-    for label, prop in [(lab, "id") for lab in ("Person", "Message", "Ticket", "PullRequest", "Document", "Feature",
-                                                "Requirement", "Decision", "Sprint")] + EXTRA_INDEXES:
+    for label, prop in [
+        (lab, "id") for lab in ("Person", "Message", "Ticket", "PullRequest", "Document", "Feature", "Requirement", "Decision", "Sprint")
+    ] + EXTRA_INDEXES:
         try:
             g.query(f"CREATE INDEX FOR (n:{label}) ON (n.{prop})")
         except Exception as e:  # index already exists
@@ -52,13 +54,22 @@ def write_sprints(g, sprints: list[dict]) -> None:
     )
 
 
-
 def write_messages(g, events: list[Event]) -> None:
-    rows = [{
-        "id": e.id, "source": e.source, "channel": e.channel, "author": e.author, "ts": e.ts,
-        "ts_ms": to_ms(e.ts), "text": e.text, "url": e.url, "thread_of": e.thread_of,
-        "refs": find_ticket_refs(e.text),
-    } for e in events]
+    rows = [
+        {
+            "id": e.id,
+            "source": e.source,
+            "channel": e.channel,
+            "author": e.author,
+            "ts": e.ts,
+            "ts_ms": to_ms(e.ts),
+            "text": e.text,
+            "url": e.url,
+            "thread_of": e.thread_of,
+            "refs": find_ticket_refs(e.text),
+        }
+        for e in events
+    ]
     _ensure_people(g, [r["author"] for r in rows])
     for chunk in _chunks(rows):
         g.query(
@@ -97,7 +108,7 @@ BATCH = 500  # rows per UNWIND: one round-trip per chunk instead of several per 
 
 def _chunks(rows: list[dict], n: int = BATCH):
     for i in range(0, len(rows), n):
-        yield rows[i:i + n]
+        yield rows[i : i + n]
 
 
 def _ensure_people(g, ids) -> None:
@@ -111,14 +122,28 @@ def write_tickets(g, events: list[Event]) -> None:
     for e in events:
         x = e.extra
         versions = x.get("versions") or [{"at": e.ts, "to": x["description"], "actor": e.author}]
-        rows.append({
-            "id": e.id, "title": x["title"], "description": x["description"], "state": x["state"],
-            "priority": x.get("priority"), "labels": x.get("labels", []), "url": e.url,
-            "created": e.ts, "created_ms": to_ms(e.ts), "updated": x["updated_at"], "updated_ms": to_ms(x["updated_at"]),
-            "desc_updated_ms": to_ms(versions[-1]["at"]), "completed_ms": to_ms(x.get("completed_at")),
-            "versions": [v["to"] for v in versions], "version_times": [to_ms(v["at"]) for v in versions],
-            "author": e.author, "assignee": x.get("assignee"), "sprint": x.get("sprint"),
-        })
+        rows.append(
+            {
+                "id": e.id,
+                "title": x["title"],
+                "description": x["description"],
+                "state": x["state"],
+                "priority": x.get("priority"),
+                "labels": x.get("labels", []),
+                "url": e.url,
+                "created": e.ts,
+                "created_ms": to_ms(e.ts),
+                "updated": x["updated_at"],
+                "updated_ms": to_ms(x["updated_at"]),
+                "desc_updated_ms": to_ms(versions[-1]["at"]),
+                "completed_ms": to_ms(x.get("completed_at")),
+                "versions": [v["to"] for v in versions],
+                "version_times": [to_ms(v["at"]) for v in versions],
+                "author": e.author,
+                "assignee": x.get("assignee"),
+                "sprint": x.get("sprint"),
+            }
+        )
     _ensure_people(g, [r["author"] for r in rows] + [r["assignee"] for r in rows])
     for chunk in _chunks(rows):
         g.query(
@@ -130,21 +155,40 @@ def write_tickets(g, events: list[Event]) -> None:
                    t.completed_ms = r.completed_ms, t.versions = r.versions, t.version_times = r.version_times
                WITH t, r
                MATCH (a:Person {id: r.author})
-               MERGE (a)-[:AUTHORED]->(t)""", {"rows": chunk})
-        g.query("""UNWIND $rows AS r WITH r WHERE r.assignee IS NOT NULL
-                   MATCH (t:Ticket {id: r.id}), (p:Person {id: r.assignee}) MERGE (t)-[:ASSIGNED_TO]->(p)""", {"rows": chunk})
-        g.query("""UNWIND $rows AS r WITH r WHERE r.sprint IS NOT NULL
-                   MATCH (t:Ticket {id: r.id}), (s:Sprint {id: r.sprint}) MERGE (t)-[:IN_SPRINT]->(s)""", {"rows": chunk})
+               MERGE (a)-[:AUTHORED]->(t)""",
+            {"rows": chunk},
+        )
+        g.query(
+            """UNWIND $rows AS r WITH r WHERE r.assignee IS NOT NULL
+                   MATCH (t:Ticket {id: r.id}), (p:Person {id: r.assignee}) MERGE (t)-[:ASSIGNED_TO]->(p)""",
+            {"rows": chunk},
+        )
+        g.query(
+            """UNWIND $rows AS r WITH r WHERE r.sprint IS NOT NULL
+                   MATCH (t:Ticket {id: r.id}), (s:Sprint {id: r.sprint}) MERGE (t)-[:IN_SPRINT]->(s)""",
+            {"rows": chunk},
+        )
 
 
 def write_pull_requests(g, events: list[Event]) -> None:
-    rows = [{
-        "id": e.id, "number": e.extra["number"], "title": e.extra["title"], "body": e.extra["body"], "state": e.extra["state"],
-        "url": e.url, "created": e.ts, "created_ms": to_ms(e.ts), "merged": e.extra.get("merged_at"),
-        "merged_ms": to_ms(e.extra.get("merged_at")), "author": e.author,
-        # Hard link: "Fixes BD-101", "(BD-107)", "BD-101: ..." in title or body
-        "refs": find_ticket_refs(e.text),
-    } for e in events]
+    rows = [
+        {
+            "id": e.id,
+            "number": e.extra["number"],
+            "title": e.extra["title"],
+            "body": e.extra["body"],
+            "state": e.extra["state"],
+            "url": e.url,
+            "created": e.ts,
+            "created_ms": to_ms(e.ts),
+            "merged": e.extra.get("merged_at"),
+            "merged_ms": to_ms(e.extra.get("merged_at")),
+            "author": e.author,
+            # Hard link: "Fixes BD-101", "(BD-107)", "BD-101: ..." in title or body
+            "refs": find_ticket_refs(e.text),
+        }
+        for e in events
+    ]
     _ensure_people(g, [r["author"] for r in rows])
     for chunk in _chunks(rows):
         g.query(
@@ -154,23 +198,43 @@ def write_pull_requests(g, events: list[Event]) -> None:
                    pr.created = r.created, pr.created_ms = r.created_ms, pr.merged = r.merged, pr.merged_ms = r.merged_ms
                WITH pr, r
                MATCH (a:Person {id: r.author})
-               MERGE (a)-[:AUTHORED]->(pr)""", {"rows": chunk})
-        g.query("""UNWIND $rows AS r UNWIND r.refs AS ref
+               MERGE (a)-[:AUTHORED]->(pr)""",
+            {"rows": chunk},
+        )
+        g.query(
+            """UNWIND $rows AS r UNWIND r.refs AS ref
                    MATCH (pr:PullRequest {id: r.id}), (t:Ticket {id: ref})
-                   MERGE (pr)-[:REFERENCES]->(t)""", {"rows": chunk})
+                   MERGE (pr)-[:REFERENCES]->(t)""",
+            {"rows": chunk},
+        )
         # Sprint membership by merge (or creation) date
-        g.query("""UNWIND $rows AS r
+        g.query(
+            """UNWIND $rows AS r
                    MATCH (pr:PullRequest {id: r.id}), (s:Sprint)
                    WITH pr, s, coalesce(pr.merged_ms, pr.created_ms) AS at
                    WHERE at >= s.start_ms AND at <= s.end_ms
-                   MERGE (pr)-[:IN_SPRINT]->(s)""", {"rows": chunk})
+                   MERGE (pr)-[:IN_SPRINT]->(s)""",
+            {"rows": chunk},
+        )
 
 
 def write_documents(g, events: list[Event]) -> None:
     """Docs (PRDs, design notes): Person -AUTHORED-> Document -MENTIONS-> Ticket."""
-    rows = [{"id": e.id, "title": e.extra["title"], "text": e.text, "url": e.url, "created": e.ts,
-             "created_ms": to_ms(e.ts), "updated": e.extra["updated"], "updated_ms": to_ms(e.extra["updated"]),
-             "author": e.author, "refs": e.extra["tickets"]} for e in events]
+    rows = [
+        {
+            "id": e.id,
+            "title": e.extra["title"],
+            "text": e.text,
+            "url": e.url,
+            "created": e.ts,
+            "created_ms": to_ms(e.ts),
+            "updated": e.extra["updated"],
+            "updated_ms": to_ms(e.extra["updated"]),
+            "author": e.author,
+            "refs": e.extra["tickets"],
+        }
+        for e in events
+    ]
     _ensure_people(g, [r["author"] for r in rows])
     for chunk in _chunks(rows):
         g.query(
@@ -180,7 +244,12 @@ def write_documents(g, events: list[Event]) -> None:
                    d.updated = r.updated, d.updated_ms = r.updated_ms
                WITH d, r
                MATCH (a:Person {id: r.author})
-               MERGE (a)-[:AUTHORED]->(d)""", {"rows": chunk})
-        g.query("""UNWIND $rows AS r UNWIND r.refs AS ref
+               MERGE (a)-[:AUTHORED]->(d)""",
+            {"rows": chunk},
+        )
+        g.query(
+            """UNWIND $rows AS r UNWIND r.refs AS ref
                    MATCH (d:Document {id: r.id}), (t:Ticket {id: ref})
-                   MERGE (d)-[:MENTIONS]->(t)""", {"rows": chunk})
+                   MERGE (d)-[:MENTIONS]->(t)""",
+            {"rows": chunk},
+        )

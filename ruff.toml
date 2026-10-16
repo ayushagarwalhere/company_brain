@@ -1,0 +1,18 @@
+# Lint + format settings (CI runs `ruff check .` and `ruff format --check .`).
+line-length = 160
+target-version = "py311"
+extend-exclude = ["web", "data", ".venv"]
+
+[lint]
+select = ["E", "F", "W", "I", "B", "UP"]
+ignore = [
+  "E501",   # long lines: the formatter owns line length
+  "E731",   # small lambdas assigned to names are used deliberately in benchmarks
+  "B008",   # FastAPI's Depends() in default arguments is the framework idiom
+  "UP007",  # keep `X | None` and Optional both readable
+  "UP038",  # isinstance(x, (A, B)) is clearer (and faster) than A | B
+  "E741",   # `l` is the conventional short name for a label/link in the comprehensions here
+]
+
+[lint.per-file-ignores]
+"tests/*" = ["B011"]

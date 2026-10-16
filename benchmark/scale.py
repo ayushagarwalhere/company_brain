@@ -9,12 +9,13 @@ that carries the decision (no drift); the other half don't (drift). Noise messag
 Reports ingest, resolution and query latency, and checks drift is found exactly where planted.
 Uses the heuristic extractor, so it runs without an LLM.
 """
+
 import argparse
 import json
 import random
 import statistics
 import time
-from datetime import datetime, timedelta, timezone
+from datetime import UTC, datetime, timedelta
 from pathlib import Path
 
 from graph import queries as Q
@@ -24,10 +25,12 @@ from pipeline.events import Event
 from pipeline.resolve import resolve
 
 GRAPH = "scale_test"
-T0 = datetime(2026, 1, 5, 9, 0, tzinfo=timezone.utc)
+T0 = datetime(2026, 1, 5, 9, 0, tzinfo=UTC)
 iso = lambda d: d.strftime("%Y-%m-%dT%H:%M:%SZ")  # noqa: E731
-WORDS = ("alpha bravo cedar delta ember fable garnet harbor indigo juniper kestrel lumen meadow nimbus onyx prism quill "
-         "raven sable tundra umber vertex willow xenon yarrow zephyr").split()
+WORDS = (
+    "alpha bravo cedar delta ember fable garnet harbor indigo juniper kestrel lumen meadow nimbus onyx prism quill "
+    "raven sable tundra umber vertex willow xenon yarrow zephyr"
+).split()
 
 
 def synth(features: int, noise: int, seed: int = 7):
@@ -46,39 +49,135 @@ def synth(features: int, noise: int, seed: int = 7):
         decision_at = start + timedelta(days=3)
         drift = f % 2 == 0
         if not drift:  # ticket edit that carries the decision, a day later
-            versions.append({"at": iso(decision_at + timedelta(days=1)), "actor": owner,
-                             "to": f"The {topic} report must include the last {new_n} entries for admins and managers."})
+            versions.append(
+                {
+                    "at": iso(decision_at + timedelta(days=1)),
+                    "actor": owner,
+                    "to": f"The {topic} report must include the last {new_n} entries for admins and managers.",
+                }
+            )
         else:
             expected.add(main)
-        tickets.append(Event("tickets", "ticket", main, owner, iso(start), f"{topic} report\n\n{versions[-1]['to']}", extra={
-            "title": f"{topic} report", "description": versions[-1]["to"], "state": "Done", "labels": [topic, "backend"],
-            "assignee": owner, "sprint": None, "updated_at": versions[-1]["at"], "completed_at": iso(start + timedelta(days=5)),
-            "versions": versions}))
+        tickets.append(
+            Event(
+                "tickets",
+                "ticket",
+                main,
+                owner,
+                iso(start),
+                f"{topic} report\n\n{versions[-1]['to']}",
+                extra={
+                    "title": f"{topic} report",
+                    "description": versions[-1]["to"],
+                    "state": "Done",
+                    "labels": [topic, "backend"],
+                    "assignee": owner,
+                    "sprint": None,
+                    "updated_at": versions[-1]["at"],
+                    "completed_at": iso(start + timedelta(days=5)),
+                    "versions": versions,
+                },
+            )
+        )
         for k, extra_t in enumerate(ids[1:], 1):
             text = f"{topic} report {'export button' if k == 1 else 'performance tuning'}"
-            tickets.append(Event("tickets", "ticket", extra_t, owner, iso(start), text, extra={
-                "title": text, "description": f"Work on the {text}.", "state": "Done", "labels": [topic, "frontend"],
-                "assignee": owner, "sprint": None, "updated_at": iso(start), "completed_at": None,
-                "versions": [{"at": iso(start), "to": f"Work on the {text}.", "actor": owner}]}))
+            tickets.append(
+                Event(
+                    "tickets",
+                    "ticket",
+                    extra_t,
+                    owner,
+                    iso(start),
+                    text,
+                    extra={
+                        "title": text,
+                        "description": f"Work on the {text}.",
+                        "state": "Done",
+                        "labels": [topic, "frontend"],
+                        "assignee": owner,
+                        "sprint": None,
+                        "updated_at": iso(start),
+                        "completed_at": None,
+                        "versions": [{"at": iso(start), "to": f"Work on the {text}.", "actor": owner}],
+                    },
+                )
+            )
         root = f"s{f}_root"
-        msgs.append(Event("slack", "message", root, people[(f + 1) % 40], iso(start + timedelta(days=2)),
-                          f"Customers keep asking about the {topic} report, the last {base_n} entries is not enough.", channel="product"))
-        msgs.append(Event("slack", "message", f"s{f}_dec", owner, iso(decision_at),
-                          f"Decision: the {topic} report must include the last {new_n} entries, for admins and managers.",
-                          channel="product", thread_of=root))
-        msgs.append(Event("slack", "message", f"s{f}_ack", people[(f + 2) % 40], iso(decision_at + timedelta(minutes=5)),
-                          "ok, will pass it on", channel="product", thread_of=root))
-        msgs.append(Event("slack", "message", f"s{f}_id", owner, iso(start + timedelta(hours=2)),
-                          f"Starting on {main} today.", channel="engineering"))
-        prs.append(Event("github", "pull_request", f"PR-{f + 1}", owner, iso(start + timedelta(days=4)),
-                         f"{main}: {topic} report\n\nFixes {main}. Shows the last {base_n} entries for admins.",
-                         extra={"number": f + 1, "title": f"{main}: {topic} report", "body": f"Fixes {main}. Shows the last {base_n} entries for admins.",
-                                "state": "merged", "merged_at": iso(start + timedelta(days=5))}))
-    chatter = ["morning all", "lunch at 1?", "CI is green again.", "prod deploy done", "can someone review my PR, small one",
-               "running late to standup", "rolling back the last deploy, seeing 500s", "fixed, it was a missing env var"]
+        msgs.append(
+            Event(
+                "slack",
+                "message",
+                root,
+                people[(f + 1) % 40],
+                iso(start + timedelta(days=2)),
+                f"Customers keep asking about the {topic} report, the last {base_n} entries is not enough.",
+                channel="product",
+            )
+        )
+        msgs.append(
+            Event(
+                "slack",
+                "message",
+                f"s{f}_dec",
+                owner,
+                iso(decision_at),
+                f"Decision: the {topic} report must include the last {new_n} entries, for admins and managers.",
+                channel="product",
+                thread_of=root,
+            )
+        )
+        msgs.append(
+            Event(
+                "slack",
+                "message",
+                f"s{f}_ack",
+                people[(f + 2) % 40],
+                iso(decision_at + timedelta(minutes=5)),
+                "ok, will pass it on",
+                channel="product",
+                thread_of=root,
+            )
+        )
+        msgs.append(Event("slack", "message", f"s{f}_id", owner, iso(start + timedelta(hours=2)), f"Starting on {main} today.", channel="engineering"))
+        prs.append(
+            Event(
+                "github",
+                "pull_request",
+                f"PR-{f + 1}",
+                owner,
+                iso(start + timedelta(days=4)),
+                f"{main}: {topic} report\n\nFixes {main}. Shows the last {base_n} entries for admins.",
+                extra={
+                    "number": f + 1,
+                    "title": f"{main}: {topic} report",
+                    "body": f"Fixes {main}. Shows the last {base_n} entries for admins.",
+                    "state": "merged",
+                    "merged_at": iso(start + timedelta(days=5)),
+                },
+            )
+        )
+    chatter = [
+        "morning all",
+        "lunch at 1?",
+        "CI is green again.",
+        "prod deploy done",
+        "can someone review my PR, small one",
+        "running late to standup",
+        "rolling back the last deploy, seeing 500s",
+        "fixed, it was a missing env var",
+    ]
     for i in range(noise):
-        msgs.append(Event("slack", "message", f"n{i}", rng.choice(people), iso(T0 + timedelta(minutes=rng.randint(0, 60 * 24 * 90))),
-                          rng.choice(chatter), channel=rng.choice(["engineering", "random", "product"])))
+        msgs.append(
+            Event(
+                "slack",
+                "message",
+                f"n{i}",
+                rng.choice(people),
+                iso(T0 + timedelta(minutes=rng.randint(0, 60 * 24 * 90))),
+                rng.choice(chatter),
+                channel=rng.choice(["engineering", "random", "product"]),
+            )
+        )
     return people, msgs, tickets, prs, expected
 
 
@@ -124,7 +223,7 @@ def main():
     out["drift_precision"] = round(tp / len(found), 3) if found else 1.0
     out["drift_recall"] = round(tp / len(expected), 3) if expected else 1.0
 
-    sample = sorted(expected)[: 20]
+    sample = sorted(expected)[:20]
     out["query_drift_all"] = timeit(lambda: Q.drift(g), n=10)
     out["query_drift_one_ticket"] = timeit(lambda: Q.drift(g, ticket=random.choice(sample)))
     out["query_connection"] = timeit(lambda: Q.connection(g, "p0", "PR-1"))
@@ -133,10 +232,23 @@ def main():
     # live path: one incoming chat message -> write, resolve, classify, requirement chain, drift query
     from pipeline.extract import HeuristicExtractor
     from pipeline.live import process_message
+
     ex, n = HeuristicExtractor(), iter(range(10**6))
-    out["live_message"] = timeit(lambda: process_message(Event(
-        "slack", "message", f"live{next(n)}", "p1", "2026-06-01T10:00:00Z",
-        f"Decision: the {WORDS[0]}0 report must include the last {random.randint(500, 900)} entries.", channel="product"), g=g, extractor=ex))
+    out["live_message"] = timeit(
+        lambda: process_message(
+            Event(
+                "slack",
+                "message",
+                f"live{next(n)}",
+                "p1",
+                "2026-06-01T10:00:00Z",
+                f"Decision: the {WORDS[0]}0 report must include the last {random.randint(500, 900)} entries.",
+                channel="product",
+            ),
+            g=g,
+            extractor=ex,
+        )
+    )
     g.delete()
 
     print(json.dumps(out, indent=1))

@@ -308,7 +308,7 @@ python -m venv .venv
 .venv\Scripts\activate             # macOS/Linux: source .venv/bin/activate
 pip install -r requirements.txt
 cp .env.example .env               # every service is optional except FalkorDB
-docker run -d --name falkordb-brain -p 6379:6379 -p 3001:3000 falkordb/falkordb:latest
+docker run -d --name falkordb-brain -p 6379:6379 -p 3001:3000 falkordb/falkordb:v4.22.1
 python -m scripts.check_setup      # PASS/FAIL for FalkorDB, Slack, Discord, GitHub, the LLM
 
 python -m pipeline.build           # ingest + extraction + resolution, prints drift

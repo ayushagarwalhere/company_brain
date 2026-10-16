@@ -15,13 +15,15 @@ snapshot() first and restore()s it after ingest (pipeline.build.build_graph).
 
 def snapshot(g) -> dict:
     """Every human action in the graph, as plain data that survives a graph wipe."""
+
     def rows(q):
         try:
             res = g.query(q)
         except Exception:  # noqa: BLE001 - the graph may not exist yet
             return []
         cols = [c[1] if isinstance(c, (list, tuple)) else c for c in res.header]
-        return [dict(zip(cols, r)) for r in res.result_set]
+        return [dict(zip(cols, r, strict=False)) for r in res.result_set]
+
     dismissals = rows("""MATCH (d:Decision {origin: 'human'}) OPTIONAL MATCH (p:Person)-[:MADE]->(d)
                          RETURN d.id AS id, d.kind AS kind, d.text AS text, d.at AS at, d.at_ms AS at_ms,
                                 d.target AS target, p.id AS actor""")
@@ -37,14 +39,20 @@ def restore(g, snap: dict) -> None:
     """After a fresh ingest: put written-back ticket versions back on their tickets and recreate the
     human Decision nodes. resolve() then rebuilds requirements from the versions and relink() attaches."""
     for w in snap.get("writebacks", []):
-        g.query("""MATCH (t:Ticket {id: $ticket})
+        g.query(
+            """MATCH (t:Ticket {id: $ticket})
                    SET t.versions = $versions, t.version_times = $times, t.description = $description,
                        t.desc_updated_ms = $desc_ms, t.updated = $updated, t.updated_ms = $updated_ms,
-                       t.wb_versions = $wb_versions, t.wb_targets = $wb_targets, t.wb_actors = $wb_actors""", w)
+                       t.wb_versions = $wb_versions, t.wb_targets = $wb_targets, t.wb_actors = $wb_actors""",
+            w,
+        )
     for d in snap.get("dismissals", []):
-        g.query("""MERGE (d:Decision {id: $id})
+        g.query(
+            """MERGE (d:Decision {id: $id})
                    SET d.origin = 'human', d.kind = $kind, d.text = $text, d.at = $at, d.at_ms = $at_ms, d.target = $target
-                   WITH d MATCH (p:Person {id: $actor}) MERGE (p)-[:MADE]->(d)""", d)
+                   WITH d MATCH (p:Person {id: $actor}) MERGE (p)-[:MADE]->(d)""",
+            d,
+        )
 
 
 def relink(g) -> dict:

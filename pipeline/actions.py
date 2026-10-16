@@ -1,18 +1,19 @@
 """Actions that close the loop on drift. Both are recorded in the graph, so they stay auditable.
 
-  write_to_ticket  the decided requirement becomes the ticket's next description version:
-                   (Ticket)-[:STATES]->(new version)-[:SUPERSEDES]->(chat requirement)
-  dismiss          someone decides to keep the old scope:
-                   (Person)-[:MADE]->(Decision {kind: 'dismissal'})-[:DISMISSES]->(chat requirement)
+write_to_ticket  the decided requirement becomes the ticket's next description version:
+                 (Ticket)-[:STATES]->(new version)-[:SUPERSEDES]->(chat requirement)
+dismiss          someone decides to keep the old scope:
+                 (Person)-[:MADE]->(Decision {kind: 'dismissal'})-[:DISMISSES]->(chat requirement)
 """
-from datetime import datetime, timezone
+
+from datetime import UTC, datetime
 
 from graph import queries as Q
 from pipeline.events import to_ms
 
 
 def _now() -> tuple[str, int]:
-    iso = datetime.now(timezone.utc).strftime("%Y-%m-%dT%H:%M:%SZ")
+    iso = datetime.now(UTC).strftime("%Y-%m-%dT%H:%M:%SZ")
     return iso, to_ms(iso)
 
 
@@ -31,7 +32,8 @@ def write_to_ticket(g, requirement: str, actor: str = "maya") -> dict:
     iso, ms = _now()
     new_id = f"req:{ticket}:v{len(versions) + 1}"
     text = d["requirement_text"]
-    g.query("""MATCH (t:Ticket {id: $t}), (chat:Requirement {id: $chat})
+    g.query(
+        """MATCH (t:Ticket {id: $t}), (chat:Requirement {id: $chat})
                OPTIONAL MATCH (chat)-[:ABOUT]->(f:Feature)
                MERGE (q:Requirement {id: $id})
                SET q.text = $text, q.at_ms = $ms, q.at = $iso, q.origin = 'ticket', q.ticket = $t, q.written_by = $actor
@@ -43,8 +45,18 @@ def write_to_ticket(g, requirement: str, actor: str = "maya") -> dict:
                    t.wb_actors = coalesce(t.wb_actors, []) + [$actor]
                WITH q, f WHERE f IS NOT NULL
                MERGE (q)-[:ABOUT]->(f)""",
-            {"t": ticket, "chat": requirement, "id": new_id, "text": text, "ms": ms, "iso": iso, "actor": actor,
-             "versions": versions + [text], "times": times + [ms]})
+        {
+            "t": ticket,
+            "chat": requirement,
+            "id": new_id,
+            "text": text,
+            "ms": ms,
+            "iso": iso,
+            "actor": actor,
+            "versions": versions + [text],
+            "times": times + [ms],
+        },
+    )
     g.query("MATCH (a:Alert)-[:FLAGS]->(:Requirement {id: $r}) SET a.status = 'resolved'", {"r": requirement})
     return {"status": "written", "ticket": ticket, "version": new_id, "text": text}
 
@@ -53,11 +65,13 @@ def dismiss(g, requirement: str, actor: str = "maya", reason: str = "keep the ol
     _open_drift(g, requirement)
     iso, ms = _now()
     did = f"dismiss:{requirement}"
-    g.query("""MATCH (r:Requirement {id: $r}), (p:Person {id: $actor})
+    g.query(
+        """MATCH (r:Requirement {id: $r}), (p:Person {id: $actor})
                MERGE (d:Decision {id: $did})
                SET d.origin = 'human', d.kind = 'dismissal', d.target = $r, d.text = $reason, d.at = $iso, d.at_ms = $ms
                MERGE (p)-[:MADE]->(d)
                MERGE (d)-[:DISMISSES]->(r)""",
-            {"r": requirement, "actor": actor, "did": did, "reason": reason, "iso": iso, "ms": ms})
+        {"r": requirement, "actor": actor, "did": did, "reason": reason, "iso": iso, "ms": ms},
+    )
     g.query("MATCH (a:Alert)-[:FLAGS]->(:Requirement {id: $r}) SET a.status = 'dismissed'", {"r": requirement})
     return {"status": "dismissed", "requirement": requirement, "by": actor}

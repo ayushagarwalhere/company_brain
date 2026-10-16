@@ -3,6 +3,7 @@
 The scale test (benchmark/scale.py) found this: at 20k+ messages the resolver only saw the first
 10,000 (RESULTSET_SIZE in the Docker image), and 30% of planted drifts were missed.
 """
+
 import pytest
 
 from graph import db
@@ -21,6 +22,7 @@ def _up():
 @pytest.mark.skipif(not _up(), reason="FalkorDB not reachable")
 def test_rows_paged_returns_everything_in_order():
     from pipeline.resolve import _rows_paged
+
     g = db.get_graph(GRAPH)
     try:
         g.query("UNWIND range(1, 12345) AS i CREATE (:Row {i: i})")

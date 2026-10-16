@@ -1,11 +1,12 @@
 """Request metrics (Prometheus text format) and a small per-client rate limiter. In-process, no extra deps."""
+
 import threading
 import time
 from collections import defaultdict
 
 _lock = threading.Lock()
 BUCKETS_MS = (5, 10, 25, 50, 100, 250, 500, 1000, 2500, 5000)
-_requests: dict[tuple[str, str, int], int] = defaultdict(int)          # (method, route, status) -> count
+_requests: dict[tuple[str, str, int], int] = defaultdict(int)  # (method, route, status) -> count
 _latency: dict[str, list[int]] = defaultdict(lambda: [0] * (len(BUCKETS_MS) + 1))
 _latency_sum: dict[str, float] = defaultdict(float)
 
@@ -25,15 +26,14 @@ def observe(method: str, route: str, status: int, ms: float) -> None:
 
 def render(extra: dict[str, float]) -> str:
     """Prometheus exposition format."""
-    out = ["# HELP drift_http_requests_total HTTP requests by route and status",
-           "# TYPE drift_http_requests_total counter"]
+    out = ["# HELP drift_http_requests_total HTTP requests by route and status", "# TYPE drift_http_requests_total counter"]
     with _lock:
         for (m, r, s), n in sorted(_requests.items()):
             out.append(f'drift_http_requests_total{{method="{m}",route="{r}",status="{s}"}} {n}')
         out += ["# HELP drift_http_request_ms Request latency in milliseconds", "# TYPE drift_http_request_ms histogram"]
         for r, b in sorted(_latency.items()):
             acc = 0
-            for edge, n in zip(BUCKETS_MS, b):
+            for edge, n in zip(BUCKETS_MS, b, strict=False):
                 acc += n
                 out.append(f'drift_http_request_ms_bucket{{route="{r}",le="{edge}"}} {acc}')
             acc += b[-1]

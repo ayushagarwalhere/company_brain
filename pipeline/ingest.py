@@ -1,9 +1,10 @@
 """Phase 3 ingestion: sources -> Events -> base graph (people, messages, tickets, PRs, sprints).
 
-    python -m pipeline.ingest                 # offline: scenario files (default)
-    python -m pipeline.ingest --live          # Slack + Discord + GitHub APIs, tickets from JSON
-    python -m pipeline.ingest --reset         # drop the graph first
+python -m pipeline.ingest                 # offline: scenario files (default)
+python -m pipeline.ingest --live          # Slack + Discord + GitHub APIs, tickets from JSON
+python -m pipeline.ingest --reset         # drop the graph first
 """
+
 import argparse
 
 from connectors import docs, github, scenario, tickets
@@ -17,9 +18,11 @@ def collect(live: bool, log=print):
     if not live:
         return scenario.messages(), tickets.tickets(), github.pull_requests_from_scenario()
     from config import settings
+
     messages, used = [], []
     if settings.slack_bot_token:
         from connectors import slack as slack_conn
+
         messages += slack_conn.fetch_history()
         used.append("slack: live API")
     else:
@@ -27,6 +30,7 @@ def collect(live: bool, log=print):
         used.append("slack: scenario files (SLACK_BOT_TOKEN not set)")
     if settings.discord_bot_token:
         from connectors import discord as discord_conn
+
         messages += discord_conn.fetch_history()
         used.append("discord: live API")
     else:
@@ -55,7 +59,7 @@ def ingest(live: bool = False, reset: bool = False, graph_name: str | None = Non
 
     writer.write_people(g, scenario.people())
     writer.write_sprints(g, scenario.sprints())
-    writer.write_tickets(g, ticket_events)       # tickets before messages, so MENTIONS can link
+    writer.write_tickets(g, ticket_events)  # tickets before messages, so MENTIONS can link
     writer.write_messages(g, messages)
     writer.write_pull_requests(g, prs)
     writer.write_documents(g, docs.documents())  # docs come from files in both modes

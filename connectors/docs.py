@@ -12,6 +12,7 @@
 
 A Notion/Confluence connector would emit the same Event; the files stand in for it.
 """
+
 from pathlib import Path
 
 from pipeline.events import Event, find_ticket_refs
@@ -35,10 +36,16 @@ def documents(directory: Path = DOCS_DIR) -> list[Event]:
     for path in sorted(directory.glob("*.md")):
         meta, body = parse(path.read_text(encoding="utf-8"))
         tickets = [t.strip() for t in meta.get("tickets", "").split(",") if t.strip()]
-        events.append(Event(
-            source="docs", kind="document", id=meta["id"], author=meta["author"], ts=meta["created"],
-            text=body, url=f"scenario://docs/{path.name}",
-            extra={"title": meta["title"], "updated": meta.get("updated", meta["created"]),
-                   "tickets": sorted(set(tickets) | set(find_ticket_refs(body)))},
-        ))
+        events.append(
+            Event(
+                source="docs",
+                kind="document",
+                id=meta["id"],
+                author=meta["author"],
+                ts=meta["created"],
+                text=body,
+                url=f"scenario://docs/{path.name}",
+                extra={"title": meta["title"], "updated": meta.get("updated", meta["created"]), "tickets": sorted(set(tickets) | set(find_ticket_refs(body)))},
+            )
+        )
     return events

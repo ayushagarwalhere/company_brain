@@ -14,6 +14,7 @@ All answer the same four questions:
   3. implements:     which requirement versions does this PR actually implement?
   4. reflects:       does a later ticket edit actually contain an earlier chat change?
 """
+
 import json
 import re
 from concurrent.futures import ThreadPoolExecutor
@@ -67,8 +68,13 @@ def evidence_ok(quote: str | None, message: str) -> bool:
 
 def from_structured(out: dict, message: str) -> dict:
     """Maps the structured answer to the pipeline's {kind, feature, ticket, requirement, confidence}."""
-    base = {"feature": out.get("feature"), "ticket": out.get("ticket"), "confidence": out.get("confidence") or 0.0,
-            "evidence_quote": out.get("evidence_quote"), "old": out.get("old")}
+    base = {
+        "feature": out.get("feature"),
+        "ticket": out.get("ticket"),
+        "confidence": out.get("confidence") or 0.0,
+        "evidence_quote": out.get("evidence_quote"),
+        "old": out.get("old"),
+    }
     if not out.get("is_change") or not out.get("new"):
         return {**base, "kind": out.get("kind") if out.get("kind") not in CHANGE_KINDS else "other", "requirement": None}
     if not evidence_ok(out.get("evidence_quote"), message):
@@ -92,12 +98,14 @@ Decide whether the NEW ticket text incorporates the chat change (same behaviour,
 An edit that leaves the old behaviour in place does NOT reflect it.
 Return JSON: {"reflects": true|false, "reason": short explanation}"""
 
+
 def slug(name: str) -> str:
     return "feat_" + re.sub(r"[^a-z0-9]+", "_", name.lower()).strip("_")[:40]
 
 
 class LLMExtractor:
     """Any OpenAI-compatible model (pipeline/llm.py): DeepSeek, or a local one through Ollama."""
+
     name = "llm"
 
     def group_tickets(self, tickets: list[dict]) -> list[dict]:
@@ -107,13 +115,13 @@ class LLMExtractor:
 
     def classify(self, items: list[dict], features: list[dict]) -> dict[str, dict]:
         """items: [{"id", "author", "ts", "text", "thread": [{"author","text"}]}]"""
-        feat_txt = "\n".join(f"- {f['id']} ({f['name']}): tickets " + ", ".join(
-            f"{t['id']} \"{t['title']}\" = {t['description']}" for t in f["ticket_objs"]) for f in features)
+        feat_txt = "\n".join(
+            f"- {f['id']} ({f['name']}): tickets " + ", ".join(f"{t['id']} \"{t['title']}\" = {t['description']}" for t in f["ticket_objs"]) for f in features
+        )
 
         def one(it):
             thread = "\n".join(f"  {m['author']}: {m['text']}" for m in it["thread"]) or "  (none)"
-            user = (f"Features:\n{feat_txt}\n\nThread context:\n{thread}\n\n"
-                    f"TARGET message by {it['author']} at {it['ts']}:\n{it['text']}")
+            user = f"Features:\n{feat_txt}\n\nThread context:\n{thread}\n\n" f"TARGET message by {it['author']} at {it['ts']}:\n{it['text']}"
             try:
                 return it["id"], from_structured(llm.chat_json(CLASSIFY_SYSTEM, user), it["text"])
             except Exception as e:  # noqa: BLE001 - one bad call shouldn't kill the run
@@ -128,10 +136,8 @@ class LLMExtractor:
         ids = {c["id"] for c in candidates}
         return [i for i in llm.chat_json(IMPLEMENTS_SYSTEM, user).get("implements", []) if i in ids]
 
-
     def reflects(self, ticket_req: dict, chat_req: dict) -> bool:
-        user = (f"Chat change ({chat_req['at']}): {chat_req['text']}\n\n"
-                f"Ticket text after edit ({ticket_req['at']}): {ticket_req['text']}")
+        user = f"Chat change ({chat_req['at']}): {chat_req['text']}\n\n" f"Ticket text after edit ({ticket_req['at']}): {ticket_req['text']}"
         return bool(llm.chat_json(REFLECTS_SYSTEM, user).get("reflects"))
 
     def replaces(self, new_req: dict, old_req: dict) -> bool:
@@ -141,6 +147,7 @@ class LLMExtractor:
 
 class OracleExtractor:
     """Answer-key extractor (test harness only)."""
+
     name = "oracle"
 
     def __init__(self):
@@ -167,14 +174,11 @@ class OracleExtractor:
             mid = it["id"]
             if mid in decisions:
                 r = self.reqs[decisions[mid]["changes"]]
-                out[mid] = {"kind": "decision", "feature": r["feature"], "ticket": self._ticket_for(r),
-                            "requirement": r["text"], "confidence": 1.0}
+                out[mid] = {"kind": "decision", "feature": r["feature"], "ticket": self._ticket_for(r), "requirement": r["text"], "confidence": 1.0}
             elif mid in non:
-                out[mid] = {"kind": non[mid]["kind"], "feature": non[mid]["feature"], "ticket": None,
-                            "requirement": None, "confidence": 1.0}
+                out[mid] = {"kind": non[mid]["kind"], "feature": non[mid]["feature"], "ticket": None, "requirement": None, "confidence": 1.0}
             else:
-                out[mid] = {"kind": "other", "feature": feat_of.get(mid), "ticket": None,
-                            "requirement": None, "confidence": 1.0}
+                out[mid] = {"kind": "other", "feature": feat_of.get(mid), "ticket": None, "requirement": None, "confidence": 1.0}
         return out
 
     def implements(self, pr, candidates):
@@ -185,42 +189,49 @@ class OracleExtractor:
         anchor = r.get("reflected_in_ticket") or r["origin"]
         # The graph's node for this requirement is the ticket version written at that time
         from pipeline.events import to_ms
+
         at = to_ms(anchor["at"])
         return [c["id"] for c in candidates if c["at_ms"] == at]
-
 
     def replaces(self, new_req, old_req):
         def key_req(r):
             dec = next((d for d in self.key["decisions"] if d["message"] == r["id"].removeprefix("req:")), None)
             return dec["changes"] if dec else None
+
         new = self.reqs.get(key_req(new_req) or "")
         return bool(new) and new.get("supersedes") == key_req(old_req)
 
     def reflects(self, ticket_req, chat_req):
         from pipeline.events import to_ms
+
         msg = chat_req["id"].removeprefix("req:")
         dec = next((d for d in self.key["decisions"] if d["message"] == msg), None)
         r = self.reqs.get(dec["changes"]) if dec else None
         seen = (r or {}).get("reflected_in_ticket")
         return bool(seen) and ticket_req["at_ms"] >= to_ms(seen["at"])
 
+
 class HeuristicExtractor:
     """Rule-based extractor: no LLM, no answer key. Every rule is explainable, which makes
     it the honest fallback when no DeepSeek key is configured, and a baseline for the LLM."""
+
     name = "heuristic"
     replaces = None  # rules can't judge whether one decision revises another: chat never supersedes chat
 
-    GENERIC_LABELS = {"backend", "frontend", "bug", "tests", "tech-debt", "docs", "security", "performance",
-                      "notifications", "reporting", "profile", "search"}
-    DECISION = re.compile(r"\bdecision\b|\blet'?s (change|add|do|make|switch|drop|move|use)\b|\bagreed\b|"
-                          r"\bwe('ll| will) (now )?(do|send|support|use|switch|drop)\b|\binstead of\b|"
-                          r"\bmust (now )?(support|include|be)\b|\bfrom now on\b|\bchange of plan\b", re.I)
+    GENERIC_LABELS = {"backend", "frontend", "bug", "tests", "tech-debt", "docs", "security", "performance", "notifications", "reporting", "profile", "search"}
+    DECISION = re.compile(
+        r"\bdecision\b|\blet'?s (change|add|do|make|switch|drop|move|use)\b|\bagreed\b|"
+        r"\bwe('ll| will) (now )?(do|send|support|use|switch|drop)\b|\binstead of\b|"
+        r"\bmust (now )?(support|include|be)\b|\bfrom now on\b|\bchange of plan\b",
+        re.I,
+    )
     REJECT = re.compile(r"not this quarter|\bpark\b|let'?s not|\bno, keep\b|\bkeep it as is\b|\bwon'?t do\b", re.I)
     LEAD = re.compile(r"^(decision( after [^:]*)?:|agreed\.?|good call\.?)\s*", re.I)
     NUM = re.compile(r"\d+")
 
     def group_tickets(self, tickets):
         from pipeline.textsim import tokens
+
         topic = {}
         for t in tickets:
             labels = [l for l in t.get("labels") or [] if l not in self.GENERIC_LABELS]
@@ -241,32 +252,38 @@ class HeuristicExtractor:
             if hit:
                 groups[hit].append(t)
         out = []
-        for lab, ts in groups.items():
+        for ts in groups.values():
             first = min(ts, key=lambda x: x["id"])
             out.append({"id": slug(first["title"]), "name": first["title"], "tickets": [x["id"] for x in ts]})
         return out
 
     def classify(self, items, features):
         from pipeline.textsim import tokens
+
         out = {}
         for it in items:
             text = it["text"].strip()
             sentences = [x.strip() for x in re.split(r"(?<=[.!?])\s+", text) if x.strip()]
             # the sentence carrying the decision must be a statement, not a question
             hit = next((x for x in sentences if self.DECISION.search(x)), None)
-            is_change = (hit is not None and not hit.endswith("?") and not self.REJECT.search(text)
-                         and len(tokens(text)) >= 6)
+            is_change = hit is not None and not hit.endswith("?") and not self.REJECT.search(text) and len(tokens(text)) >= 6
             req = None
             if is_change:
                 kept = [self.LEAD.sub("", x) for x in sentences if not x.endswith("?")]
                 req = " ".join(x for x in kept if len(tokens(x)) >= 3) or self.LEAD.sub("", text)
-            out[it["id"]] = {"kind": "decision" if is_change else "other", "feature": None, "ticket": None,
-                             "requirement": req, "confidence": 0.7 if is_change else 0.0}
+            out[it["id"]] = {
+                "kind": "decision" if is_change else "other",
+                "feature": None,
+                "ticket": None,
+                "requirement": req,
+                "confidence": 0.7 if is_change else 0.0,
+            }
         return out
 
     def implements(self, pr, candidates):
-        from pipeline.textsim import TfIdf
         from pipeline.events import TICKET_REF
+        from pipeline.textsim import TfIdf
+
         nums = lambda s: set(self.NUM.findall(TICKET_REF.sub("", s)))  # noqa: E731 - ticket ids aren't requirements
         text = f"{pr['title']} {pr['body']}"
         # a requirement whose numbers (30 days, 12 months, 15 minutes) aren't in the PR isn't what it implements
@@ -276,8 +293,27 @@ class HeuristicExtractor:
         best, score = TfIdf({c["id"]: c["text"] for c in ok}).best(text)
         return [best] if best and score >= 0.2 else []
 
-    EDIT_NOISE = {"typo", "fix", "fixed", "fixes", "wording", "reword", "reworded", "clarify", "clarified", "format",
-                  "formatting", "minor", "cleanup", "update", "updated", "updating", "edit", "edited", "note"}
+    EDIT_NOISE = {
+        "typo",
+        "fix",
+        "fixed",
+        "fixes",
+        "wording",
+        "reword",
+        "reworded",
+        "clarify",
+        "clarified",
+        "format",
+        "formatting",
+        "minor",
+        "cleanup",
+        "update",
+        "updated",
+        "updating",
+        "edit",
+        "edited",
+        "note",
+    }
 
     def reflects(self, ticket_req, chat_req):
         """A ticket edit reflects a chat change if the words it ADDED carry that change's content:
@@ -285,6 +321,7 @@ class HeuristicExtractor:
         change states numbers (12 months, 15 minutes), at least one of those numbers."""
         from pipeline.events import TICKET_REF
         from pipeline.textsim import tokens
+
         added = set(tokens(ticket_req["text"])) - set(tokens(ticket_req.get("prev_text") or ""))
         chat_text = TICKET_REF.sub("", chat_req["text"])
         content = set(tokens(chat_text)) - self.EDIT_NOISE

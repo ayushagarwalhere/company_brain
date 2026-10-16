@@ -1,4 +1,5 @@
 """Human actions (dismissals, write-to-ticket) must survive a re-resolve and a full rebuild."""
+
 import pytest
 
 from graph.db import get_db, get_graph
@@ -20,6 +21,7 @@ GRAPH = "test_human_actions"
 @pytest.fixture()
 def g():
     from pipeline.build import build_graph
+
     graph = build_graph(GRAPH, "heuristic", log=lambda *_: None)
     yield graph
     get_graph(GRAPH).delete()
@@ -31,14 +33,14 @@ def _req(g, ticket):
 
 def _state(g):
     open_drift = {d["requirement"] for d in drift(g)}
-    dismissals = g.query("MATCH (p:Person)-[:MADE]->(d:Decision {kind: 'dismissal'})-[:DISMISSES]->(r:Requirement) "
-                         "RETURN d.id, p.id, r.id").result_set
+    dismissals = g.query("MATCH (p:Person)-[:MADE]->(d:Decision {kind: 'dismissal'})-[:DISMISSES]->(r:Requirement) " "RETURN d.id, p.id, r.id").result_set
     return open_drift, dismissals
 
 
 def test_dismissal_and_write_back_survive_a_re_resolve(g):
     from pipeline.actions import dismiss, write_to_ticket
     from pipeline.resolve import resolve
+
     sla, export = _req(g, "BD-103"), _req(g, "BD-101")
     dismiss(g, sla, "maya")
     write_to_ticket(g, export, "maya")
@@ -52,6 +54,7 @@ def test_dismissal_and_write_back_survive_a_re_resolve(g):
 def test_dismissal_and_write_back_survive_a_full_rebuild(g):
     from pipeline.actions import dismiss, write_to_ticket
     from pipeline.build import build_graph
+
     sla, export = _req(g, "BD-103"), _req(g, "BD-101")
     dismiss(g, sla, "maya")
     write_to_ticket(g, export, "maya")

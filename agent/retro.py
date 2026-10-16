@@ -1,7 +1,8 @@
 """Sprint retro report: what we decided, what we shipped, where they diverge. Every line carries a source link.
 
-    python -m agent.retro s1
+python -m agent.retro s1
 """
+
 import sys
 
 from agent.tools import drift_path
@@ -21,8 +22,7 @@ def retro(sprint: str, g=None) -> dict:
     diverged = [d for d in Q.drift(g) if d["changed_ms"] <= s["b"]]
     for d in diverged:
         d["path"] = drift_path(d)
-    return {"sprint": sprint, "name": s["name"], "start": s["start"], "end": s["end"],
-            "decided": decided, "shipped": shipped, "diverged": diverged}
+    return {"sprint": sprint, "name": s["name"], "start": s["start"], "end": s["end"], "decided": decided, "shipped": shipped, "diverged": diverged}
 
 
 def to_markdown(r: dict) -> str:
@@ -42,8 +42,9 @@ def to_markdown(r: dict) -> str:
             status = "NOT in ticket, NOT shipped"
         if d["superseded_by"] == "ticket" and d["shipped_in"]:
             status = "written into ticket, " + status
-        out.append(f"- {d['at'][:10]} **{d['by']}** ({d['feature']}, {d['ticket']}): {d['text']} [{status}] "
-                   f"([{d['platform']}#{d['channel']}]({d['source']}))")
+        out.append(
+            f"- {d['at'][:10]} **{d['by']}** ({d['feature']}, {d['ticket']}): {d['text']} [{status}] " f"([{d['platform']}#{d['channel']}]({d['source']}))"
+        )
     out += ["", "## What we shipped"]
     for p in r["shipped"]:
         tickets = ", ".join(p["tickets"]) or "no ticket"
@@ -54,9 +55,11 @@ def to_markdown(r: dict) -> str:
         out.append("_No open drift._ ✅")
     for d in r["diverged"]:
         stale = ", ".join(f"[#{x['pr']}]({x['url']})" for x in d["stale_prs"] if x["pr"] is not None) or "none"
-        out.append(f"- ⚠️ **{d['feature_name']}**: on {d['changed_at'][:10]} {d['changed_by']} decided "
-                   f"\"{d['requirement_text']}\" ([{d['source']}#{d['channel']}]({d['message_url']})), "
-                   f"but [{d['ticket']}]({d['ticket_url']}) still says \"{d['ticket_text']}\". Stale PRs: {stale}.")
+        out.append(
+            f"- ⚠️ **{d['feature_name']}**: on {d['changed_at'][:10]} {d['changed_by']} decided "
+            f"\"{d['requirement_text']}\" ([{d['source']}#{d['channel']}]({d['message_url']})), "
+            f"but [{d['ticket']}]({d['ticket_url']}) still says \"{d['ticket_text']}\". Stale PRs: {stale}."
+        )
         out.append(f"  - path: `{d['path']}`")
     return "\n".join(out)
 

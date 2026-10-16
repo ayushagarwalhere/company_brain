@@ -3,14 +3,17 @@
 DeepSeek has no embeddings endpoint, and a local transformer is heavy for a
 hackathon box; TF-IDF over feature/ticket text is deterministic and explainable.
 """
+
 import math
 import re
 from collections import Counter
 
-STOP = set("""a an the and or but if of to in on for with at by from as is are was were be been it this that
+STOP = set(
+    """a an the and or but if of to in on for with at by from as is are was were be been it this that
 these those we you i they he she our your their my me us them can could should would will just so not no yes
 do does did have has had there here what when where who how which also too very about into than then out up
-let lets let's ok okay still only all any some one two get got make made need needs want wants""".split())
+let lets let's ok okay still only all any some one two get got make made need needs want wants""".split()
+)
 
 
 def tokens(text: str) -> list[str]:

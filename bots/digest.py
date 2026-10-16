@@ -6,6 +6,7 @@
 
 Every line links back to its source, and each drift carries its graph path.
 """
+
 import argparse
 
 import requests
@@ -28,15 +29,13 @@ def build(g=None) -> str:
         lines += [
             f"• *{d['feature_name']}* / {d['ticket']}: {d['changed_by']} decided “{d['requirement_text']}” "
             f"on {d['changed_at'][:10]} ({d['source']} #{d['channel']}). Ticket still says “{d['ticket_text']}”. "
-            f"Shipped old version: {stale}."
-            + (f" Stale docs: {', '.join(x['title'] for x in d['stale_docs'])}." if d["stale_docs"] else ""),
+            f"Shipped old version: {stale}." + (f" Stale docs: {', '.join(x['title'] for x in d['stale_docs'])}." if d["stale_docs"] else ""),
             f"   `{drift_path(d)}`",
         ]
     if risk or orphans or done_no_pr:
         lines.append("*Coverage*")
     for r in risk:
-        lines.append(f"• {r['name']}: {r['top_person']} holds {round(r['top_share'] * 100)}% of the knowledge "
-                     f"({r['people']} people involved)")
+        lines.append(f"• {r['name']}: {r['top_person']} holds {round(r['top_share'] * 100)}% of the knowledge " f"({r['people']} people involved)")
     for o in orphans:
         lines.append(f"• PR #{o['pr']} “{o['title']}” has no ticket")
     for t in done_no_pr:
@@ -46,14 +45,19 @@ def build(g=None) -> str:
 
 def post_slack(channel: str, text: str) -> None:
     from slack_sdk import WebClient
+
     WebClient(token=settings.slack_bot_token).chat_postMessage(channel=channel, text=text)
 
 
 def post_discord(channel: str, text: str) -> None:
     text = text.replace("*", "**")
     for i in range(0, len(text), 1900):
-        r = requests.post(f"https://discord.com/api/v10/channels/{channel}/messages", timeout=15,
-                          headers={"Authorization": f"Bot {settings.discord_bot_token}"}, json={"content": text[i:i + 1900]})
+        r = requests.post(
+            f"https://discord.com/api/v10/channels/{channel}/messages",
+            timeout=15,
+            headers={"Authorization": f"Bot {settings.discord_bot_token}"},
+            json={"content": text[i : i + 1900]},
+        )
         r.raise_for_status()
 
 

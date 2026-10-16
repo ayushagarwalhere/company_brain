@@ -4,6 +4,7 @@ Used for development and for the benchmark, so results don't depend on Slack or
 Discord being reachable. The live connectors produce the same event ids, so the
 graph is identical whichever path is used.
 """
+
 import json
 from pathlib import Path
 
@@ -31,8 +32,15 @@ def message_url(m: dict) -> str:
 def messages() -> list[Event]:
     return [
         Event(
-            source=m["platform"], kind="message", id=m["id"], author=m["author"], ts=m["ts"],
-            text=m["text"], url=message_url(m), channel=m["channel"], thread_of=m.get("thread_of"),
+            source=m["platform"],
+            kind="message",
+            id=m["id"],
+            author=m["author"],
+            ts=m["ts"],
+            text=m["text"],
+            url=message_url(m),
+            channel=m["channel"],
+            thread_of=m.get("thread_of"),
         )
         for m in _load("messages.json")
     ]

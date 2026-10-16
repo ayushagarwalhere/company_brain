@@ -3,6 +3,7 @@
 Run from the repo root:  python -m scripts.check_setup
 Each check is independent, so one missing credential does not hide the others.
 """
+
 import asyncio
 import sys
 import traceback
@@ -24,7 +25,9 @@ def check(name):
                 results.append((name, False, f"{type(e).__name__}: {e}"))
                 if "-v" in sys.argv:
                     traceback.print_exc()
+
         return run
+
     return wrap
 
 
@@ -66,11 +69,15 @@ def slack():
     granted = set(filter(None, (auth.headers.get("x-oauth-scopes") or auth.headers.get("X-OAuth-Scopes") or "").split(",")))
     missing = [sc for sc in SLACK_SCOPES if sc not in granted]
     if missing:
-        raise RuntimeError("missing bot scopes: " + ", ".join(f"{sc} ({SLACK_SCOPES[sc]})" for sc in missing)
-                           + ". Add them under OAuth & Permissions -> Bot Token Scopes, then reinstall the app")
+        raise RuntimeError(
+            "missing bot scopes: "
+            + ", ".join(f"{sc} ({SLACK_SCOPES[sc]})" for sc in missing)
+            + ". Add them under OAuth & Permissions -> Bot Token Scopes, then reinstall the app"
+        )
     if not settings.slack_app_token.startswith("xapp-"):
-        raise RuntimeError("SLACK_APP_TOKEN (xapp-...) missing: Basic Information -> App-Level Tokens -> generate one "
-                           "with connections:write, and enable Socket Mode")
+        raise RuntimeError(
+            "SLACK_APP_TOKEN (xapp-...) missing: Basic Information -> App-Level Tokens -> generate one " "with connections:write, and enable Socket Mode"
+        )
     detail = f"bot '{auth['user']}' in workspace '{auth['team']}', all {len(SLACK_SCOPES)} scopes granted"
     if settings.slack_test_channel_id:
         try:
@@ -103,8 +110,7 @@ def discord_check():
             out["guilds"] = [g.name for g in guilds]
             target = next((g for g in guilds if str(g.id) == settings.discord_guild_id), None)
             if target:
-                chan = next((c for c in target.text_channels
-                             if c.permissions_for(target.me).read_message_history), None)
+                chan = next((c for c in target.text_channels if c.permissions_for(target.me).read_message_history), None)
                 if chan:
                     msgs = [m async for m in chan.history(limit=1)]
                     out["read"] = f"#{chan.name}: {len(msgs)} message(s)"
@@ -141,10 +147,12 @@ def deepseek():
     if not settings.llm_api_key:
         raise RuntimeError("no LLM key set (LLM_API_KEY or DEEPSEEK_API_KEY)")
     from pipeline.llm import _client, _extra, _strip_think
+
     resp = _client().chat.completions.create(
         model=settings.llm_model,
         messages=[{"role": "user", "content": "Reply with exactly: pong"}],
-        max_tokens=5, **_extra(),
+        max_tokens=5,
+        **_extra(),
     )
     return f"{settings.llm_model} at {settings.llm_base_url} replied '{_strip_think(resp.choices[0].message.content).strip()}'"
 

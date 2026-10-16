@@ -6,6 +6,7 @@ Needs bot scopes chat:write and chat:write.customize (to show each fictional aut
 name), and the bot invited to #product, #engineering and #support-escalations.
 Re-running skips messages already posted.
 """
+
 import json
 import time
 
@@ -36,8 +37,9 @@ def main():
             thread_ts = parent_key.split(":", 1)[1] if parent_key else None
         while True:
             try:
-                r = c.chat_postMessage(channel=cid, text=m["text"], thread_ts=thread_ts,
-                                       username=people[m["author"]]["name"], icon_emoji=":bust_in_silhouette:")
+                r = c.chat_postMessage(
+                    channel=cid, text=m["text"], thread_ts=thread_ts, username=people[m["author"]]["name"], icon_emoji=":bust_in_silhouette:"
+                )
                 break
             except SlackApiError as e:
                 if e.response.status_code == 429:

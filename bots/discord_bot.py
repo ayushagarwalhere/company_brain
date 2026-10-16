@@ -1,7 +1,8 @@
 """Discord bot: drift alerts on every new message, `!brain <command>` for commands.
 
-    python -m bots.discord_bot
+python -m bots.discord_bot
 """
+
 import asyncio
 import logging
 
@@ -22,7 +23,7 @@ client = discord.Client(intents=intents)
 
 
 async def send_long(channel_or_msg, text: str, reply: bool = False):
-    chunks = [text[i:i + 1900] for i in range(0, len(text), 1900)] or ["(empty)"]
+    chunks = [text[i : i + 1900] for i in range(0, len(text), 1900)] or ["(empty)"]
     for i, c in enumerate(chunks):
         if reply and i == 0:
             await channel_or_msg.reply(c, mention_author=False)
@@ -41,7 +42,7 @@ async def on_message(msg: discord.Message):
     if msg.author.bot or msg.webhook_id or not msg.content:
         return
     if msg.content.startswith(PREFIX):
-        text = msg.content[len(PREFIX):]
+        text = msg.content[len(PREFIX) :]
         reply = await asyncio.to_thread(handle, text)
         await send_long(msg, reply or HELP, reply=True)
         return
@@ -54,8 +55,8 @@ async def on_message(msg: discord.Message):
     log.info("%s -> %s", ev.id, result.get("status"))
     if result.get("status") == "drift":
         from api import bus  # cross-process: shows up live on every open dashboard
-        bus.publish("drift", status="drift", feature=result.get("feature"), ticket=result.get("ticket"),
-                    author=ev.author, text=ev.text[:160])
+
+        bus.publish("drift", status="drift", feature=result.get("feature"), ticket=result.get("ticket"), author=ev.author, text=ev.text[:160])
         await send_long(msg, result["alert"].replace(":warning:", "⚠️"), reply=True)
 
 

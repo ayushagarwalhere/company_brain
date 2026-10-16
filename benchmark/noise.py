@@ -15,18 +15,25 @@ top-level message. Graph: built in a separate graph, the demo graph is untouched
 Reported twice: without and with the one mitigation, decision rights (pipeline/resolve.py:
 has_decision_rights), so the before/after comes from the same noise.
 """
+
 import json
 import random
-from datetime import datetime, timedelta, timezone
+from datetime import UTC, datetime, timedelta
 
 from benchmark.real_data import load_snapshot
 from pipeline.events import Event
 
 SEED, N_REAL, N_SYNTH = 0, 250, 250
 GRAPH = "bench_noise"
-CHANNELS = [("discord", "design"), ("discord", "engineering"), ("discord", "random"),
-            ("slack", "engineering"), ("slack", "product"), ("slack", "support-escalations")]
-START, END = datetime(2026, 9, 14, 3, 36, tzinfo=timezone.utc), datetime(2026, 10, 9, 12, 27, tzinfo=timezone.utc)
+CHANNELS = [
+    ("discord", "design"),
+    ("discord", "engineering"),
+    ("discord", "random"),
+    ("slack", "engineering"),
+    ("slack", "product"),
+    ("slack", "support-escalations"),
+]
+START, END = datetime(2026, 9, 14, 3, 36, tzinfo=UTC), datetime(2026, 10, 9, 12, 27, tzinfo=UTC)
 GOLD_DRIFT_MESSAGES = {"m_exp_12", "m_sla_05"}
 
 TOPICS = [  # ticket, what it is, alternatives that appear in its discussion
@@ -82,27 +89,51 @@ def _when(rng) -> str:
 
 def noise_messages(seed: int = SEED) -> list[Event]:
     from connectors import scenario
+
     rng = random.Random(seed)
     people = [p["id"] for p in scenario.people()]
     real = [c["body"] for repo in ("FalkorDB/FalkorDB", "excalidraw/excalidraw") for c in load_snapshot(repo)["comments"] if c["body"]]
     out = []
     for i, body in enumerate(rng.sample(sorted(real), N_REAL)):
         src, ch = rng.choice(CHANNELS)
-        out.append(Event(source=src, kind="message", id=f"noise:real:{i}", author=rng.choice(people), ts=_when(rng),
-                         text=body[:1500], url="", channel=ch, extra={"noise": "real"}))
+        out.append(
+            Event(
+                source=src,
+                kind="message",
+                id=f"noise:real:{i}",
+                author=rng.choice(people),
+                ts=_when(rng),
+                text=body[:1500],
+                url="",
+                channel=ch,
+                extra={"noise": "real"},
+            )
+        )
     kinds = list(TEMPLATES)
     for i in range(N_SYNTH):
         kind = kinds[i % len(kinds)]
         t, what, (a, b), (c1, c2) = rng.choice(TOPICS)
         text = rng.choice(TEMPLATES[kind]).format(t=t, what=what, a=a, b=b, c1=c1, c2=c2)
         src, ch = rng.choice(CHANNELS)
-        out.append(Event(source=src, kind="message", id=f"noise:{kind}:{i}", author=rng.choice(people), ts=_when(rng),
-                         text=text, url="", channel=ch, extra={"noise": kind}))
+        out.append(
+            Event(
+                source=src,
+                kind="message",
+                id=f"noise:{kind}:{i}",
+                author=rng.choice(people),
+                ts=_when(rng),
+                text=text,
+                url="",
+                channel=ch,
+                extra={"noise": kind},
+            )
+        )
     return out
 
 
 def measure(g) -> dict:
     from graph.queries import drift, rows
+
     found = drift(g)
     flagged = [d["message"] for d in found]
     changes = [r["m"] for r in rows(g, "MATCH (m:Message)-[:CHANGES]->(:Requirement) RETURN m.id AS m")]
@@ -112,14 +143,17 @@ def measure(g) -> dict:
         if m.startswith("noise:"):
             k = m.split(":")[1]
             by_kind[k] = by_kind.get(k, 0) + 1
-    return {"drift_alerts": len(found),
-            "false_drift_alerts": sum(m.startswith("noise:") for m in flagged),
-            "false_drift_alerts_by_noise_kind": dict(sorted(by_kind.items())),
-            "true_drifts_found": len(GOLD_DRIFT_MESSAGES & set(flagged)), "true_drifts_total": len(GOLD_DRIFT_MESSAGES),
-            "requirement_changes_from_noise": sum(m.startswith("noise:") for m in changes),
-            "requirement_changes_from_scenario": sum(not m.startswith("noise:") for m in changes),
-            "unverified_candidates_from_noise": sum(m.startswith("noise:") for m in cands),
-            "unverified_candidates_from_scenario": sum(not m.startswith("noise:") for m in cands)}
+    return {
+        "drift_alerts": len(found),
+        "false_drift_alerts": sum(m.startswith("noise:") for m in flagged),
+        "false_drift_alerts_by_noise_kind": dict(sorted(by_kind.items())),
+        "true_drifts_found": len(GOLD_DRIFT_MESSAGES & set(flagged)),
+        "true_drifts_total": len(GOLD_DRIFT_MESSAGES),
+        "requirement_changes_from_noise": sum(m.startswith("noise:") for m in changes),
+        "requirement_changes_from_scenario": sum(not m.startswith("noise:") for m in changes),
+        "unverified_candidates_from_noise": sum(m.startswith("noise:") for m in cands),
+        "unverified_candidates_from_scenario": sum(not m.startswith("noise:") for m in cands),
+    }
 
 
 def run(extractor: str = "heuristic", **resolve_kwargs) -> dict:
@@ -127,6 +161,7 @@ def run(extractor: str = "heuristic", **resolve_kwargs) -> dict:
     from graph.db import get_graph
     from pipeline.ingest import ingest
     from pipeline.resolve import resolve
+
     ingest(reset=True, graph_name=GRAPH)
     g = get_graph(GRAPH)
     writer.write_messages(g, noise_messages())
@@ -146,15 +181,20 @@ SWEEP = {f"min_confidence={v}": dict(decision_rights=True, latest_wins=False, ke
 
 def main():
     import argparse
+
     from benchmark.run import HERE
     from pipeline.llm import model_name
+
     ap = argparse.ArgumentParser()
     ap.add_argument("--extractor", default="heuristic", choices=["heuristic", "llm"])
     a = ap.parse_args()
     label = "heuristic (rules, no LLM)" if a.extractor == "heuristic" else f"llm ({model_name()})"
-    out = {"noise": {"real_github_comments": N_REAL, "synthetic_on_topic": N_SYNTH, "seed": SEED},
-           "extractor": label, "configs": {name: run(a.extractor, **kw) for name, kw in CONFIGS.items()},
-           "min_confidence_sweep": {name: run(a.extractor, **kw) for name, kw in SWEEP.items()}}
+    out = {
+        "noise": {"real_github_comments": N_REAL, "synthetic_on_topic": N_SYNTH, "seed": SEED},
+        "extractor": label,
+        "configs": {name: run(a.extractor, **kw) for name, kw in CONFIGS.items()},
+        "min_confidence_sweep": {name: run(a.extractor, **kw) for name, kw in SWEEP.items()},
+    }
     print(json.dumps(out, indent=1))
     name = "noise.json" if a.extractor == "heuristic" else f"noise_llm_{model_name().replace(':', '-').replace('/', '-')}.json"
     (HERE / "results" / name).write_text(json.dumps(out, indent=1), encoding="utf-8")

@@ -1,5 +1,6 @@
 """Slack connector: channel history (incl. thread replies) -> Events."""
-from datetime import datetime, timezone
+
+from datetime import UTC, datetime
 
 from slack_sdk import WebClient
 
@@ -11,6 +12,7 @@ CHANNELS = ("product", "engineering", "support-escalations")
 
 def client() -> WebClient:
     from slack_sdk.http_retry.builtin_handlers import ConnectionErrorRetryHandler, RateLimitErrorRetryHandler
+
     c = WebClient(token=settings.slack_bot_token)
     # Slack answers 429 + Retry-After under load (conversations.history is Tier 3): wait and retry
     c.retry_handlers.extend([RateLimitErrorRetryHandler(max_retry_count=5), ConnectionErrorRetryHandler(max_retry_count=3)])
@@ -55,7 +57,7 @@ class PersonLookup:
 
 
 def slack_ts_to_iso(ts: str) -> str:
-    return datetime.fromtimestamp(float(ts), tz=timezone.utc).strftime("%Y-%m-%dT%H:%M:%SZ")
+    return datetime.fromtimestamp(float(ts), tz=UTC).strftime("%Y-%m-%dT%H:%M:%SZ")
 
 
 def to_event(msg: dict, channel_name: str, channel_id: str, people: PersonLookup, smap: dict):
@@ -65,16 +67,32 @@ def to_event(msg: dict, channel_name: str, channel_id: str, people: PersonLookup
     seeded = smap.get(key)
     parent = msg.get("thread_ts") if msg.get("thread_ts") != msg["ts"] else None
     if seeded:
-        return Event(source="slack", kind="message", id=seeded["id"], author=seeded["author"], ts=seeded["ts"],
-                     text=msg.get("text", ""), url=permalink(channel_id, msg["ts"]), channel=channel_name,
-                     thread_of=seeded.get("thread_of"))
+        return Event(
+            source="slack",
+            kind="message",
+            id=seeded["id"],
+            author=seeded["author"],
+            ts=seeded["ts"],
+            text=msg.get("text", ""),
+            url=permalink(channel_id, msg["ts"]),
+            channel=channel_name,
+            thread_of=seeded.get("thread_of"),
+        )
     parent_id = None
     if parent:
         p = smap.get(f"{channel_id}:{parent}")
         parent_id = p["id"] if p else f"slack:{channel_id}:{parent}"
-    return Event(source="slack", kind="message", id=f"slack:{key}", author=people(msg.get("user")),
-                 ts=slack_ts_to_iso(msg["ts"]), text=msg.get("text", ""), url=permalink(channel_id, msg["ts"]),
-                 channel=channel_name, thread_of=parent_id)
+    return Event(
+        source="slack",
+        kind="message",
+        id=f"slack:{key}",
+        author=people(msg.get("user")),
+        ts=slack_ts_to_iso(msg["ts"]),
+        text=msg.get("text", ""),
+        url=permalink(channel_id, msg["ts"]),
+        channel=channel_name,
+        thread_of=parent_id,
+    )
 
 
 def permalink(channel_id: str, ts: str) -> str:

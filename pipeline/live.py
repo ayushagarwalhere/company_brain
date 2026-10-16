@@ -12,9 +12,11 @@ Guards against spam and false positives:
   * per-ticket cooldown so a heated thread doesn't post five alerts
   * messages from the bot itself are ignored by the bot adapters
 """
+
 import time
 
 from agent.tools import drift_path
+from config import MIN_CONFIDENCE  # noqa: E402 - one threshold for batch and live
 from graph import queries as Q
 from graph.db import get_graph
 from graph.writer import write_messages
@@ -23,23 +25,27 @@ from pipeline.extract import CHANGE_KINDS, HeuristicExtractor  # noqa: F401 - re
 from pipeline.resolve import has_decision_rights
 from pipeline.textsim import TfIdf
 
-from config import MIN_CONFIDENCE  # noqa: E402 - one threshold for batch and live
 TICKET_COOLDOWN_S = 300
 _last_alert: dict[str, float] = {}
 
 
 def _extractor():
     from pipeline import llm
+
     if llm.available():
         from pipeline.extract import LLMExtractor
+
         return LLMExtractor()
     return HeuristicExtractor()
 
 
 def _features(g):
-    feats = Q.rows(g, """MATCH (f:Feature)<-[:ABOUT]-(t:Ticket)
+    feats = Q.rows(
+        g,
+        """MATCH (f:Feature)<-[:ABOUT]-(t:Ticket)
                          RETURN f.id AS id, f.name AS name, collect({id: t.id, title: t.title, description: t.description,
-                                created_ms: t.created_ms}) AS ticket_objs""")
+                                created_ms: t.created_ms}) AS ticket_objs""",
+    )
     for f in feats:
         f["tickets"] = [t["id"] for t in f["ticket_objs"]]
     return feats
@@ -60,15 +66,25 @@ def process_message(event: Event, g=None, extractor=None) -> dict:
     if hard:
         feature, via = hard[0]["f"], "hard"
     if not feature and event.thread_of:
-        th = Q.rows(g, """MATCH (m:Message {id: $id})-[:REPLY_TO*1..5]->(p:Message)-[:ABOUT]->(f:Feature)
-                          RETURN f.id AS f LIMIT 1""", id=event.id)
+        th = Q.rows(
+            g,
+            """MATCH (m:Message {id: $id})-[:REPLY_TO*1..5]->(p:Message)-[:ABOUT]->(f:Feature)
+                          RETURN f.id AS f LIMIT 1""",
+            id=event.id,
+        )
         if th:
             feature, via = th[0]["f"], "thread"
 
-    thread = Q.rows(g, """MATCH (m:Message {id: $id})-[:REPLY_TO*1..5]->(p:Message)<-[:POSTED]-(a:Person)
-                          RETURN a.id AS author, p.text AS text, p.ts_ms AS ts ORDER BY ts""", id=event.id)
-    c = ex.classify([{"id": event.id, "author": event.author, "ts": event.ts, "text": event.text,
-                      "thread": [{"author": t["author"], "text": t["text"]} for t in thread]}], feats)[event.id]
+    thread = Q.rows(
+        g,
+        """MATCH (m:Message {id: $id})-[:REPLY_TO*1..5]->(p:Message)<-[:POSTED]-(a:Person)
+                          RETURN a.id AS author, p.text AS text, p.ts_ms AS ts ORDER BY ts""",
+        id=event.id,
+    )
+    c = ex.classify(
+        [{"id": event.id, "author": event.author, "ts": event.ts, "text": event.text, "thread": [{"author": t["author"], "text": t["text"]} for t in thread]}],
+        feats,
+    )[event.id]
     if not feature and c.get("feature") in feat_ids:
         feature, via = c["feature"], "semantic:llm"
     if not feature:
@@ -77,8 +93,7 @@ def process_message(event: Event, g=None, extractor=None) -> dict:
         if best and score >= 0.22:
             feature, via = best, f"semantic:tfidf:{score:.2f}"
     if feature:
-        g.query("MATCH (m:Message {id: $m}), (f:Feature {id: $f}) MERGE (m)-[:ABOUT {via: $via}]->(f)",
-                {"m": event.id, "f": feature, "via": via})
+        g.query("MATCH (m:Message {id: $m}), (f:Feature {id: $f}) MERGE (m)-[:ABOUT {via: $via}]->(f)", {"m": event.id, "f": feature, "via": via})
 
     result = {"status": "ok", "message": event.id, "feature": feature, "via": via, "classification": c}
     if c.get("kind") not in CHANGE_KINDS or not c.get("requirement") or not feature:
@@ -95,13 +110,18 @@ def process_message(event: Event, g=None, extractor=None) -> dict:
     if not ticket:
         sim = TfIdf({t["id"]: f"{t['title']} {t['description']}" for t in f["ticket_objs"]})
         ticket, _ = sim.best(f"{c['requirement']} {event.text}")
-    owners = Q.rows(g, """MATCH (t:Ticket {id: $t}) OPTIONAL MATCH (c:Person)-[:AUTHORED]->(t)
-                         OPTIONAL MATCH (t)-[:ASSIGNED_TO]->(p:Person) RETURN c.id AS creator, p.id AS assignee""", t=ticket)
+    owners = Q.rows(
+        g,
+        """MATCH (t:Ticket {id: $t}) OPTIONAL MATCH (c:Person)-[:AUTHORED]->(t)
+                         OPTIONAL MATCH (t)-[:ASSIGNED_TO]->(p:Person) RETURN c.id AS creator, p.id AS assignee""",
+        t=ticket,
+    )
     if not owners or not has_decision_rights(event.author, owners[0]):
         return {**result, "status": "no-decision-rights", "ticket": ticket}
 
     rid = f"req:{event.id}"
-    g.query("""MATCH (m:Message {id: $m}), (t:Ticket {id: $t}), (f:Feature {id: $f}), (p:Person {id: $p})
+    g.query(
+        """MATCH (m:Message {id: $m}), (t:Ticket {id: $t}), (f:Feature {id: $f}), (p:Person {id: $p})
                MERGE (q:Requirement {id: $rid})
                SET q.text = $text, q.at_ms = m.ts_ms, q.at = m.ts, q.origin = 'chat', q.ticket = $t, q.confidence = $conf
                MERGE (m)-[:CHANGES {at_ms: m.ts_ms}]->(q)
@@ -113,10 +133,11 @@ def process_message(event: Event, g=None, extractor=None) -> dict:
                MERGE (p)-[:MADE]->(d)
                MERGE (d)-[:RECORDED_IN]->(m)
                MERGE (d)-[:CHANGES]->(q)""",
-            {"m": event.id, "t": ticket, "f": feature, "p": event.author, "rid": rid,
-             "text": c["requirement"], "conf": c.get("confidence")})
+        {"m": event.id, "t": ticket, "f": feature, "p": event.author, "rid": rid, "text": c["requirement"], "conf": c.get("confidence")},
+    )
     # rebuild this ticket's SUPERSEDES chain with the same rules as the batch build
     from pipeline.webhooks import recompute_supersession
+
     recompute_supersession(g, ticket, ex)
 
     found = [d for d in Q.drift(g, ticket=ticket) if d["requirement"] == rid]
@@ -130,9 +151,12 @@ def process_message(event: Event, g=None, extractor=None) -> dict:
     if existing:
         return {**result, "status": "already-alerted", "ticket": ticket}
     _last_alert[ticket] = now
-    g.query("""MATCH (q:Requirement {id: $rid})
+    g.query(
+        """MATCH (q:Requirement {id: $rid})
                MERGE (a:Alert {id: $aid}) SET a.at_ms = $at, a.status = 'open'
-               MERGE (a)-[:FLAGS]->(q)""", {"rid": rid, "aid": f"alert:{rid}", "at": int(now * 1000)})
+               MERGE (a)-[:FLAGS]->(q)""",
+        {"rid": rid, "aid": f"alert:{rid}", "at": int(now * 1000)},
+    )
     return {**result, "status": "drift", "ticket": ticket, "drift": d, "path": drift_path(d), "alert": format_alert(d)}
 
 
@@ -151,7 +175,9 @@ def format_alert(d: dict) -> str:
         lines.append("Merged before the decision (shipped the old version): " + ", ".join(f"#{p['pr']} {p['title']}" for p in before))
     if after:
         lines.append("Merged after the decision but not matched to it (check): " + ", ".join(f"#{p['pr']} {p['title']}" for p in after))
-    lines.append(f"Graph path: `Message -CHANGES-> Requirement -AMENDS-> Ticket {d['ticket']} -ABOUT-> Feature {d['feature']}`"
-                 + (f" ; `PR #{stale[0]['pr']} -IMPLEMENTS-> older requirement`" if stale else ""))
+    lines.append(
+        f"Graph path: `Message -CHANGES-> Requirement -AMENDS-> Ticket {d['ticket']} -ABOUT-> Feature {d['feature']}`"
+        + (f" ; `PR #{stale[0]['pr']} -IMPLEMENTS-> older requirement`" if stale else "")
+    )
     lines.append(f"Suggested fix: update {d['ticket']} or confirm the old scope.")
     return "\n".join(lines)

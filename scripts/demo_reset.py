@@ -8,6 +8,7 @@ Going through --api also clears the server's in-memory alert cooldown, so the sa
 can be posted again within 5 minutes. Either way, open dashboards get a "rebuild" event.
 Exits 1 if the planted state isn't there (drift on exactly BD-101 and BD-103).
 """
+
 import argparse
 import json
 import sys
@@ -22,6 +23,7 @@ def rebuild(extractor: str = "auto", graph: str | None = None) -> str:
     from pipeline.build import mark_build
     from pipeline.ingest import ingest
     from pipeline.resolve import resolve
+
     if extractor == "auto":
         extractor = "llm" if llm.available() else "heuristic"
     ingest(reset=True, graph_name=graph)
@@ -36,9 +38,9 @@ def check(graph: str | None = None) -> dict:
     from graph.db import get_graph
     from graph.queries import drift
     from pipeline import llm
+
     tickets = sorted({d["ticket"] for d in drift(get_graph(graph))})
-    return {"drift_tickets": tickets, "ok": set(tickets) == EXPECTED_DRIFT,
-            "llm": "online" if llm.available() else f"offline ({llm.unavailable_reason()})"}
+    return {"drift_tickets": tickets, "ok": set(tickets) == EXPECTED_DRIFT, "llm": "online" if llm.available() else f"offline ({llm.unavailable_reason()})"}
 
 
 def main(argv=None) -> int:
@@ -47,8 +49,10 @@ def main(argv=None) -> int:
     ap.add_argument("--extractor", default="auto", choices=["auto", "llm", "heuristic"])
     a = ap.parse_args(argv)
     if a.api:
-        import requests
         import os
+
+        import requests
+
         headers = {"X-Ingest-Token": os.getenv("INGEST_TOKEN", "")} if os.getenv("INGEST_TOKEN") else {}
         r = requests.post(a.api.rstrip("/") + "/api/demo/reset", headers=headers, timeout=120)
         r.raise_for_status()

@@ -1,7 +1,8 @@
 """Q&A agent: DeepSeek picks graph tools, then answers citing the graph paths it used.
 
-    python -m agent.agent "What did we decide about export and did we ship it?"
+python -m agent.agent "What did we decide about export and did we ship it?"
 """
+
 import json
 import sys
 
@@ -26,8 +27,10 @@ def _compact(result: dict) -> str:
 def ask(question: str) -> dict:
     """LLM agent when DeepSeek is usable; otherwise the rules-based router over the same graph tools."""
     from pipeline import llm
+
     if not llm.available():
         from agent.router import ask as rules_ask
+
         out = rules_ask(question)
         out["fallback_reason"] = llm.unavailable_reason()
         return out
@@ -35,13 +38,11 @@ def ask(question: str) -> dict:
     messages = [{"role": "system", "content": SYSTEM}, {"role": "user", "content": question}]
     trace, paths = [], []
     for _ in range(MAX_STEPS):
-        resp = client.chat.completions.create(model=settings.llm_model, messages=messages,
-                                              tools=tools.openai_schema(), temperature=0, **_extra())
+        resp = client.chat.completions.create(model=settings.llm_model, messages=messages, tools=tools.openai_schema(), temperature=0, **_extra())
         msg = resp.choices[0].message
         if not msg.tool_calls:
             return {"answer": msg.content, "tool_calls": trace, "paths": paths, "engine": f"llm:{settings.llm_model}"}
-        messages.append({"role": "assistant", "content": msg.content or "",
-                         "tool_calls": [tc.model_dump() for tc in msg.tool_calls]})
+        messages.append({"role": "assistant", "content": msg.content or "", "tool_calls": [tc.model_dump() for tc in msg.tool_calls]})
         for tc in msg.tool_calls:
             args = json.loads(tc.function.arguments or "{}")
             try:

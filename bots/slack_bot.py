@@ -1,7 +1,8 @@
 """Slack bot (Socket Mode): drift alerts on every new message, commands on @mention.
 
-    python -m bots.slack_bot
+python -m bots.slack_bot
 """
+
 import logging
 
 from slack_bolt import App
@@ -9,8 +10,8 @@ from slack_bolt.adapter.socket_mode import SocketModeHandler
 
 from bots.commands import HELP, handle
 from config import settings
-from connectors.slack import PersonLookup, to_event
 from connectors import seed_map
+from connectors.slack import PersonLookup, to_event
 from pipeline.live import process_message
 
 log = logging.getLogger("slack_bot")
@@ -41,8 +42,8 @@ def on_message(event, client, say):
     log.info("%s -> %s", ev.id, result.get("status"))
     if result.get("status") == "drift":
         from api import bus  # cross-process: shows up live on every open dashboard
-        bus.publish("drift", status="drift", feature=result.get("feature"), ticket=result.get("ticket"),
-                    author=ev.author, text=ev.text[:160])
+
+        bus.publish("drift", status="drift", feature=result.get("feature"), ticket=result.get("ticket"), author=ev.author, text=ev.text[:160])
         say(text=result["alert"], thread_ts=event.get("thread_ts") or event["ts"])
 
 

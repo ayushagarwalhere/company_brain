@@ -4,7 +4,8 @@ One ticket, one chat decision by its owner (10 -> 100 entries), PR-1 merged BEFO
 version) and PR-2 merged AFTER it, delivering the new version. The ticket text is never updated, so
 only IMPLEMENTS can tell the decision shipped.
 """
-from datetime import datetime, timedelta, timezone
+
+from datetime import UTC, datetime, timedelta
 
 import pytest
 
@@ -24,12 +25,13 @@ def _up():
 
 pytestmark = pytest.mark.skipif(not _up(), reason="FalkorDB not reachable")
 GRAPH = "test_implements_fallback"
-T0 = datetime(2026, 3, 2, 9, 0, tzinfo=timezone.utc)
+T0 = datetime(2026, 3, 2, 9, 0, tzinfo=UTC)
 iso = lambda d: d.strftime("%Y-%m-%dT%H:%M:%SZ")  # noqa: E731
 
 
 class NoImplements(HeuristicExtractor):
     """An extractor that never judges a PR to implement anything (what qwen3:8b did on the demo)."""
+
     def implements(self, pr, candidates):
         return []
 
@@ -37,6 +39,7 @@ class NoImplements(HeuristicExtractor):
 def _build(monkeypatch, extractor, ablate=frozenset()):
     from graph import writer
     from pipeline import resolve as R
+
     g = get_graph(GRAPH)
     try:
         g.delete()
@@ -46,24 +49,84 @@ def _build(monkeypatch, extractor, ablate=frozenset()):
     writer.apply_schema(g)
     writer.write_people(g, [{"id": p, "name": p, "role": "engineer"} for p in ("own", "cust")])
     v1 = "The alpha report must include the last 10 entries for admins."
-    tk = lambda tid, title, labels, text: Event("tickets", "ticket", tid, "own", iso(T0), f"{title}\n\n{text}", extra={  # noqa: E731
-        "title": title, "description": text, "state": "In Progress", "labels": labels, "assignee": "own", "sprint": None,
-        "updated_at": iso(T0), "completed_at": None, "versions": [{"at": iso(T0), "to": text, "actor": "own"}]})
-    writer.write_tickets(g, [tk("SC-0", "alpha report", ["alpha", "backend"], v1),
-                             tk("SC-1", "alpha report export button", ["alpha", "frontend"], "Work on the alpha report export button.")])
-    writer.write_messages(g, [
-        Event("slack", "message", "m_root", "cust", iso(T0 + timedelta(days=2)),
-              "Customers keep asking about the alpha report, the last 10 entries is not enough.", channel="product"),
-        Event("slack", "message", "m_dec", "own", iso(T0 + timedelta(days=3)),
-              "Decision: the alpha report must include the last 100 entries, for admins and managers.", channel="product", thread_of="m_root"),
-    ])
-    pr = lambda n, title, body, created, merged: Event("github", "pull_request", f"PR-{n}", "own", iso(created), f"{title}\n\n{body}", extra={  # noqa: E731
-        "number": n, "title": title, "body": body, "state": "merged", "merged_at": iso(merged)})
-    writer.write_pull_requests(g, [
-        pr(1, "SC-0: alpha report", "Fixes SC-0. Shows the last 10 entries for admins.", T0 + timedelta(days=1), T0 + timedelta(days=1, hours=6)),
-        pr(2, "SC-0: alpha report for managers", "Fixes SC-0. Shows the last 100 entries for admins and managers.",
-           T0 + timedelta(days=5), T0 + timedelta(days=6)),
-    ])
+    tk = lambda tid, title, labels, text: Event(
+        "tickets",
+        "ticket",
+        tid,
+        "own",
+        iso(T0),
+        f"{title}\n\n{text}",
+        extra={  # noqa: E731
+            "title": title,
+            "description": text,
+            "state": "In Progress",
+            "labels": labels,
+            "assignee": "own",
+            "sprint": None,
+            "updated_at": iso(T0),
+            "completed_at": None,
+            "versions": [{"at": iso(T0), "to": text, "actor": "own"}],
+        },
+    )
+    writer.write_tickets(
+        g,
+        [
+            tk("SC-0", "alpha report", ["alpha", "backend"], v1),
+            tk("SC-1", "alpha report export button", ["alpha", "frontend"], "Work on the alpha report export button."),
+        ],
+    )
+    writer.write_messages(
+        g,
+        [
+            Event(
+                "slack",
+                "message",
+                "m_root",
+                "cust",
+                iso(T0 + timedelta(days=2)),
+                "Customers keep asking about the alpha report, the last 10 entries is not enough.",
+                channel="product",
+            ),
+            Event(
+                "slack",
+                "message",
+                "m_dec",
+                "own",
+                iso(T0 + timedelta(days=3)),
+                "Decision: the alpha report must include the last 100 entries, for admins and managers.",
+                channel="product",
+                thread_of="m_root",
+            ),
+        ],
+    )
+    pr = lambda n, title, body, created, merged: Event(
+        "github",
+        "pull_request",
+        f"PR-{n}",
+        "own",
+        iso(created),
+        f"{title}\n\n{body}",
+        extra={  # noqa: E731
+            "number": n,
+            "title": title,
+            "body": body,
+            "state": "merged",
+            "merged_at": iso(merged),
+        },
+    )
+    writer.write_pull_requests(
+        g,
+        [
+            pr(1, "SC-0: alpha report", "Fixes SC-0. Shows the last 10 entries for admins.", T0 + timedelta(days=1), T0 + timedelta(days=1, hours=6)),
+            pr(
+                2,
+                "SC-0: alpha report for managers",
+                "Fixes SC-0. Shows the last 100 entries for admins and managers.",
+                T0 + timedelta(days=5),
+                T0 + timedelta(days=6),
+            ),
+        ],
+    )
     monkeypatch.setattr(R, "get_extractor", lambda name: extractor)
     R.resolve(g, "heuristic", log=lambda *_: None, ablate=ablate)
     return g

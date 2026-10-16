@@ -10,6 +10,7 @@ GitHub can't backdate PRs, so seeded PRs end with a trailer block:
 The connector prefers those values when present and falls back to the real API
 fields, so PRs opened live during the demo work unchanged.
 """
+
 import json
 import re
 from pathlib import Path
@@ -38,16 +39,21 @@ def parse_body(body: str) -> tuple[str, dict]:
     return text, fields
 
 
-def _event(number: int, title: str, body: str, url: str, state: str,
-           fallback_author: str, created: str, merged: str | None) -> Event:
+def _event(number: int, title: str, body: str, url: str, state: str, fallback_author: str, created: str, merged: str | None) -> Event:
     text, tr = parse_body(body)
     return Event(
-        source="github", kind="pull_request", id=f"PR-{number}",
+        source="github",
+        kind="pull_request",
+        id=f"PR-{number}",
         author=tr.get("Authored-by", fallback_author),
         ts=tr.get("Scenario-created", created),
-        text=f"{title}\n\n{text}", url=url,
+        text=f"{title}\n\n{text}",
+        url=url,
         extra={
-            "number": number, "title": title, "body": text, "state": state,
+            "number": number,
+            "title": title,
+            "body": text,
+            "state": state,
             "merged_at": tr.get("Scenario-merged", merged),
         },
     )
@@ -56,6 +62,7 @@ def _event(number: int, title: str, body: str, url: str, state: str,
 def get_with_retry(url: str, *, params=None, headers=None, attempts: int = 5, sleep=None):
     """GET with backoff on GitHub's rate limits (403/429 with Retry-After or X-RateLimit-Reset) and 5xx."""
     import time
+
     sleep = sleep or time.sleep
     for i in range(attempts):
         r = requests.get(url, params=params, headers=headers, timeout=20)
@@ -68,7 +75,7 @@ def get_with_retry(url: str, *, params=None, headers=None, attempts: int = 5, sl
         elif r.headers.get("X-RateLimit-Reset"):
             wait = max(0.0, float(r.headers["X-RateLimit-Reset"]) - time.time()) + 1
         else:
-            wait = 2 ** i
+            wait = 2**i
         sleep(min(wait, 60.0))
     raise RuntimeError("unreachable")
 
@@ -80,15 +87,21 @@ def pull_requests_from_api(repo: str | None = None) -> list[Event]:
         headers["Authorization"] = f"Bearer {settings.github_token}"
     events, page = [], 1
     while True:
-        r = get_with_retry(f"https://api.github.com/repos/{repo}/pulls",
-                           params={"state": "all", "per_page": 100, "page": page}, headers=headers)
+        r = get_with_retry(f"https://api.github.com/repos/{repo}/pulls", params={"state": "all", "per_page": 100, "page": page}, headers=headers)
         batch = r.json()
         for pr in batch:
-            events.append(_event(
-                pr["number"], pr["title"], pr.get("body") or "", pr["html_url"],
-                "merged" if pr.get("merged_at") else pr["state"],
-                pr["user"]["login"], pr["created_at"], pr.get("merged_at"),
-            ))
+            events.append(
+                _event(
+                    pr["number"],
+                    pr["title"],
+                    pr.get("body") or "",
+                    pr["html_url"],
+                    "merged" if pr.get("merged_at") else pr["state"],
+                    pr["user"]["login"],
+                    pr["created_at"],
+                    pr.get("merged_at"),
+                )
+            )
         if len(batch) < 100:
             return events
         page += 1
@@ -98,8 +111,15 @@ def pull_requests_from_scenario() -> list[Event]:
     """Offline equivalent of the API: same events the seeded repo would return."""
     prs = json.loads(SCENARIO_PRS.read_text(encoding="utf-8"))
     return [
-        _event(p["seq"], p["title"], p["body"] + trailer_block(p["author"], p["created"], p["merged"]),
-               f"scenario://github/pull/{p['seq']}", "merged" if p.get("merged") else "open",
-               p["author"], p["created"], p.get("merged"))
+        _event(
+            p["seq"],
+            p["title"],
+            p["body"] + trailer_block(p["author"], p["created"], p["merged"]),
+            f"scenario://github/pull/{p['seq']}",
+            "merged" if p.get("merged") else "open",
+            p["author"],
+            p["created"],
+            p.get("merged"),
+        )
         for p in prs
     ]

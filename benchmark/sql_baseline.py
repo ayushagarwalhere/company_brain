@@ -12,6 +12,7 @@ loaded into an in-memory SQLite database. No graph query is used on the SQL side
 Both are compared with the graph's DRIFT query on: drift found (vs. gold), stale PRs, the current
 requirement per ticket, p50 query time, and lines of query code.
 """
+
 import json
 import sqlite3
 import statistics
@@ -70,8 +71,7 @@ GRAPH_CURRENT = "MATCH (q:Requirement) WHERE q.status IS NULL AND NOT (q)<-[:SUP
 def load(out: dict, dismissed=()) -> sqlite3.Connection:
     db = sqlite3.connect(":memory:")
     db.executescript(SCHEMA)
-    db.executemany("INSERT INTO requirement VALUES (?,?,?,?,?)",
-                   [(r["id"], r["ticket"], r["origin"], r["at_ms"], r["text"]) for r in out["requirements"]])
+    db.executemany("INSERT INTO requirement VALUES (?,?,?,?,?)", [(r["id"], r["ticket"], r["origin"], r["at_ms"], r["text"]) for r in out["requirements"]])
     db.executemany("INSERT OR IGNORE INTO change VALUES (?,?,?)", [(c["id"], c["msg"], c["author"]) for c in out["changes"]])
     db.executemany("INSERT INTO ticket_feature VALUES (?,?)", list(out["ticket_feature"].items()))
     db.executemany("INSERT INTO pr VALUES (?,?,?)", [(p["id"], p["number"], p["merged_ms"]) for p in out["prs"]])
@@ -98,13 +98,17 @@ def lines(q: str) -> int:
 def compare(name: str, g, out: dict, gold_reqs: set | None = None, gold_tickets: set | None = None) -> dict:
     db = load(out)
     graph_drift = {(d["requirement"], d["ticket"]) for d in Q.drift(g)}
-    variants = {"graph": graph_drift,
-                "sql_chain": set(map(tuple, db.execute(SQL_CHAIN).fetchall())),
-                "sql_latest": set(map(tuple, db.execute(SQL_LATEST).fetchall()))}
+    variants = {
+        "graph": graph_drift,
+        "sql_chain": set(map(tuple, db.execute(SQL_CHAIN).fetchall())),
+        "sql_latest": set(map(tuple, db.execute(SQL_LATEST).fetchall())),
+    }
     graph_stale = {(d["requirement"], p["pr"]) for d in Q.drift(g) for p in d["stale_prs"] if p["pr"] is not None}
-    stale = {"graph": graph_stale,
-             "sql_chain": set(map(tuple, db.execute(SQL_STALE.format(drift=SQL_CHAIN)).fetchall())),
-             "sql_latest": set(map(tuple, db.execute(SQL_STALE.format(drift=SQL_LATEST)).fetchall()))}
+    stale = {
+        "graph": graph_stale,
+        "sql_chain": set(map(tuple, db.execute(SQL_STALE.format(drift=SQL_CHAIN)).fetchall())),
+        "sql_latest": set(map(tuple, db.execute(SQL_STALE.format(drift=SQL_LATEST)).fetchall())),
+    }
     current_graph = {(r[0], r[1]) for r in g.query(GRAPH_CURRENT).result_set}
     current_sql = set(map(tuple, db.execute(SQL_CURRENT_CHAIN).fetchall()))
 
@@ -117,19 +121,27 @@ def compare(name: str, g, out: dict, gold_reqs: set | None = None, gold_tickets:
         tp = len(got & gold_tickets)
         return {"found": len(got), "true": tp, "false": len(got - gold_tickets), "missed": len(gold_tickets - got)}
 
-    res = {"dataset": name, "requirements": len(out["requirements"]), "chat_changes": len(out["changes"]),
-           "drift": {k: score(v) for k, v in variants.items()},
-           "same_drift_as_graph": {k: v == graph_drift for k, v in variants.items() if k != "graph"},
-           "same_stale_prs_as_graph": {k: v == graph_stale for k, v in stale.items() if k != "graph"},
-           "same_current_requirements_as_graph": current_sql == current_graph,
-           "p50_ms": {"graph": p50(lambda: Q.drift(g)), "sql_chain": p50(lambda: db.execute(SQL_CHAIN).fetchall()),
-                      "sql_latest": p50(lambda: db.execute(SQL_LATEST).fetchall())}}
+    res = {
+        "dataset": name,
+        "requirements": len(out["requirements"]),
+        "chat_changes": len(out["changes"]),
+        "drift": {k: score(v) for k, v in variants.items()},
+        "same_drift_as_graph": {k: v == graph_drift for k, v in variants.items() if k != "graph"},
+        "same_stale_prs_as_graph": {k: v == graph_stale for k, v in stale.items() if k != "graph"},
+        "same_current_requirements_as_graph": current_sql == current_graph,
+        "p50_ms": {
+            "graph": p50(lambda: Q.drift(g)),
+            "sql_chain": p50(lambda: db.execute(SQL_CHAIN).fetchall()),
+            "sql_latest": p50(lambda: db.execute(SQL_LATEST).fetchall()),
+        },
+    }
     return res
 
 
 def demo():
     from pipeline.ingest import ingest
     from pipeline.resolve import resolve
+
     name = "sqlbase_demo"
     ingest(reset=True, graph_name=name)
     g = get_graph(name)
@@ -145,6 +157,7 @@ def noise():
     from graph import writer
     from pipeline.ingest import ingest
     from pipeline.resolve import resolve
+
     name = "sqlbase_noise"
     ingest(reset=True, graph_name=name)
     g = get_graph(name)
@@ -160,6 +173,7 @@ def scale():
     from benchmark.scale import synth
     from graph import writer
     from pipeline.resolve import resolve
+
     people, msgs, tickets, prs, expected = synth(200, 20000)
     name = "sqlbase_scale"
     g = get_graph(name)
@@ -182,8 +196,13 @@ def scale():
 
 def main():
     results = [demo(), noise(), scale()]
-    code = {"graph DRIFT (Cypher)": lines(Q.DRIFT), "sql_chain drift": lines(SQL_CHAIN), "sql_latest drift": lines(SQL_LATEST),
-            "graph current requirement": lines(GRAPH_CURRENT), "sql current requirement": lines(SQL_CURRENT_CHAIN)}
+    code = {
+        "graph DRIFT (Cypher)": lines(Q.DRIFT),
+        "sql_chain drift": lines(SQL_CHAIN),
+        "sql_latest drift": lines(SQL_LATEST),
+        "graph current requirement": lines(GRAPH_CURRENT),
+        "sql current requirement": lines(SQL_CURRENT_CHAIN),
+    }
     out = {"note": "same extracted facts on both sides; the SQL side never reads the graph", "lines_of_query_code": code, "results": results}
     (HERE / "results" / "sql_baseline.json").write_text(json.dumps(out, indent=1), encoding="utf-8")
     print(json.dumps(out, indent=1))

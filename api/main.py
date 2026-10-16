@@ -1,12 +1,13 @@
 """FastAPI backend for the dashboard.
 
-    uvicorn api.main:app --reload --port 8000     -> http://localhost:8000
+uvicorn api.main:app --reload --port 8000     -> http://localhost:8000
 """
+
 import logging
 import time
 import uuid
 from contextlib import asynccontextmanager
-from datetime import datetime, timezone
+from datetime import UTC, datetime
 from pathlib import Path
 
 from fastapi import Depends, FastAPI, Header, HTTPException, Request
@@ -15,16 +16,18 @@ from fastapi.staticfiles import StaticFiles
 from pydantic import BaseModel
 
 from agent import retro as retro_mod
+from agent import tools
 from api import bus
 from api.cache import cached
 from api.cache import stats as cache_stats
 from api.observability import RateLimiter, observe, render
-from agent import tools
 from graph import queries as Q
 from graph.db import get_graph
 from pipeline.events import Event, from_ms
 
 WEB_DIST = Path(__file__).resolve().parent.parent / "web" / "dist"  # React app: `cd web && npm run build`
+
+
 @asynccontextmanager
 async def lifespan(_app):
     """Receive events published by other processes (bots, CLI) over FalkorDB's Redis pub/sub."""
@@ -33,16 +36,22 @@ async def lifespan(_app):
     stop.set()
 
 
-app = FastAPI(title="Context Graph Drift Monitor", version="1.0", lifespan=lifespan,
-              description="FalkorDB context graph: chat, docs, tickets and PRs linked per requirement; drift detection with graph-path evidence.")
+app = FastAPI(
+    title="Context Graph Drift Monitor",
+    version="1.0",
+    lifespan=lifespan,
+    description="FalkorDB context graph: chat, docs, tickets and PRs linked per requirement; drift detection with graph-path evidence.",
+)
 
 
 def _cors() -> None:
     """Opt-in CORS (CORS_ORIGINS=comma,separated,origins) for a frontend served from another origin."""
     import os
+
     origins = [o.strip() for o in os.getenv("CORS_ORIGINS", "").split(",") if o.strip()]
     if origins:
         from fastapi.middleware.cors import CORSMiddleware
+
         app.add_middleware(CORSMiddleware, allow_origins=origins, allow_methods=["GET", "POST"], allow_headers=["*"])
 
 
@@ -57,7 +66,9 @@ SLOW_MS = 250.0
 async def org_scope(request: Request, call_next):
     """Multi-tenancy: X-Org header (or ?org=, for EventSource) selects the org's isolated graph."""
     from fastapi.responses import JSONResponse
+
     from graph.db import set_org
+
     org = request.headers.get("x-org") or request.query_params.get("org")
     try:
         token = set_org(org)
@@ -67,6 +78,7 @@ async def org_scope(request: Request, call_next):
         return await call_next(request)
     finally:
         from graph.db import _org
+
         _org.reset(token)
 
 
@@ -82,6 +94,7 @@ async def timing(request: Request, call_next):
         client = request.headers.get("x-forwarded-for", "").split(",")[0].strip() or (request.client.host if request.client else "?")
         if not limiter.allow(client, path):
             from fastapi.responses import JSONResponse
+
             return JSONResponse({"detail": "rate limit exceeded, try again shortly"}, status_code=429, headers={"Retry-After": "5"})
     t0 = time.perf_counter()
     response = await call_next(request)
@@ -99,6 +112,7 @@ def require_ingest_token(authorization: str | None = Header(default=None), x_ing
     """Write endpoints (webhooks, reset) need INGEST_TOKEN when it's set. Open when unset (local demo)."""
     import hmac
     import os
+
     expected = os.getenv("INGEST_TOKEN", "")
     if not expected:
         return
@@ -143,9 +157,14 @@ def _stats():
     nodes = [n for n in nodes if n["label"] != "Build"]
     from config import settings
     from pipeline import llm
+
     ok, reason = llm.peek()  # never blocks the dashboard on a network call
-    return {"nodes": nodes, "relationships": rels, "build": build[0] if build else None,
-            "llm": {"model": settings.llm_model, "available": bool(ok), "reason": reason}}
+    return {
+        "nodes": nodes,
+        "relationships": rels,
+        "build": build[0] if build else None,
+        "llm": {"model": settings.llm_model, "available": bool(ok), "reason": reason},
+    }
 
 
 @app.get("/api/features")
@@ -155,12 +174,15 @@ def features():
 
 def _features():
     g = get_graph()
-    rows = Q.rows(g, """MATCH (f:Feature) OPTIONAL MATCH (t:Ticket)-[:ABOUT]->(f)
+    rows = Q.rows(
+        g,
+        """MATCH (f:Feature) OPTIONAL MATCH (t:Ticket)-[:ABOUT]->(f)
                         WITH f, collect(t.id) AS tickets
                         OPTIONAL MATCH (pr:PullRequest)-[:ABOUT]->(f)
                         WITH f, tickets, collect(pr.number) AS prs
                         OPTIONAL MATCH (m:Message)-[:ABOUT]->(f)
-                        RETURN f.id AS id, f.name AS name, tickets, prs, count(m) AS messages ORDER BY id""")
+                        RETURN f.id AS id, f.name AS name, tickets, prs, count(m) AS messages ORDER BY id""",
+    )
     drifted = {d["feature"] for d in Q.drift(g)}
     for r in rows:
         r["drift"] = r["id"] in drifted
@@ -182,11 +204,14 @@ def _drift(feature: str | None = None):
 
 @app.get("/api/alerts")
 def alerts():
-    rows = Q.rows(get_graph(), """MATCH (a:Alert)-[:FLAGS]->(r:Requirement)<-[:CHANGES]-(m:Message)
+    rows = Q.rows(
+        get_graph(),
+        """MATCH (a:Alert)-[:FLAGS]->(r:Requirement)<-[:CHANGES]-(m:Message)
                                   MATCH (r)-[:AMENDS]->(t:Ticket)
                                   RETURN a.id AS id, a.at_ms AS at_ms, r.text AS requirement, t.id AS ticket,
                                          m.text AS message, m.source AS source, m.channel AS channel
-                                  ORDER BY at_ms DESC LIMIT 20""")
+                                  ORDER BY at_ms DESC LIMIT 20""",
+    )
     for r in rows:
         r["at"] = from_ms(r.pop("at_ms"))
     return rows
@@ -202,7 +227,7 @@ def retro(sprint: str):
     try:
         r = retro_mod.retro(sprint)
     except ValueError as e:
-        raise HTTPException(404, str(e))
+        raise HTTPException(404, str(e)) from e
     for d in r["diverged"]:
         d["stale_prs"] = [p for p in d["stale_prs"] if p["pr"] is not None]
     return {**r, "markdown": retro_mod.to_markdown(r)}
@@ -222,7 +247,9 @@ def experts(feature: str):
 def feature_graph(feature: str):
     """Subgraph around a feature for the visualisation (no noise messages)."""
     g = get_graph()
-    rows = Q.rows(g, """MATCH (f:Feature {id: $f})
+    rows = Q.rows(
+        g,
+        """MATCH (f:Feature {id: $f})
         OPTIONAL MATCH (t:Ticket)-[:ABOUT]->(f)
         OPTIONAL MATCH (t)-[:STATES]->(rs:Requirement)
         OPTIONAL MATCH (rc:Requirement)-[:AMENDS]->(t)
@@ -230,18 +257,23 @@ def feature_graph(feature: str):
         OPTIONAL MATCH (p:Person)-[:POSTED]->(m)
         OPTIONAL MATCH (pr:PullRequest)-[:REFERENCES]->(t)
         OPTIONAL MATCH (doc:Document)-[:MENTIONS]->(t)
-        RETURN f, t, rs, rc, m, p, pr, doc""", f=feature)
+        RETURN f, t, rs, rc, m, p, pr, doc""",
+        f=feature,
+    )
     nodes, edges = {}, set()
 
     def add(n, kind):
         if n is None:
             return None
         nid = n.properties["id"]
-        label = {"Feature": n.properties.get("name"), "Ticket": nid, "PullRequest": f"PR #{n.properties.get('number')}",
-                 "Person": n.properties.get("name") or nid, "Document": n.properties.get("title")}.get(kind) \
-            or (n.properties.get("text") or nid)[:60]
-        nodes[nid] = {"id": nid, "label": label, "type": kind,
-                      "text": n.properties.get("text") or n.properties.get("description") or n.properties.get("title")}
+        label = {
+            "Feature": n.properties.get("name"),
+            "Ticket": nid,
+            "PullRequest": f"PR #{n.properties.get('number')}",
+            "Person": n.properties.get("name") or nid,
+            "Document": n.properties.get("title"),
+        }.get(kind) or (n.properties.get("text") or nid)[:60]
+        nodes[nid] = {"id": nid, "label": label, "type": kind, "text": n.properties.get("text") or n.properties.get("description") or n.properties.get("title")}
         return nid
 
     for r in rows:
@@ -253,15 +285,30 @@ def feature_graph(feature: str):
         p = add(r["p"], "Person")
         pr = add(r["pr"], "PullRequest")
         doc = add(r["doc"], "Document")
-        for a, rel, b in ((t, "ABOUT", f), (t, "STATES", rs), (rc, "AMENDS", t), (m, "CHANGES", rc),
-                          (p, "POSTED", m), (pr, "REFERENCES", t), (doc, "MENTIONS", t)):
+        for a, rel, b in (
+            (t, "ABOUT", f),
+            (t, "STATES", rs),
+            (rc, "AMENDS", t),
+            (m, "CHANGES", rc),
+            (p, "POSTED", m),
+            (pr, "REFERENCES", t),
+            (doc, "MENTIONS", t),
+        ):
             if a and b:
                 edges.add((a, rel, b))
-    for e in Q.rows(g, """MATCH (a:Requirement)-[x:SUPERSEDES|IMPLEMENTS]->(b:Requirement) WHERE a.id IN $ids
-                          RETURN a.id AS a, type(x) AS rel, b.id AS b""", ids=list(nodes)):
+    for e in Q.rows(
+        g,
+        """MATCH (a:Requirement)-[x:SUPERSEDES|IMPLEMENTS]->(b:Requirement) WHERE a.id IN $ids
+                          RETURN a.id AS a, type(x) AS rel, b.id AS b""",
+        ids=list(nodes),
+    ):
         edges.add((e["a"], e["rel"], e["b"]))
-    for e in Q.rows(g, """MATCH (a:PullRequest)-[:IMPLEMENTS]->(b:Requirement) WHERE a.id IN $ids
-                          RETURN a.id AS a, b.id AS b""", ids=list(nodes)):
+    for e in Q.rows(
+        g,
+        """MATCH (a:PullRequest)-[:IMPLEMENTS]->(b:Requirement) WHERE a.id IN $ids
+                          RETURN a.id AS a, b.id AS b""",
+        ids=list(nodes),
+    ):
         edges.add((e["a"], "IMPLEMENTS", e["b"]))
     for d in Q.drift(g, feature=feature):
         if d["requirement"] in nodes:
@@ -301,15 +348,18 @@ def timeline(feature: str):
         e["superseded"] = e["id"] in superseded
     return events
 
+
 @app.get("/api/search")
 def search(q: str, limit: int = 12):
     from graph.explore import search as do_search
+
     return do_search(get_graph(), q, limit)
 
 
 @app.get("/api/people/{pid}")
 def person(pid: str):
     from graph.explore import person as profile
+
     out = profile(get_graph(), pid)
     if not out:
         raise HTTPException(404, f"unknown person {pid}")
@@ -321,28 +371,33 @@ def person(pid: str):
 @app.get("/api/nodes/{nid}/neighbors")
 def node_neighbors(nid: str):
     from graph.explore import neighbors
+
     return neighbors(get_graph(), nid)
+
 
 @app.get("/api/connect")
 def connect(a: str, b: str):
     return tools.how_connected(a, b)
 
+
 @app.post("/api/ask")
 def ask(body: AskIn):
     from agent.agent import ask as agent_ask
+
     try:
         return agent_ask(body.question)
     except RuntimeError as e:
-        raise HTTPException(503, str(e))
+        raise HTTPException(503, str(e)) from e
 
 
 @app.post("/api/spec")
 def spec(body: SpecIn):
     from agent.spec import generate_spec
+
     try:
         out = generate_spec(body.feature)
     except ValueError as e:
-        raise HTTPException(404, str(e))
+        raise HTTPException(404, str(e)) from e
     return {k: out[k] for k in ("feature", "markdown", "engine")}
 
 
@@ -350,13 +405,29 @@ def spec(body: SpecIn):
 def simulate(body: SimulateIn):
     """Inject a chat message as if it arrived from Slack/Discord, and run the live drift monitor."""
     from pipeline.live import process_message
-    now = datetime.now(timezone.utc).strftime("%Y-%m-%dT%H:%M:%SZ")
-    ev = Event(source=body.platform, kind="message", id=f"sim:{uuid.uuid4().hex[:10]}", author=body.author,
-               ts=now, text=body.text, url="", channel=body.channel, thread_of=body.reply_to)
+
+    now = datetime.now(UTC).strftime("%Y-%m-%dT%H:%M:%SZ")
+    ev = Event(
+        source=body.platform,
+        kind="message",
+        id=f"sim:{uuid.uuid4().hex[:10]}",
+        author=body.author,
+        ts=now,
+        text=body.text,
+        url="",
+        channel=body.channel,
+        thread_of=body.reply_to,
+    )
     r = process_message(ev)
     r.pop("drift", None)
-    bus.publish("drift" if r.get("status") == "drift" else "message", status=r.get("status"), feature=r.get("feature"),
-                ticket=r.get("ticket"), author=body.author, text=body.text[:160])
+    bus.publish(
+        "drift" if r.get("status") == "drift" else "message",
+        status=r.get("status"),
+        feature=r.get("feature"),
+        ticket=r.get("ticket"),
+        author=body.author,
+        text=body.text[:160],
+    )
     return r
 
 
@@ -369,10 +440,11 @@ class DriftActionIn(BaseModel):
 @app.post("/api/drift/write-to-ticket")
 def drift_write(body: DriftActionIn):
     from pipeline.actions import write_to_ticket
+
     try:
         out = write_to_ticket(get_graph(), body.requirement, body.actor)
     except ValueError as e:
-        raise HTTPException(409, str(e))
+        raise HTTPException(409, str(e)) from e
     bus.publish("resolved", how="written to ticket", ticket=out["ticket"], requirement=body.requirement, by=body.actor)
     return out
 
@@ -380,10 +452,11 @@ def drift_write(body: DriftActionIn):
 @app.post("/api/drift/dismiss")
 def drift_dismiss(body: DriftActionIn):
     from pipeline.actions import dismiss
+
     try:
         out = dismiss(get_graph(), body.requirement, body.actor, body.reason)
     except ValueError as e:
-        raise HTTPException(409, str(e))
+        raise HTTPException(409, str(e)) from e
     bus.publish("resolved", how="dismissed", requirement=body.requirement, by=body.actor)
     return out
 
@@ -395,13 +468,16 @@ def demo_reset():
     from pipeline.build import mark_build
     from pipeline.ingest import ingest
     from pipeline.resolve import resolve
+
     g = get_graph()
     prev = Q.rows(g, "MATCH (b:Build {id: 'latest'}) RETURN b.extractor AS e")
     from pipeline import llm
+
     extractor = prev[0]["e"] if prev else ("llm" if llm.available() else "heuristic")
     if extractor in ("llm", "deepseek") and not llm.available():
         extractor = "heuristic"  # the key stopped working (no balance, revoked): rebuild without the LLM
     from graph.db import current_graph_name
+
     ingest(reset=True, graph_name=current_graph_name())
     g = get_graph()
     resolve(g, extractor, log=lambda *_: None)
@@ -413,18 +489,20 @@ def demo_reset():
 
 # ---------------------------------------------------------------- live updates
 
+
 @app.get("/api/events")
 async def events():
     """Server-Sent Events: drift / message / resolved / ticket / pr / rebuild, pushed as they happen (per org)."""
     from graph.db import current_org
+
     q = bus.subscribe(current_org())
-    return StreamingResponse(bus.stream(q), media_type="text/event-stream",
-                             headers={"Cache-Control": "no-cache", "X-Accel-Buffering": "no"})
+    return StreamingResponse(bus.stream(q), media_type="text/event-stream", headers={"Cache-Control": "no-cache", "X-Accel-Buffering": "no"})
 
 
 @app.get("/api/orgs")
 def orgs():
     from graph.db import current_org, list_orgs
+
     return {"current": current_org(), "orgs": list_orgs()}
 
 
@@ -436,10 +514,11 @@ def bootstrap_org(org: str):
     from pipeline.build import mark_build
     from pipeline.ingest import ingest
     from pipeline.resolve import resolve
+
     try:
         name = org_graph_name(org)
     except ValueError as e:
-        raise HTTPException(400, str(e))
+        raise HTTPException(400, str(e)) from e
     extractor = "llm" if llm.available() else "heuristic"
     counts = ingest(reset=True, graph_name=name)
     g = get_graph(name)
@@ -452,11 +531,15 @@ def bootstrap_org(org: str):
 def metrics():
     """Prometheus text format: request counts and latency per route, cache, live clients, open drift per org."""
     from fastapi.responses import PlainTextResponse
+
     from graph.db import current_org
+
     hits, misses = cache_stats["hits"], cache_stats["misses"]
     extra = {
-        "drift_cache_hits_total": hits, "drift_cache_misses_total": misses,
-        "drift_event_bus_version": bus.version, "drift_sse_subscribers": len(bus._subscribers),
+        "drift_cache_hits_total": hits,
+        "drift_cache_misses_total": misses,
+        "drift_event_bus_version": bus.version,
+        "drift_sse_subscribers": len(bus._subscribers),
         f'drift_open_total{{org="{current_org()}"}}': len(_drift()),
     }
     return PlainTextResponse(render(extra), media_type="text/plain; version=0.0.4")
@@ -474,9 +557,12 @@ def recent_events():
 
 @app.get("/api/tickets")
 def tickets():
-    return Q.rows(get_graph(), """MATCH (t:Ticket) OPTIONAL MATCH (t)-[:ABOUT]->(f:Feature)
+    return Q.rows(
+        get_graph(),
+        """MATCH (t:Ticket) OPTIONAL MATCH (t)-[:ABOUT]->(f:Feature)
                                   RETURN t.id AS id, t.title AS title, t.description AS description, t.state AS state,
-                                         f.name AS feature ORDER BY id""")
+                                         f.name AS feature ORDER BY id""",
+    )
 
 
 class TicketUpdateIn(BaseModel):
@@ -489,10 +575,11 @@ class TicketUpdateIn(BaseModel):
 def ingest_ticket(body: TicketUpdateIn):
     """Ticket-tracker webhook (Linear/Jira-style): a description changed."""
     from pipeline.webhooks import ticket_updated
+
     try:
         out = ticket_updated(get_graph(), body.ticket, body.description, body.actor)
     except ValueError as e:
-        raise HTTPException(404, str(e))
+        raise HTTPException(404, str(e)) from e
     if out["status"] == "updated":
         bus.publish("ticket", ticket=body.ticket, by=body.actor, resolved=out["resolved"], still_drifting=out["still_drifting"])
     return out
@@ -509,20 +596,22 @@ class DocUpdateIn(BaseModel):
 def ingest_doc(body: DocUpdateIn):
     """Docs webhook (Notion/Confluence-style): a page's content changed."""
     from pipeline.webhooks import doc_updated
+
     try:
         out = doc_updated(get_graph(), body.doc, body.text, body.actor, body.title)
     except ValueError as e:
-        raise HTTPException(404, str(e))
+        raise HTTPException(404, str(e)) from e
     bus.publish("doc", doc=body.doc, by=body.actor, no_longer_stale=out["no_longer_stale"])
     return out
 
 
 @app.post("/api/ingest/github", dependencies=[Depends(require_ingest_token)])
-async def ingest_github(request: Request, x_github_event: str | None = Header(default=None),
-                        x_hub_signature_256: str | None = Header(default=None)):
+async def ingest_github(request: Request, x_github_event: str | None = Header(default=None), x_hub_signature_256: str | None = Header(default=None)):
     """GitHub webhook (pull_request events). Verified with GITHUB_WEBHOOK_SECRET when it is set."""
     import os
+
     from pipeline.webhooks import pr_event, verify_github_signature
+
     raw = await request.body()
     secret = os.getenv("GITHUB_WEBHOOK_SECRET", "")
     if secret and not verify_github_signature(secret, raw, x_hub_signature_256):
@@ -530,11 +619,13 @@ async def ingest_github(request: Request, x_github_event: str | None = Header(de
     if x_github_event and x_github_event != "pull_request":
         return {"status": "ignored", "event": x_github_event}
     import json
+
     from starlette.concurrency import run_in_threadpool
+
     try:
         out = await run_in_threadpool(pr_event, get_graph(), json.loads(raw or b"{}"))
     except ValueError as e:
-        raise HTTPException(400, str(e))
+        raise HTTPException(400, str(e)) from e
     bus.publish("pr", pr=out["pr"], tickets=out["tickets"], resolved=out["resolved"])
     return out
 

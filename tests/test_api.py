@@ -1,4 +1,5 @@
 """HTTP-level tests for the FastAPI app, on an isolated graph. Skipped if FalkorDB isn't reachable."""
+
 import dataclasses
 import hashlib
 import hmac
@@ -30,12 +31,15 @@ def client():
     # every get_graph() call goes through graph.db, so pointing its settings at a test graph isolates the app
     mp.setattr(db, "settings", dataclasses.replace(db.settings, falkordb_graph=GRAPH))
     from pipeline import llm
+
     mp.setattr(llm, "available", lambda ttl=300.0: False)  # deterministic: heuristic extractor + rules agent
     from pipeline.ingest import ingest
     from pipeline.resolve import resolve
+
     ingest(reset=True)
     resolve(db.get_graph(), "heuristic", log=lambda *_: None)
     from api.main import app
+
     with TestClient(app) as c:
         yield c
     db.get_graph().delete()
@@ -71,35 +75,52 @@ def test_ask_uses_rules_agent_without_llm(client):
 
 def test_simulate_publishes_event(client):
     from api import bus
-    r = client.post("/api/simulate", json={"text": "Decision: dark mode must also ship a high-contrast theme, BD-105.",
-                                           "author": "priya"}).json()
+
+    r = client.post("/api/simulate", json={"text": "Decision: dark mode must also ship a high-contrast theme, BD-105.", "author": "priya"}).json()
     assert r["status"] == "drift" and r["ticket"] == "BD-105"
     assert bus.recent[-1]["type"] == "drift"
 
 
 def test_simulate_from_someone_without_decision_rights_is_not_a_change(client):
-    r = client.post("/api/simulate", json={"text": "Decision: dark mode must also ship a sepia theme, BD-105.",
-                                           "author": "zara"}).json()
+    r = client.post("/api/simulate", json={"text": "Decision: dark mode must also ship a sepia theme, BD-105.", "author": "zara"}).json()
     assert r["status"] == "no-decision-rights" and r["ticket"] == "BD-105"
 
 
 def test_ticket_webhook_unrelated_edit_keeps_drift_then_real_edit_resolves(client):
     before = {d["requirement"] for d in client.get("/api/drift").json() if d["ticket"] == "BD-101"}
-    typo = client.post("/api/ingest/ticket", json={"ticket": "BD-101", "description":
-        "Admins can export tickets created in the last 30 days as a CSV file. Columns: id, subject, status, created_at, assignee. (typo fixed)"}).json()
+    typo = client.post(
+        "/api/ingest/ticket",
+        json={
+            "ticket": "BD-101",
+            "description": "Admins can export tickets created in the last 30 days as a CSV file. Columns: id, subject, status, created_at, assignee. (typo fixed)",
+        },
+    ).json()
     assert typo["status"] == "updated" and set(typo["still_drifting"]) == before and not typo["resolved"]
-    real = client.post("/api/ingest/ticket", json={"ticket": "BD-101", "description":
-        "Admins can export tickets for any custom date range up to 12 months as CSV, including all custom fields as extra columns."}).json()
+    real = client.post(
+        "/api/ingest/ticket",
+        json={
+            "ticket": "BD-101",
+            "description": "Admins can export tickets for any custom date range up to 12 months as CSV, including all custom fields as extra columns.",
+        },
+    ).json()
     assert set(real["resolved"]) == before and not real["still_drifting"]
 
 
 def test_github_webhook_signature_and_implements(client, monkeypatch):
     monkeypatch.setenv("GITHUB_WEBHOOK_SECRET", "s3cret")
-    payload = {"action": "closed", "pull_request": {
-        "number": 99, "title": "BD-103: warn 15 minutes before SLA breach in the team's Slack channel",
-        "body": "Fixes BD-103. Sends the warning 15 minutes before the breach to the team's Slack channel; email notifications dropped.",
-        "html_url": "https://github.com/example/brightdesk/pull/99", "state": "closed",
-        "user": {"login": "dev"}, "created_at": "2026-10-10T08:00:00Z", "merged_at": "2026-10-10T09:00:00Z"}}
+    payload = {
+        "action": "closed",
+        "pull_request": {
+            "number": 99,
+            "title": "BD-103: warn 15 minutes before SLA breach in the team's Slack channel",
+            "body": "Fixes BD-103. Sends the warning 15 minutes before the breach to the team's Slack channel; email notifications dropped.",
+            "html_url": "https://github.com/example/brightdesk/pull/99",
+            "state": "closed",
+            "user": {"login": "dev"},
+            "created_at": "2026-10-10T08:00:00Z",
+            "merged_at": "2026-10-10T09:00:00Z",
+        },
+    }
     raw = json.dumps(payload).encode()
     bad = client.post("/api/ingest/github", content=raw, headers={"X-GitHub-Event": "pull_request", "X-Hub-Signature-256": "sha256=00"})
     assert bad.status_code == 401
@@ -127,7 +148,7 @@ def test_ingest_requires_token_when_configured(client, monkeypatch):
 def test_cached_reads_invalidate_on_write(client):
     first = client.get("/api/drift").json()
     hits_before = client.get("/api/cache").json()["hits"]
-    assert client.get("/api/drift").json() == first                     # served from cache
+    assert client.get("/api/drift").json() == first  # served from cache
     assert client.get("/api/cache").json()["hits"] == hits_before + 1
     target = next(d for d in first if d["ticket"] == "BD-103")
     client.post("/api/drift/dismiss", json={"requirement": target["requirement"], "actor": "arjun"})
@@ -137,6 +158,7 @@ def test_cached_reads_invalidate_on_write(client):
 def test_orgs_are_isolated_graphs(client):
     from api import bus
     from graph import db as gdb
+
     assert client.get("/api/drift", headers={"X-Org": "Bad Org!"}).status_code == 400
     out = client.post("/api/orgs/acme/bootstrap").json()
     try:
@@ -158,8 +180,10 @@ def test_orgs_are_isolated_graphs(client):
 def test_events_from_other_processes_reach_this_one(client):
     """A bot in another process publishes on the FalkorDB/Redis channel; the API forwards it to its SSE clients."""
     import time as _t
+
     from api import bus
     from graph import db as gdb
+
     evt = {"type": "drift", "at": _t.time(), "org": "default", "ticket": "BD-999", "author": "bot-test"}
     gdb.get_db().connection.publish(bus.CHANNEL, json.dumps({"origin": "another-process", "event": evt}))
     for _ in range(40):
@@ -172,6 +196,7 @@ def test_events_from_other_processes_reach_this_one(client):
 def test_metrics_and_rate_limit(client, monkeypatch):
     from api import main as api_main
     from api.observability import RateLimiter
+
     client.get("/api/drift")
     text = client.get("/api/metrics").text
     assert 'drift_http_requests_total{method="GET",route="/api/drift",status="200"}' in text

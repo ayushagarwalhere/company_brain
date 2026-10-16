@@ -3,6 +3,7 @@
 The API sets the current org per request (X-Org header or ?org=); every get_graph() call in that
 request then resolves to that org's graph. No org = the default graph (FALKORDB_GRAPH).
 """
+
 import re
 from contextvars import ContextVar
 from functools import lru_cache
@@ -58,4 +59,4 @@ def list_orgs() -> list[str]:
     prefix = f"{settings.falkordb_graph}__"
     names = get_db().list_graphs()
     orgs = ["default"] if settings.falkordb_graph in names else []
-    return orgs + sorted(n[len(prefix):] for n in names if n.startswith(prefix))
+    return orgs + sorted(n[len(prefix) :] for n in names if n.startswith(prefix))

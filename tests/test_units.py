@@ -1,4 +1,5 @@
 """Pure-logic tests (no database, no API keys)."""
+
 from benchmark.run import grade
 from connectors.github import parse_body, trailer_block
 from pipeline.events import find_ticket_refs, from_ms, to_ms
@@ -21,8 +22,7 @@ def test_pr_trailer_roundtrip():
     body = "Fixes BD-101. Exports CSV." + trailer_block("sofia", "2026-09-24T10:00:00Z", "2026-09-25T05:44:00Z")
     text, fields = parse_body(body)
     assert text == "Fixes BD-101. Exports CSV."
-    assert fields == {"Authored-by": "sofia", "Scenario-created": "2026-09-24T10:00:00Z",
-                      "Scenario-merged": "2026-09-25T05:44:00Z"}
+    assert fields == {"Authored-by": "sofia", "Scenario-created": "2026-09-24T10:00:00Z", "Scenario-merged": "2026-09-25T05:44:00Z"}
     assert parse_body("plain body") == ("plain body", {})
 
 
@@ -67,9 +67,15 @@ def test_a_less_confident_message_cannot_replace_a_decision():
 
 def test_llm_extraction_is_discarded_when_its_evidence_is_not_in_the_message():
     from pipeline.extract import evidence_ok, from_structured
+
     msg = "Let's change it: send the warning 15 minutes BEFORE the breach."
-    good = {"is_change": True, "kind": "decision", "new": "Warn 15 minutes before breach.", "confidence": 0.9,
-            "evidence_quote": "send the warning 15 minutes   before the breach"}
+    good = {
+        "is_change": True,
+        "kind": "decision",
+        "new": "Warn 15 minutes before breach.",
+        "confidence": 0.9,
+        "evidence_quote": "send the warning 15 minutes   before the breach",
+    }
     assert evidence_ok(good["evidence_quote"], msg)
     assert from_structured(good, msg)["kind"] == "decision"
     made_up = {**good, "evidence_quote": "send the warning by SMS"}
@@ -86,8 +92,7 @@ def test_tfidf_prefers_topical_doc():
 
 def test_heuristic_extractor():
     ex = HeuristicExtractor()
-    out = ex.classify([{"id": "a", "text": "Decision: export must support 12 months"},
-                       {"id": "b", "text": "lol nice weekend"}], [])
+    out = ex.classify([{"id": "a", "text": "Decision: export must support 12 months"}, {"id": "b", "text": "lol nice weekend"}], [])
     assert out["a"]["kind"] == "decision" and out["b"]["kind"] == "other"
 
 
@@ -100,8 +105,10 @@ def test_grader():
 
 def test_llm_unavailable_without_key(monkeypatch):
     """No key -> available() is False with a reason, so callers take the rule-based path."""
-    from pipeline import llm
     import dataclasses
+
+    from pipeline import llm
+
     monkeypatch.setattr(llm, "settings", dataclasses.replace(llm.settings, llm_api_key=""))
     llm._status.update(ok=None, reason="", at=0.0)
     assert llm.available() is False and "not set" in llm.unavailable_reason()
@@ -119,6 +126,7 @@ def test_llm_failure_is_cached_as_unavailable(monkeypatch):
                     raise RuntimeError("Error code: 402 - Insufficient Balance")
 
     import dataclasses
+
     monkeypatch.setattr(llm, "settings", dataclasses.replace(llm.settings, llm_api_key="sk-test"))
     monkeypatch.setattr(llm, "_client", lambda: Boom)
     llm._status.update(ok=None, reason="", at=0.0)
@@ -128,6 +136,7 @@ def test_llm_failure_is_cached_as_unavailable(monkeypatch):
 
 def test_heuristic_reflects_ignores_edit_chatter_and_requires_numbers():
     from pipeline.extract import HeuristicExtractor
+
     ex = HeuristicExtractor()
     chat = {"text": "the export must support any custom date range up to 12 months (not a fixed 30 days)"}
     prev = "Admins can export tickets created in the last 30 days as a CSV file."
@@ -138,6 +147,7 @@ def test_heuristic_reflects_ignores_edit_chatter_and_requires_numbers():
 
 def test_decision_rights_are_the_tickets_creator_or_assignee():
     from pipeline.resolve import has_decision_rights
+
     t = {"creator": "maya", "assignee": "sofia"}
     assert has_decision_rights("maya", t) and has_decision_rights("sofia", t)
     assert not has_decision_rights("zara", t) and not has_decision_rights(None, {"creator": None, "assignee": None})
@@ -146,7 +156,9 @@ def test_decision_rights_are_the_tickets_creator_or_assignee():
 def test_slack_check_names_missing_scopes(monkeypatch):
     """check_setup must say exactly which Slack bot scopes are missing and where to add them."""
     import dataclasses
+
     import slack_sdk
+
     from scripts import check_setup as cs
 
     class Resp(dict):

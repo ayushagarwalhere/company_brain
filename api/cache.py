@@ -4,6 +4,7 @@ Entries are keyed by (name, args) and stamped with the bus version: any write th
 through the API publishes an event, bumps the version, and so invalidates everything at once.
 A short TTL bounds staleness for writes made by other processes (bots, the build CLI).
 """
+
 import threading
 import time
 
@@ -17,6 +18,7 @@ stats = {"hits": 0, "misses": 0}
 
 def cached(name: str, fn, *args, ttl: float = TTL_S):
     from graph.db import current_graph_name
+
     key = (current_graph_name(), name, args)
     now = time.monotonic()
     with _lock:

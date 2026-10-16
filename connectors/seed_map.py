@@ -5,6 +5,7 @@ one bot. The seeders record, for each platform message id, which scenario messag
 it carries; connectors use this to recover the original author, timestamp and
 thread. Messages not in the map (e.g. posted live by a judge) keep their real values.
 """
+
 import json
 from pathlib import Path
 

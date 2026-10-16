@@ -4,6 +4,7 @@ Seeded messages are posted through per-channel webhooks (so each shows the
 fictional author's name). Webhooks can't reply in a thread, so thread structure
 for seeded messages comes from the seed map.
 """
+
 import asyncio
 
 import discord
@@ -26,17 +27,33 @@ def _people_by_name() -> dict[str, str]:
 def to_event(msg: discord.Message, smap: dict, people: dict[str, str]) -> Event:
     seeded = smap.get(str(msg.id))
     if seeded:
-        return Event(source="discord", kind="message", id=seeded["id"], author=seeded["author"], ts=seeded["ts"],
-                     text=msg.content, url=msg.jump_url, channel=msg.channel.name, thread_of=seeded.get("thread_of"))
+        return Event(
+            source="discord",
+            kind="message",
+            id=seeded["id"],
+            author=seeded["author"],
+            ts=seeded["ts"],
+            text=msg.content,
+            url=msg.jump_url,
+            channel=msg.channel.name,
+            thread_of=seeded.get("thread_of"),
+        )
     parent = None
     if msg.reference and msg.reference.message_id:
         ref = smap.get(str(msg.reference.message_id))
         parent = ref["id"] if ref else f"discord:{msg.reference.message_id}"
     name = msg.author.name
-    return Event(source="discord", kind="message", id=f"discord:{msg.id}",
-                 author=people.get(name, people.get(getattr(msg.author, "display_name", ""), f"discord:{name}")),
-                 ts=msg.created_at.strftime("%Y-%m-%dT%H:%M:%SZ"), text=msg.content, url=msg.jump_url,
-                 channel=msg.channel.name, thread_of=parent)
+    return Event(
+        source="discord",
+        kind="message",
+        id=f"discord:{msg.id}",
+        author=people.get(name, people.get(getattr(msg.author, "display_name", ""), f"discord:{name}")),
+        ts=msg.created_at.strftime("%Y-%m-%dT%H:%M:%SZ"),
+        text=msg.content,
+        url=msg.jump_url,
+        channel=msg.channel.name,
+        thread_of=parent,
+    )
 
 
 def keep(msg, smap: dict) -> bool:

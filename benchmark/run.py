@@ -16,10 +16,11 @@ Two modes, never mixed in one result file:
           baseline = extractive retrieval: the top-k TF-IDF passages ARE the answer (k=3 and k=25,
           both reported because k is arbitrary)
 """
+
 import argparse
 import json
 import time
-from datetime import datetime, timezone
+from datetime import UTC, datetime
 from pathlib import Path
 
 from connectors import github, scenario, tickets
@@ -55,11 +56,13 @@ def baseline_answer(q: str, index: TfIdf, docs: dict[str, str]) -> dict:
 
 def graph_answer(q: str) -> dict:
     from agent.agent import ask
+
     return ask(q)
 
 
 def graph_answer_rules(q: str) -> dict:
     from agent.router import ask
+
     return ask(q)
 
 
@@ -84,6 +87,7 @@ def main():
     ap.add_argument("--no-llm", action="store_true", help="rules agent vs. extractive retrieval")
     a = ap.parse_args()
     from pipeline import llm
+
     mode = "no-llm" if a.no_llm or not llm.available() else "llm"
     if mode == "no-llm" and not a.no_llm:
         print(f"LLM unavailable ({llm.unavailable_reason()}): running the no-LLM benchmark")
@@ -91,32 +95,49 @@ def main():
     index = TfIdf(docs)
     if mode == "llm":
         from pipeline.llm import model_name
-        systems = {f"graph (LLM agent, {model_name()})": graph_answer,
-                   f"baseline (TF-IDF top-25 -> {model_name()})": lambda q: baseline_answer(q, index, docs)}
+
+        systems = {f"graph (LLM agent, {model_name()})": graph_answer, f"baseline (TF-IDF top-25 -> {model_name()})": lambda q: baseline_answer(q, index, docs)}
     else:
-        systems = {"graph (rules agent, no LLM)": graph_answer_rules,
-                   "baseline (extractive top-3, no LLM)": lambda q: baseline_extractive(q, index, docs, 3),
-                   "baseline (extractive top-25, no LLM)": lambda q: baseline_extractive(q, index, docs, 25)}
+        systems = {
+            "graph (rules agent, no LLM)": graph_answer_rules,
+            "baseline (extractive top-3, no LLM)": lambda q: baseline_extractive(q, index, docs, 3),
+            "baseline (extractive top-25, no LLM)": lambda q: baseline_extractive(q, index, docs, 25),
+        }
     results = {s: [] for s in systems}
     for item in QUESTIONS:
         for s, fn in systems.items():
             t0 = time.time()
             out = fn(item["q"])
             g = grade(out["answer"], item)
-            results[s].append({"id": item["id"], "q": item["q"], "answer": out["answer"], **g, "passed": g["score"] == 1.0,
-                               "chars": len(out["answer"] or ""), "seconds": round(time.time() - t0, 2),
-                               "tools": out.get("tool_calls")})
+            results[s].append(
+                {
+                    "id": item["id"],
+                    "q": item["q"],
+                    "answer": out["answer"],
+                    **g,
+                    "passed": g["score"] == 1.0,
+                    "chars": len(out["answer"] or ""),
+                    "seconds": round(time.time() - t0, 2),
+                    "tools": out.get("tool_calls"),
+                }
+            )
             print(f"{item['id']} {g['score']:.2f}  {s}")
-    summary = {s: {"mean_score": round(sum(r["score"] for r in rs) / len(rs), 3),
-                   "passed": sum(r["passed"] for r in rs), "questions": len(rs),
-                   "mean_answer_chars": round(sum(r["chars"] for r in rs) / len(rs))} for s, rs in results.items()}
+    summary = {
+        s: {
+            "mean_score": round(sum(r["score"] for r in rs) / len(rs), 3),
+            "passed": sum(r["passed"] for r in rs),
+            "questions": len(rs),
+            "mean_answer_chars": round(sum(r["chars"] for r in rs) / len(rs)),
+        }
+        for s, rs in results.items()
+    }
     print("\n" + json.dumps(summary, indent=1))
-    payload = {"mode": mode, "grader": "keyword facts per question (benchmark/questions.json); lenient, see README",
-               "summary": summary, "results": results}
+    payload = {"mode": mode, "grader": "keyword facts per question (benchmark/questions.json); lenient, see README", "summary": summary, "results": results}
     out_dir = HERE / "results"
     out_dir.mkdir(exist_ok=True)
-    stamp = datetime.now(timezone.utc).strftime("%Y%m%dT%H%M%SZ")
+    stamp = datetime.now(UTC).strftime("%Y%m%dT%H%M%SZ")
     from pipeline.llm import model_name
+
     payload["model"] = model_name() if mode == "llm" else None
     latest = "latest.json" if mode == "no-llm" else f"latest_llm_{model_name().replace(':', '-').replace('/', '-')}.json"
     for name in (f"run_{mode}_{stamp}.json", latest):

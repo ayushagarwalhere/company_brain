@@ -1,7 +1,8 @@
 """Shows FalkorDB execution plans (GRAPH.EXPLAIN) for the product's hot queries and checks index use.
 
-    python -m scripts.explain_queries          # prints each plan; exits 1 if a lookup falls back to a label scan
+python -m scripts.explain_queries          # prints each plan; exits 1 if a lookup falls back to a label scan
 """
+
 import sys
 
 from graph import queries as Q
