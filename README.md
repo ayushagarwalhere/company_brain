@@ -289,16 +289,16 @@ The dashboard's **Simulate the team** section drives both: post a chat message, 
 
 ## Tests and CI
 
-`python -m pytest -q` runs 43 tests: units, end-to-end graph tests on throwaway graphs, HTTP tests of the API (both webhooks, the signature and token checks, cache invalidation, org isolation, cross-process events over FalkorDB pub/sub, metrics, rate limiting, the doc webhook), and **connector contract tests** and a paging regression test. None of them need an LLM or API keys. [`.github/workflows/ci.yml`](.github/workflows/ci.yml) runs the same suite on every push against a FalkorDB service container, reruns the ablation study, builds the demo graph and checks query plans use indexes, runs a smaller scale test, checks that `docs/QUERIES.md` matches the code, and type-checks and builds the React app.
+`python -m pytest -q` runs 46 tests: units, the benchmark grader and baseline, end-to-end graph tests on throwaway graphs, HTTP tests of the API (both webhooks, the signature and token checks, cache invalidation, org isolation, cross-process events over FalkorDB pub/sub, metrics, rate limiting, the doc webhook), and **connector contract tests** and a paging regression test. None of them need an LLM or API keys. [`.github/workflows/ci.yml`](.github/workflows/ci.yml) runs the same suite on every push against a FalkorDB service container, reruns the ablation study, builds the demo graph and checks query plans use indexes, runs a smaller scale test, checks that `docs/QUERIES.md` matches the code, and type-checks and builds the React app.
 
 ## Benchmark
 
 | | What it measures |
 |---|---|
 | `python -m benchmark.score_resolution` | Precision/recall of ticket→feature, message→feature, PR→ticket, requirement changes, drift and stale PRs against the answer key |
-| `python -m benchmark.run` | 15 questions ([`questions.json`](benchmark/questions.json)) answered by **graph** (agent + FalkorDB tools) vs. **baseline** (TF-IDF top-25 retrieval over the *same* raw messages, tickets and PRs → same DeepSeek model). Each answer is graded by required facts |
+| `python -m benchmark.run` | 15 questions ([`questions.json`](benchmark/questions.json)) answered with the graph and without it, over the *same* raw messages, tickets and PRs. With a working DeepSeek key: agent + FalkorDB tools vs. TF-IDF top-25 → DeepSeek. Without one (`--no-llm`): rules agent vs. extractive retrieval. The two modes are never mixed in one result file |
 
-Results are saved in `benchmark/results/latest.json`.
+Raw output is saved in [`benchmark/results/latest.json`](benchmark/results/latest.json).
 
 **Heuristic extractor (no LLM, no answer key)**: `python -m pipeline.build --extractor heuristic && python -m benchmark.score_resolution`
 
@@ -323,7 +323,42 @@ Caveat: I wrote these rules while looking at this synthetic dataset, so treat th
 | drift detection | 1.00 | 1.00 |
 | stale PRs | 1.00 | 1.00 |
 
-_DeepSeek extraction scores and the graph vs. no-graph results go here once the runs finish._
+**DeepSeek extraction: not measured.** `python -m pipeline.build --extractor deepseek` fails with `402 Insufficient Balance` on the key I have, so there is no LLM-extractor score and no LLM-mode Q&A score. I'm not reporting an estimate.
+
+#### Graph vs. no graph: rules agent, no LLM
+
+`python -m pipeline.build --extractor heuristic && python -m benchmark.run --no-llm` → [`benchmark/results/latest.json`](benchmark/results/latest.json)
+
+- **graph**: the rules agent ([`agent/router.py`](agent/router.py)) answering from FalkorDB.
+- **top-3 / top-25**: no graph. The k best TF-IDF passages from the same messages, tickets and PRs are returned verbatim as the answer. I report both k values because k is arbitrary.
+
+| System | Mean score | Fully correct | Mean answer length |
+|---|---|---|---|
+| graph (rules agent, no LLM) | 0.956 | 14 / 15 | 983 chars |
+| baseline, extractive top-3 | 0.600 | 6 / 15 | 700 chars |
+| baseline, extractive top-25 | **0.978** | 14 / 15 | 4,515 chars |
+
+| | Question | graph | top-3 | top-25 |
+|---|---|---|---|---|
+| q01 | Which features have a requirement that was changed in chat but never reflected in the ticket? | pass | 0.50 | pass |
+| q02 | What is the current requirement for the ticket CSV export? | pass | 0.00 | pass |
+| q03 | Does the export that shipped match what was decided? Which PR shipped it? | **0.33** | 0.33 | pass |
+| q04 | Who decided that SLA warnings should go to Slack before the breach, and where? | pass | pass | pass |
+| q05 | What does BD-103 say and is it still accurate? | pass | 0.67 | 0.67 |
+| q06 | Which pull request implemented the SLA notifications, and did it follow the latest decision? | pass | pass | pass |
+| q07 | Was the dark mode toggle placement change written back into the ticket? | pass | 0.50 | pass |
+| q08 | Is there any drift on the dark mode feature? | pass | 0.00 | pass |
+| q09 | Which PR added the export button, and which ticket does it belong to? | pass | pass | pass |
+| q10 | Who knows the most about the ticket export feature? | pass | pass | pass |
+| q11 | Was XLSX export agreed as a requirement? | pass | pass | pass |
+| q12 | What changed in the export requirements on 15 September, and was it shipped? | pass | 0.50 | pass |
+| q13 | Who owns BD-101 and which decision makes their shipped work stale? | pass | 0.00 | pass |
+| q14 | List the decisions made in Sprint 1 that are not shipped. | pass | pass | pass |
+| q15 | Which tickets and PRs are affected by the decision to send SLA warnings 15 minutes before breach? | pass | 0.50 | pass |
+
+**The baseline wins q03** (and top-25 ties or beats the graph on everything except q05). On q03 the rules agent took "which PR shipped it" as a PR-listing question. It answered "#6" but never compared the shipped 30-day export with the decision. That's a routing miss in a keyword router, not a missing fact in the graph.
+
+**What this shows and what it doesn't.** The graph's answers are short and complete: 14/15 fully correct at about a fifth of the text the top-25 dump needs. It is the only system that gets q05, because judging whether BD-103 is "still accurate" requires the SUPERSEDES/IMPLEMENTS check, not just retrieving the passages. It does **not** show that the graph is more accurate than retrieval on this dataset. With only 300 messages, 25 passages cover almost every relevant fact, and my keyword grader rewards a passage dump that contains the right words even though it never states a conclusion. The LLM-mode comparison (same model on both sides) is the test that would answer that, and I could not run it.
 
 ## Limitations
 

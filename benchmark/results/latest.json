@@ -1,0 +1,888 @@
+{
+ "mode": "no-llm",
+ "grader": "keyword facts per question (benchmark/questions.json); lenient, see README",
+ "summary": {
+  "graph (rules agent, no LLM)": {
+   "mean_score": 0.956,
+   "passed": 14,
+   "questions": 15,
+   "mean_answer_chars": 983
+  },
+  "baseline (extractive top-3, no LLM)": {
+   "mean_score": 0.6,
+   "passed": 6,
+   "questions": 15,
+   "mean_answer_chars": 700
+  },
+  "baseline (extractive top-25, no LLM)": {
+   "mean_score": 0.978,
+   "passed": 14,
+   "questions": 15,
+   "mean_answer_chars": 4515
+  }
+ },
+ "results": {
+  "graph (rules agent, no LLM)": [
+   {
+    "id": "q01",
+    "q": "Which features have a requirement that was changed in chat but never reflected in the ticket?",
+    "answer": "2026-09-15: chat change on BD-101: \"Let's add an assignee column to the export. I'm updating BD-101 now.\" (written into BD-101 (v2), shipped in #6).\n2026-09-22: chat change on BD-101: \"the export must support any custom date range up to 12 months (not a fixed 30 days), and it must include all custom fields as extra columns.\" (never written into the ticket, not implemented).\nDRIFT on Ticket export to CSV: maya decided \"the export must support any custom date range up to 12 months (not a fixed 30 days), and it must include all custom fields as extra columns.\" on 2026-09-22 (slack #support-escalations), but BD-101 still says \"Admins can export tickets created in the last 30 days as a CSV file. Columns: id, subject, status, created_at, assignee.\". PRs that shipped the old version: #6. Docs still describing the old version: PRD — Ticket export.\n\nEvidence:\n(Person maya)-[:POSTED]->(Message m_exp_12 @ slack#support-escalations, 2026-09-22T09:40:00Z)-[:CHANGES]->(Requirement \"the export must support any custom date range up to 12 months (not a fixed 30 days), and it must include all custom fields as extra columns.\")-[:AMENDS]->(Ticket BD-101)-[:ABOUT]->(Feature feat_ticket_export_to_csv) ; (PullRequest #6)-[:REFERENCES]->(Ticket BD-101), IMPLEMENTS older \"Admins can export tickets created in the last 30 days as a CSV file. Columns: id, subject, status, created_at, assignee.\" ; (Document DOC-1 \"PRD — Ticket export\", updated 2026-09-15)-[:MENTIONS]->(Ticket BD-101), older than the change\n(Ticket BD-101)-[:STATES]->(Requirement req:BD-101:v1 @ 2026-09-14T04:50:00Z)\n(Decision dec:m_exp_06)-[:CHANGES]->(Requirement req:m_exp_06 @ 2026-09-15T08:40:00Z)-[:SUPERSEDES]->(Requirement req:BD-101:v1)",
+    "score": 1.0,
+    "hits": [
+     true,
+     true
+    ],
+    "forbidden": [
+     false
+    ],
+    "passed": true,
+    "chars": 1709,
+    "seconds": 0.13,
+    "tools": [
+     {
+      "tool": "drift_for_feature",
+      "args": {
+       "feature": "feat_ticket_export_to_csv"
+      },
+      "rows": 1
+     },
+     {
+      "tool": "decision_history",
+      "args": {
+       "feature": "feat_ticket_export_to_csv"
+      },
+      "rows": 8
+     }
+    ]
+   },
+   {
+    "id": "q02",
+    "q": "What is the current requirement for the ticket CSV export?",
+    "answer": "2026-09-15: chat change on BD-101: \"Let's add an assignee column to the export. I'm updating BD-101 now.\" (written into BD-101 (v2), shipped in #6).\n2026-09-22: chat change on BD-101: \"the export must support any custom date range up to 12 months (not a fixed 30 days), and it must include all custom fields as extra columns.\" (never written into the ticket, not implemented).\nDRIFT on Ticket export to CSV: maya decided \"the export must support any custom date range up to 12 months (not a fixed 30 days), and it must include all custom fields as extra columns.\" on 2026-09-22 (slack #support-escalations), but BD-101 still says \"Admins can export tickets created in the last 30 days as a CSV file. Columns: id, subject, status, created_at, assignee.\". PRs that shipped the old version: #6. Docs still describing the old version: PRD — Ticket export.\n\nEvidence:\n(Person maya)-[:POSTED]->(Message m_exp_12 @ slack#support-escalations, 2026-09-22T09:40:00Z)-[:CHANGES]->(Requirement \"the export must support any custom date range up to 12 months (not a fixed 30 days), and it must include all custom fields as extra columns.\")-[:AMENDS]->(Ticket BD-101)-[:ABOUT]->(Feature feat_ticket_export_to_csv) ; (PullRequest #6)-[:REFERENCES]->(Ticket BD-101), IMPLEMENTS older \"Admins can export tickets created in the last 30 days as a CSV file. Columns: id, subject, status, created_at, assignee.\" ; (Document DOC-1 \"PRD — Ticket export\", updated 2026-09-15)-[:MENTIONS]->(Ticket BD-101), older than the change\n(Ticket BD-101)-[:STATES]->(Requirement req:BD-101:v1 @ 2026-09-14T04:50:00Z)\n(Decision dec:m_exp_06)-[:CHANGES]->(Requirement req:m_exp_06 @ 2026-09-15T08:40:00Z)-[:SUPERSEDES]->(Requirement req:BD-101:v1)",
+    "score": 1.0,
+    "hits": [
+     true,
+     true
+    ],
+    "forbidden": [],
+    "passed": true,
+    "chars": 1709,
+    "seconds": 0.01,
+    "tools": [
+     {
+      "tool": "drift_for_feature",
+      "args": {
+       "feature": "feat_ticket_export_to_csv"
+      },
+      "rows": 1
+     },
+     {
+      "tool": "decision_history",
+      "args": {
+       "feature": "feat_ticket_export_to_csv"
+      },
+      "rows": 8
+     }
+    ]
+   },
+   {
+    "id": "q03",
+    "q": "Does the export that shipped match what was decided? Which PR shipped it?",
+    "answer": "PR #6 \"BD-101: CSV export endpoint\" by sofia → BD-101.\nPR #7 \"Add export button to ticket list\" by kenji → BD-102, linked by proximity+semantic (the PR never names its ticket).\n\nEvidence:\n(PullRequest #6)-[:REFERENCES {via: hard}]->(Ticket BD-101)\n(PullRequest #7)-[:REFERENCES {via: proximity+semantic}]->(Ticket BD-102)",
+    "score": 0.333,
+    "hits": [
+     true,
+     false,
+     false
+    ],
+    "forbidden": [],
+    "passed": false,
+    "chars": 321,
+    "seconds": 0.0,
+    "tools": [
+     {
+      "tool": "feature_prs",
+      "args": {
+       "feature": "feat_ticket_export_to_csv"
+      },
+      "rows": 2
+     }
+    ]
+   },
+   {
+    "id": "q04",
+    "q": "Who decided that SLA warnings should go to Slack before the breach, and where was it decided?",
+    "answer": "2026-09-17: chat change on BD-103: \"Let's change it: send the warning 15 minutes BEFORE the breach, and post it to the team's Slack channel instead of email. We drop email notifications for this entirely.\" (never written into the ticket, not implemented).\nDRIFT on SLA breach notifications: maya decided \"Let's change it: send the warning 15 minutes BEFORE the breach, and post it to the team's Slack channel instead of email. We drop email notifications for this entirely.\" on 2026-09-17 (discord #engineering), but BD-103 still says \"When a ticket breaches its SLA, send an email notification to the ticket's assignee.\". PRs that shipped the old version: #5. Docs still describing the old version: Design note — SLA breach notifications.\n\nEvidence:\n(Person maya)-[:POSTED]->(Message m_sla_05 @ discord#engineering, 2026-09-17T05:31:00Z)-[:CHANGES]->(Requirement \"Let's change it: send the warning 15 minutes BEFORE the breach, and post it to the team's Slack channel instead of email. We drop email notifications for this entirely.\")-[:AMENDS]->(Ticket BD-103)-[:ABOUT]->(Feature feat_sla_breach_notifications) ; (PullRequest #5)-[:REFERENCES]->(Ticket BD-103), IMPLEMENTS older \"When a ticket breaches its SLA, send an email notification to the ticket's assignee.\" ; (Document DOC-2 \"Design note — SLA breach notifications\", updated 2026-09-14)-[:MENTIONS]->(Ticket BD-103), older than the change\n(Ticket BD-103)-[:STATES]->(Requirement req:BD-103:v1 @ 2026-09-14T06:20:00Z) <-[:IMPLEMENTS]- PR [5]\n(Decision dec:m_sla_05)-[:CHANGES]->(Requirement req:m_sla_05 @ 2026-09-17T05:31:00Z)-[:SUPERSEDES]->(Requirement req:BD-103:v1)",
+    "score": 1.0,
+    "hits": [
+     true,
+     true
+    ],
+    "forbidden": [],
+    "passed": true,
+    "chars": 1630,
+    "seconds": 0.01,
+    "tools": [
+     {
+      "tool": "drift_for_feature",
+      "args": {
+       "feature": "feat_sla_breach_notifications"
+      },
+      "rows": 1
+     },
+     {
+      "tool": "decision_history",
+      "args": {
+       "feature": "feat_sla_breach_notifications"
+      },
+      "rows": 6
+     }
+    ]
+   },
+   {
+    "id": "q05",
+    "q": "What does BD-103 say and is it still accurate?",
+    "answer": "DRIFT on SLA breach notifications: maya decided \"Let's change it: send the warning 15 minutes BEFORE the breach, and post it to the team's Slack channel instead of email. We drop email notifications for this entirely.\" on 2026-09-17 (discord #engineering), but BD-103 still says \"When a ticket breaches its SLA, send an email notification to the ticket's assignee.\". PRs that shipped the old version: #5. Docs still describing the old version: Design note — SLA breach notifications.\n\nEvidence:\n(Person maya)-[:POSTED]->(Message m_sla_05 @ discord#engineering, 2026-09-17T05:31:00Z)-[:CHANGES]->(Requirement \"Let's change it: send the warning 15 minutes BEFORE the breach, and post it to the team's Slack channel instead of email. We drop email notifications for this entirely.\")-[:AMENDS]->(Ticket BD-103)-[:ABOUT]->(Feature feat_sla_breach_notifications) ; (PullRequest #5)-[:REFERENCES]->(Ticket BD-103), IMPLEMENTS older \"When a ticket breaches its SLA, send an email notification to the ticket's assignee.\" ; (Document DOC-2 \"Design note — SLA breach notifications\", updated 2026-09-14)-[:MENTIONS]->(Ticket BD-103), older than the change",
+    "score": 1.0,
+    "hits": [
+     true,
+     true,
+     true
+    ],
+    "forbidden": [],
+    "passed": true,
+    "chars": 1143,
+    "seconds": 0.0,
+    "tools": [
+     {
+      "tool": "drift_for_feature",
+      "args": {
+       "feature": "feat_sla_breach_notifications"
+      },
+      "rows": 1
+     }
+    ]
+   },
+   {
+    "id": "q06",
+    "q": "Which pull request implemented the SLA notifications, and did it follow the latest decision?",
+    "answer": "PR #3 \"SLA settings page\" by kenji → BD-104.\nPR #4 \"Freeze time in SLA job test\" by dev → BD-115.\nPR #5 \"SLA breach email notifications\" by dev → BD-103.\n\nEvidence:\n(PullRequest #3)-[:REFERENCES {via: hard}]->(Ticket BD-104)\n(PullRequest #4)-[:REFERENCES {via: hard}]->(Ticket BD-115)\n(PullRequest #5)-[:REFERENCES {via: hard}]->(Ticket BD-103)",
+    "score": 1.0,
+    "hits": [
+     true,
+     true,
+     true
+    ],
+    "forbidden": [],
+    "passed": true,
+    "chars": 344,
+    "seconds": 0.0,
+    "tools": [
+     {
+      "tool": "feature_prs",
+      "args": {
+       "feature": "feat_sla_breach_notifications"
+      },
+      "rows": 3
+     }
+    ]
+   },
+   {
+    "id": "q07",
+    "q": "Was the dark mode toggle placement change written back into the ticket?",
+    "answer": "2026-10-02: chat change on BD-105: \"the theme toggle lives in Settings > Appearance, not in the navbar. I've updated BD-105 to say so.\" (written into BD-105 (v2), not shipped yet).\nNo open drift on Dark mode: its tickets and PRs match the latest decision.\n\nEvidence:\n(Ticket BD-105)-[:STATES]->(Requirement req:BD-105:v1 @ 2026-09-28T05:00:00Z) <-[:IMPLEMENTS]- PR [12]\n(Message m_dark_05)-[:CHANGES]->(Requirement req:m_dark_05 @ 2026-10-02T06:00:00Z)-[:SUPERSEDES]->(Requirement req:BD-105:v1)\n(Decision dec:m_dark_05)-[:CHANGES]->(Requirement req:m_dark_05 @ 2026-10-02T06:00:00Z)-[:SUPERSEDES]->(Requirement req:BD-105:v1)",
+    "score": 1.0,
+    "hits": [
+     true,
+     true
+    ],
+    "forbidden": [],
+    "passed": true,
+    "chars": 626,
+    "seconds": 0.0,
+    "tools": [
+     {
+      "tool": "drift_for_feature",
+      "args": {
+       "feature": "feat_dark_mode"
+      },
+      "rows": 0
+     },
+     {
+      "tool": "decision_history",
+      "args": {
+       "feature": "feat_dark_mode"
+      },
+      "rows": 5
+     }
+    ]
+   },
+   {
+    "id": "q08",
+    "q": "Is there any drift on the dark mode feature?",
+    "answer": "No open drift on Dark mode: its tickets and PRs match the latest decision.",
+    "score": 1.0,
+    "hits": [
+     true
+    ],
+    "forbidden": [],
+    "passed": true,
+    "chars": 74,
+    "seconds": 0.0,
+    "tools": [
+     {
+      "tool": "drift_for_feature",
+      "args": {
+       "feature": "feat_dark_mode"
+      },
+      "rows": 0
+     }
+    ]
+   },
+   {
+    "id": "q09",
+    "q": "Which PR added the export button, and which ticket does it belong to?",
+    "answer": "PR #6 \"BD-101: CSV export endpoint\" by sofia → BD-101.\nPR #7 \"Add export button to ticket list\" by kenji → BD-102, linked by proximity+semantic (the PR never names its ticket).\n\nEvidence:\n(PullRequest #6)-[:REFERENCES {via: hard}]->(Ticket BD-101)\n(PullRequest #7)-[:REFERENCES {via: proximity+semantic}]->(Ticket BD-102)",
+    "score": 1.0,
+    "hits": [
+     true,
+     true
+    ],
+    "forbidden": [],
+    "passed": true,
+    "chars": 321,
+    "seconds": 0.0,
+    "tools": [
+     {
+      "tool": "feature_prs",
+      "args": {
+       "feature": "feat_ticket_export_to_csv"
+      },
+      "rows": 2
+     }
+    ]
+   },
+   {
+    "id": "q10",
+    "q": "Who knows the most about the ticket export feature?",
+    "answer": "For Ticket export to CSV: Maya Chen (Product Manager, 11 items, score 23); Sofia Alvarez (Backend Engineer, 4 items, score 7); Kenji Watanabe (Frontend Engineer, 4 items, score 7).\n\nEvidence:\n(Person maya)-[:POSTED|AUTHORED|MADE]->(11 items)-[:ABOUT]->(Feature feat_ticket_export_to_csv)\n(Person sofia)-[:POSTED|AUTHORED|MADE]->(4 items)-[:ABOUT]->(Feature feat_ticket_export_to_csv)\n(Person kenji)-[:POSTED|AUTHORED|MADE]->(4 items)-[:ABOUT]->(Feature feat_ticket_export_to_csv)",
+    "score": 1.0,
+    "hits": [
+     true
+    ],
+    "forbidden": [],
+    "passed": true,
+    "chars": 479,
+    "seconds": 0.01,
+    "tools": [
+     {
+      "tool": "who_knows",
+      "args": {
+       "feature": "feat_ticket_export_to_csv"
+      },
+      "rows": 5
+     }
+    ]
+   },
+   {
+    "id": "q11",
+    "q": "Was XLSX export agreed as a requirement?",
+    "answer": "2026-09-15: chat change on BD-101: \"Let's add an assignee column to the export. I'm updating BD-101 now.\" (written into BD-101 (v2), shipped in #6).\n2026-09-22: chat change on BD-101: \"the export must support any custom date range up to 12 months (not a fixed 30 days), and it must include all custom fields as extra columns.\" (never written into the ticket, not implemented).\nDRIFT on Ticket export to CSV: maya decided \"the export must support any custom date range up to 12 months (not a fixed 30 days), and it must include all custom fields as extra columns.\" on 2026-09-22 (slack #support-escalations), but BD-101 still says \"Admins can export tickets created in the last 30 days as a CSV file. Columns: id, subject, status, created_at, assignee.\". PRs that shipped the old version: #6. Docs still describing the old version: PRD — Ticket export.\n\nEvidence:\n(Person maya)-[:POSTED]->(Message m_exp_12 @ slack#support-escalations, 2026-09-22T09:40:00Z)-[:CHANGES]->(Requirement \"the export must support any custom date range up to 12 months (not a fixed 30 days), and it must include all custom fields as extra columns.\")-[:AMENDS]->(Ticket BD-101)-[:ABOUT]->(Feature feat_ticket_export_to_csv) ; (PullRequest #6)-[:REFERENCES]->(Ticket BD-101), IMPLEMENTS older \"Admins can export tickets created in the last 30 days as a CSV file. Columns: id, subject, status, created_at, assignee.\" ; (Document DOC-1 \"PRD — Ticket export\", updated 2026-09-15)-[:MENTIONS]->(Ticket BD-101), older than the change\n(Ticket BD-101)-[:STATES]->(Requirement req:BD-101:v1 @ 2026-09-14T04:50:00Z)\n(Decision dec:m_exp_06)-[:CHANGES]->(Requirement req:m_exp_06 @ 2026-09-15T08:40:00Z)-[:SUPERSEDES]->(Requirement req:BD-101:v1)",
+    "score": 1.0,
+    "hits": [
+     true
+    ],
+    "forbidden": [],
+    "passed": true,
+    "chars": 1709,
+    "seconds": 0.01,
+    "tools": [
+     {
+      "tool": "drift_for_feature",
+      "args": {
+       "feature": "feat_ticket_export_to_csv"
+      },
+      "rows": 1
+     },
+     {
+      "tool": "decision_history",
+      "args": {
+       "feature": "feat_ticket_export_to_csv"
+      },
+      "rows": 8
+     }
+    ]
+   },
+   {
+    "id": "q12",
+    "q": "What changed in the export requirements on 15 September, and was it shipped?",
+    "answer": "2026-09-15: chat change on BD-101: \"Let's add an assignee column to the export. I'm updating BD-101 now.\" (written into BD-101 (v2), shipped in #6).\n2026-09-22: chat change on BD-101: \"the export must support any custom date range up to 12 months (not a fixed 30 days), and it must include all custom fields as extra columns.\" (never written into the ticket, not implemented).\nDRIFT on Ticket export to CSV: maya decided \"the export must support any custom date range up to 12 months (not a fixed 30 days), and it must include all custom fields as extra columns.\" on 2026-09-22 (slack #support-escalations), but BD-101 still says \"Admins can export tickets created in the last 30 days as a CSV file. Columns: id, subject, status, created_at, assignee.\". PRs that shipped the old version: #6. Docs still describing the old version: PRD — Ticket export.\n\nEvidence:\n(Person maya)-[:POSTED]->(Message m_exp_12 @ slack#support-escalations, 2026-09-22T09:40:00Z)-[:CHANGES]->(Requirement \"the export must support any custom date range up to 12 months (not a fixed 30 days), and it must include all custom fields as extra columns.\")-[:AMENDS]->(Ticket BD-101)-[:ABOUT]->(Feature feat_ticket_export_to_csv) ; (PullRequest #6)-[:REFERENCES]->(Ticket BD-101), IMPLEMENTS older \"Admins can export tickets created in the last 30 days as a CSV file. Columns: id, subject, status, created_at, assignee.\" ; (Document DOC-1 \"PRD — Ticket export\", updated 2026-09-15)-[:MENTIONS]->(Ticket BD-101), older than the change\n(Ticket BD-101)-[:STATES]->(Requirement req:BD-101:v1 @ 2026-09-14T04:50:00Z)\n(Decision dec:m_exp_06)-[:CHANGES]->(Requirement req:m_exp_06 @ 2026-09-15T08:40:00Z)-[:SUPERSEDES]->(Requirement req:BD-101:v1)",
+    "score": 1.0,
+    "hits": [
+     true,
+     true
+    ],
+    "forbidden": [],
+    "passed": true,
+    "chars": 1709,
+    "seconds": 0.01,
+    "tools": [
+     {
+      "tool": "drift_for_feature",
+      "args": {
+       "feature": "feat_ticket_export_to_csv"
+      },
+      "rows": 1
+     },
+     {
+      "tool": "decision_history",
+      "args": {
+       "feature": "feat_ticket_export_to_csv"
+      },
+      "rows": 8
+     }
+    ]
+   },
+   {
+    "id": "q13",
+    "q": "Who owns BD-101 and which decision makes their shipped work stale?",
+    "answer": "BD-101 is owned by Sofia Alvarez (Backend Engineer).\nTheir shipped work (#6) is stale because of maya's decision on 2026-09-22: \"the export must support any custom date range up to 12 months (not a fixed 30 days), and it must include all custom fields as extra columns.\".\n\nEvidence:\n(Person maya)-[:POSTED]->(Message m_exp_12 @ slack#support-escalations, 2026-09-22T09:40:00Z)-[:CHANGES]->(Requirement \"the export must support any custom date range up to 12 months (not a fixed 30 days), and it must include all custom fields as extra columns.\")-[:AMENDS]->(Ticket BD-101)-[:ABOUT]->(Feature feat_ticket_export_to_csv) ; (PullRequest #6)-[:REFERENCES]->(Ticket BD-101), IMPLEMENTS older \"Admins can export tickets created in the last 30 days as a CSV file. Columns: id, subject, status, created_at, assignee.\" ; (Document DOC-1 \"PRD — Ticket export\", updated 2026-09-15)-[:MENTIONS]->(Ticket BD-101), older than the change",
+    "score": 1.0,
+    "hits": [
+     true,
+     true
+    ],
+    "forbidden": [],
+    "passed": true,
+    "chars": 922,
+    "seconds": 0.0,
+    "tools": [
+     {
+      "tool": "drift_for_feature",
+      "args": {
+       "feature": "feat_ticket_export_to_csv"
+      },
+      "rows": 1
+     }
+    ]
+   },
+   {
+    "id": "q14",
+    "q": "List the decisions made in Sprint 1 that are not shipped.",
+    "answer": "2026-09-15: chat change on BD-101: \"Let's add an assignee column to the export. I'm updating BD-101 now.\" (written into BD-101 (v2), shipped in #6).\n2026-09-22: chat change on BD-101: \"the export must support any custom date range up to 12 months (not a fixed 30 days), and it must include all custom fields as extra columns.\" (never written into the ticket, not implemented).\nDRIFT on Ticket export to CSV: maya decided \"the export must support any custom date range up to 12 months (not a fixed 30 days), and it must include all custom fields as extra columns.\" on 2026-09-22 (slack #support-escalations), but BD-101 still says \"Admins can export tickets created in the last 30 days as a CSV file. Columns: id, subject, status, created_at, assignee.\". PRs that shipped the old version: #6. Docs still describing the old version: PRD — Ticket export.\n\nEvidence:\n(Person maya)-[:POSTED]->(Message m_exp_12 @ slack#support-escalations, 2026-09-22T09:40:00Z)-[:CHANGES]->(Requirement \"the export must support any custom date range up to 12 months (not a fixed 30 days), and it must include all custom fields as extra columns.\")-[:AMENDS]->(Ticket BD-101)-[:ABOUT]->(Feature feat_ticket_export_to_csv) ; (PullRequest #6)-[:REFERENCES]->(Ticket BD-101), IMPLEMENTS older \"Admins can export tickets created in the last 30 days as a CSV file. Columns: id, subject, status, created_at, assignee.\" ; (Document DOC-1 \"PRD — Ticket export\", updated 2026-09-15)-[:MENTIONS]->(Ticket BD-101), older than the change\n(Ticket BD-101)-[:STATES]->(Requirement req:BD-101:v1 @ 2026-09-14T04:50:00Z)\n(Decision dec:m_exp_06)-[:CHANGES]->(Requirement req:m_exp_06 @ 2026-09-15T08:40:00Z)-[:SUPERSEDES]->(Requirement req:BD-101:v1)",
+    "score": 1.0,
+    "hits": [
+     true,
+     true
+    ],
+    "forbidden": [
+     false
+    ],
+    "passed": true,
+    "chars": 1709,
+    "seconds": 0.0,
+    "tools": [
+     {
+      "tool": "drift_for_feature",
+      "args": {
+       "feature": "feat_ticket_export_to_csv"
+      },
+      "rows": 1
+     },
+     {
+      "tool": "decision_history",
+      "args": {
+       "feature": "feat_ticket_export_to_csv"
+      },
+      "rows": 8
+     }
+    ]
+   },
+   {
+    "id": "q15",
+    "q": "Which tickets and PRs are affected by the decision to send SLA warnings 15 minutes before breach?",
+    "answer": "PR #3 \"SLA settings page\" by kenji → BD-104.\nPR #4 \"Freeze time in SLA job test\" by dev → BD-115.\nPR #5 \"SLA breach email notifications\" by dev → BD-103.\n\nEvidence:\n(PullRequest #3)-[:REFERENCES {via: hard}]->(Ticket BD-104)\n(PullRequest #4)-[:REFERENCES {via: hard}]->(Ticket BD-115)\n(PullRequest #5)-[:REFERENCES {via: hard}]->(Ticket BD-103)",
+    "score": 1.0,
+    "hits": [
+     true,
+     true
+    ],
+    "forbidden": [],
+    "passed": true,
+    "chars": 344,
+    "seconds": 0.0,
+    "tools": [
+     {
+      "tool": "feature_prs",
+      "args": {
+       "feature": "feat_sla_breach_notifications"
+      },
+      "rows": 3
+     }
+    ]
+   }
+  ],
+  "baseline (extractive top-3, no LLM)": [
+   {
+    "id": "q01",
+    "q": "Which features have a requirement that was changed in chat but never reflected in the ticket?",
+    "answer": "[2026-09-29T07:12:00Z discord#design] priya: No, keep System and make it the default, exactly as BD-105 says. Most people never touch the setting.\n[ticket BD-103, state Done, assignee dev, sprint s1] SLA breach notifications: When a ticket breaches its SLA, send an email notification to the ticket's assignee. (history: 2026-09-14T06:20:00Z: When a ticket breaches its SLA, send an email notification to the ticket's assignee.)\n[ticket BD-112, state Done, assignee sofia, sprint s2] Search pagination returns duplicates: Page 2 of ticket search repeats results from page 1 when tickets share a created_at timestamp. (history: 2026-09-29T06:00:00Z: Page 2 of ticket search repeats results from page 1 when tickets share a created_at timestamp.)",
+    "score": 0.5,
+    "hits": [
+     false,
+     true
+    ],
+    "forbidden": [
+     false
+    ],
+    "passed": false,
+    "chars": 744,
+    "seconds": 0.0,
+    "tools": null
+   },
+   {
+    "id": "q02",
+    "q": "What is the current requirement for the ticket CSV export?",
+    "answer": "[ticket BD-102, state Done, assignee kenji, sprint s2] Export button in ticket list view: Add an 'Export' button to the ticket list toolbar that downloads the CSV from the export endpoint (see BD-101). Admin only. (history: 2026-09-14T05:00:00Z: Add an 'Export' button to the ticket list toolbar that downloads the CSV from the export endpoint (see BD-101). Admin only.)\n[ticket BD-101, state Done, assignee sofia, sprint s1] Ticket export to CSV: Admins can export tickets created in the last 30 days as a CSV file. Columns: id, subject, status, created_at, assignee. (history: 2026-09-14T04:50:00Z: Admins can export tickets created in the last 30 days as a CSV file. Columns: id, subject, status, created_at. | 2026-09-15T10:30:00Z: Admins can export tickets created in the last 30 days as a CSV file. Columns: id, subject, status, created_at, assignee.)\n[PR #6 by sofia, created 2026-09-24T10:00:00Z, merged 2026-09-25T05:44:00Z] BD-101: CSV export endpoint\n\nFixes BD-101. GET /api/tickets/export streams tickets created in the last 30 days as CSV with columns id, subject, status, created_at, assignee.",
+    "score": 0.0,
+    "hits": [
+     false,
+     false
+    ],
+    "forbidden": [],
+    "passed": false,
+    "chars": 1107,
+    "seconds": 0.0,
+    "tools": null
+   },
+   {
+    "id": "q03",
+    "q": "Does the export that shipped match what was decided? Which PR shipped it?",
+    "answer": "[PR #7 by kenji, created 2026-09-30T08:25:00Z, merged 2026-10-01T09:00:00Z] Add export button to ticket list\n\nAdds a toolbar button that downloads the CSV from /api/tickets/export. Only visible to admins.\n[ticket BD-102, state Done, assignee kenji, sprint s2] Export button in ticket list view: Add an 'Export' button to the ticket list toolbar that downloads the CSV from the export endpoint (see BD-101). Admin only. (history: 2026-09-14T05:00:00Z: Add an 'Export' button to the ticket list toolbar that downloads the CSV from the export endpoint (see BD-101). Admin only.)\n[2026-09-30T08:20:00Z slack#engineering] kenji: Export button is wired into the ticket list now, calls Sofia's endpoint. Opening a PR.",
+    "score": 0.333,
+    "hits": [
+     false,
+     false,
+     true
+    ],
+    "forbidden": [],
+    "passed": false,
+    "chars": 710,
+    "seconds": 0.0,
+    "tools": null
+   },
+   {
+    "id": "q04",
+    "q": "Who decided that SLA warnings should go to Slack before the breach, and where was it decided?",
+    "answer": "[2026-10-01T06:50:00Z discord#engineering] zara: Testing SLA alerts: the notification fires at breach and it's an email. Wasn't it supposed to warn before breach?\n[2026-09-17T05:31:00Z discord#engineering] maya: Agreed. Let's change it: send the warning 15 minutes BEFORE the breach, and post it to the team's Slack channel instead of email. We drop email notifications for this entirely.\n[PR #5 by dev, created 2026-09-23T09:10:00Z, merged 2026-09-24T11:00:00Z] SLA breach email notifications\n\nCloses BD-103. A periodic job finds tickets past their SLA deadline and emails the assignee using the existing mailer.",
+    "score": 1.0,
+    "hits": [
+     true,
+     true
+    ],
+    "forbidden": [],
+    "passed": true,
+    "chars": 613,
+    "seconds": 0.0,
+    "tools": null
+   },
+   {
+    "id": "q05",
+    "q": "What does BD-103 say and is it still accurate?",
+    "answer": "[2026-10-02T06:00:00Z discord#design] priya: Decision after the design review: the theme toggle lives in Settings > Appearance, not in the navbar. I've updated BD-105 to say so.\n[2026-10-01T07:05:00Z discord#engineering] dev: I built it to BD-103, which says email at breach. Was there a change?\n[2026-09-14T06:41:00Z discord#engineering] dev: I'll take BD-103. Probably a periodic job that checks open tickets against their deadlines.",
+    "score": 0.667,
+    "hits": [
+     true,
+     false,
+     true
+    ],
+    "forbidden": [],
+    "passed": false,
+    "chars": 435,
+    "seconds": 0.0,
+    "tools": null
+   },
+   {
+    "id": "q06",
+    "q": "Which pull request implemented the SLA notifications, and did it follow the latest decision?",
+    "answer": "[ticket BD-103, state Done, assignee dev, sprint s1] SLA breach notifications: When a ticket breaches its SLA, send an email notification to the ticket's assignee. (history: 2026-09-14T06:20:00Z: When a ticket breaches its SLA, send an email notification to the ticket's assignee.)\n[PR #1 by arjun, created 2026-09-14T04:20:00Z, merged 2026-09-14T05:00:00Z] Set up CI with GitHub Actions\n\nRuns lint and unit tests on every push and pull request.\n[PR #5 by dev, created 2026-09-23T09:10:00Z, merged 2026-09-24T11:00:00Z] SLA breach email notifications\n\nCloses BD-103. A periodic job finds tickets past their SLA deadline and emails the assignee using the existing mailer.",
+    "score": 1.0,
+    "hits": [
+     true,
+     true,
+     true
+    ],
+    "forbidden": [],
+    "passed": true,
+    "chars": 670,
+    "seconds": 0.0,
+    "tools": null
+   },
+   {
+    "id": "q07",
+    "q": "Was the dark mode toggle placement change written back into the ticket?",
+    "answer": "[ticket BD-105, state Done, assignee kenji, sprint s2] Dark mode: Support dark mode. Default follows the OS theme. Users can pick Light / Dark / System with a toggle located in Settings > Appearance (not the navbar). (history: 2026-09-28T05:00:00Z: Support dark mode. Default follows the OS theme. Users can pick Light / Dark / System with a toggle. | 2026-10-02T06:05:00Z: Support dark mode. Default follows the OS theme. Users can pick Light / Dark / System with a toggle located in Settings > Appearance (not the navbar).)\n[PR #12 by kenji, created 2026-10-07T09:30:00Z, merged 2026-10-08T05:20:00Z] Dark mode with Light / Dark / System toggle\n\nCloses BD-105. Adds a dark theme on top of the tokens. Default is System (follows OS). Toggle lives in Settings > Appearance.\n[2026-10-07T09:30:00Z slack#engineering] kenji: Dark mode PR is up: Light/Dark/System, System default, toggle under Settings > Appearance.",
+    "score": 0.5,
+    "hits": [
+     false,
+     true
+    ],
+    "forbidden": [],
+    "passed": false,
+    "chars": 912,
+    "seconds": 0.0,
+    "tools": null
+   },
+   {
+    "id": "q08",
+    "q": "Is there any drift on the dark mode feature?",
+    "answer": "[ticket BD-105, state Done, assignee kenji, sprint s2] Dark mode: Support dark mode. Default follows the OS theme. Users can pick Light / Dark / System with a toggle located in Settings > Appearance (not the navbar). (history: 2026-09-28T05:00:00Z: Support dark mode. Default follows the OS theme. Users can pick Light / Dark / System with a toggle. | 2026-10-02T06:05:00Z: Support dark mode. Default follows the OS theme. Users can pick Light / Dark / System with a toggle located in Settings > Appearance (not the navbar).)\n[2026-10-07T09:30:00Z slack#engineering] kenji: Dark mode PR is up: Light/Dark/System, System default, toggle under Settings > Appearance.\n[PR #12 by kenji, created 2026-10-07T09:30:00Z, merged 2026-10-08T05:20:00Z] Dark mode with Light / Dark / System toggle\n\nCloses BD-105. Adds a dark theme on top of the tokens. Default is System (follows OS). Toggle lives in Settings > Appearance.",
+    "score": 0.0,
+    "hits": [
+     false
+    ],
+    "forbidden": [],
+    "passed": false,
+    "chars": 912,
+    "seconds": 0.0,
+    "tools": null
+   },
+   {
+    "id": "q09",
+    "q": "Which PR added the export button, and which ticket does it belong to?",
+    "answer": "[PR #7 by kenji, created 2026-09-30T08:25:00Z, merged 2026-10-01T09:00:00Z] Add export button to ticket list\n\nAdds a toolbar button that downloads the CSV from /api/tickets/export. Only visible to admins.\n[ticket BD-102, state Done, assignee kenji, sprint s2] Export button in ticket list view: Add an 'Export' button to the ticket list toolbar that downloads the CSV from the export endpoint (see BD-101). Admin only. (history: 2026-09-14T05:00:00Z: Add an 'Export' button to the ticket list toolbar that downloads the CSV from the export endpoint (see BD-101). Admin only.)\n[2026-09-30T08:20:00Z slack#engineering] kenji: Export button is wired into the ticket list now, calls Sofia's endpoint. Opening a PR.",
+    "score": 1.0,
+    "hits": [
+     true,
+     true
+    ],
+    "forbidden": [],
+    "passed": true,
+    "chars": 710,
+    "seconds": 0.0,
+    "tools": null
+   },
+   {
+    "id": "q10",
+    "q": "Who knows the most about the ticket export feature?",
+    "answer": "[ticket BD-102, state Done, assignee kenji, sprint s2] Export button in ticket list view: Add an 'Export' button to the ticket list toolbar that downloads the CSV from the export endpoint (see BD-101). Admin only. (history: 2026-09-14T05:00:00Z: Add an 'Export' button to the ticket list toolbar that downloads the CSV from the export endpoint (see BD-101). Admin only.)\n[PR #7 by kenji, created 2026-09-30T08:25:00Z, merged 2026-10-01T09:00:00Z] Add export button to ticket list\n\nAdds a toolbar button that downloads the CSV from /api/tickets/export. Only visible to admins.\n[ticket BD-101, state Done, assignee sofia, sprint s1] Ticket export to CSV: Admins can export tickets created in the last 30 days as a CSV file. Columns: id, subject, status, created_at, assignee. (history: 2026-09-14T04:50:00Z: Admins can export tickets created in the last 30 days as a CSV file. Columns: id, subject, status, created_at. | 2026-09-15T10:30:00Z: Admins can export tickets created in the last 30 days as a CSV file. Columns: id, subject, status, created_at, assignee.)",
+    "score": 1.0,
+    "hits": [
+     true
+    ],
+    "forbidden": [],
+    "passed": true,
+    "chars": 1062,
+    "seconds": 0.0,
+    "tools": null
+   },
+   {
+    "id": "q11",
+    "q": "Was XLSX export agreed as a requirement?",
+    "answer": "[2026-09-23T06:15:00Z slack#product] kenji: While we're on export, should we also offer XLSX? Some users open CSVs in Excel and complain about encoding.\n[2026-10-06T07:10:00Z slack#support-escalations] liam: Acme tried the new export and it only gives them 30 days, and no custom fields. I thought we agreed on 12 months?\n[2026-09-17T05:36:00Z discord#engineering] arjun: ok, agreed. Dev, that changes your job a bit.",
+    "score": 1.0,
+    "hits": [
+     true
+    ],
+    "forbidden": [],
+    "passed": true,
+    "chars": 417,
+    "seconds": 0.0,
+    "tools": null
+   },
+   {
+    "id": "q12",
+    "q": "What changed in the export requirements on 15 September, and was it shipped?",
+    "answer": "[ticket BD-102, state Done, assignee kenji, sprint s2] Export button in ticket list view: Add an 'Export' button to the ticket list toolbar that downloads the CSV from the export endpoint (see BD-101). Admin only. (history: 2026-09-14T05:00:00Z: Add an 'Export' button to the ticket list toolbar that downloads the CSV from the export endpoint (see BD-101). Admin only.)\n[2026-09-23T06:15:00Z slack#product] kenji: While we're on export, should we also offer XLSX? Some users open CSVs in Excel and complain about encoding.\n[2026-09-15T07:15:00Z discord#random] kenji: Offsite poll closes Friday!",
+    "score": 0.5,
+    "hits": [
+     true,
+     false
+    ],
+    "forbidden": [],
+    "passed": false,
+    "chars": 596,
+    "seconds": 0.0,
+    "tools": null
+   },
+   {
+    "id": "q13",
+    "q": "Who owns BD-101 and which decision makes their shipped work stale?",
+    "answer": "[2026-09-17T05:40:00Z discord#engineering] dev: Makes sense, noted.\n[2026-09-23T09:31:00Z slack#engineering] zara: Finished the login rate limit work (BD-107), picking up the next thing from the board.\n[2026-09-24T11:49:00Z slack#engineering] arjun: Finished the login rate limit work (BD-107), picking up the next thing from the board.",
+    "score": 0.0,
+    "hits": [
+     false,
+     false
+    ],
+    "forbidden": [],
+    "passed": false,
+    "chars": 336,
+    "seconds": 0.0,
+    "tools": null
+   },
+   {
+    "id": "q14",
+    "q": "List the decisions made in Sprint 1 that are not shipped.",
+    "answer": "[ticket BD-102, state Done, assignee kenji, sprint s2] Export button in ticket list view: Add an 'Export' button to the ticket list toolbar that downloads the CSV from the export endpoint (see BD-101). Admin only. (history: 2026-09-14T05:00:00Z: Add an 'Export' button to the ticket list toolbar that downloads the CSV from the export endpoint (see BD-101). Admin only.)\n[2026-09-14T05:22:00Z slack#product] maya: Yes, that's what's in the ticket. Kenji, can you do the button in the list view (BD-102)?\n[2026-09-15T10:31:00Z slack#support-escalations] maya: Done, BD-101 now lists assignee as a required column.",
+    "score": 1.0,
+    "hits": [
+     true,
+     true
+    ],
+    "forbidden": [
+     false
+    ],
+    "passed": true,
+    "chars": 612,
+    "seconds": 0.0,
+    "tools": null
+   },
+   {
+    "id": "q15",
+    "q": "Which tickets and PRs are affected by the decision to send SLA warnings 15 minutes before breach?",
+    "answer": "[2026-09-17T05:31:00Z discord#engineering] maya: Agreed. Let's change it: send the warning 15 minutes BEFORE the breach, and post it to the team's Slack channel instead of email. We drop email notifications for this entirely.\n[ticket BD-103, state Done, assignee dev, sprint s1] SLA breach notifications: When a ticket breaches its SLA, send an email notification to the ticket's assignee. (history: 2026-09-14T06:20:00Z: When a ticket breaches its SLA, send an email notification to the ticket's assignee.)\n[2026-10-01T06:50:00Z discord#engineering] zara: Testing SLA alerts: the notification fires at breach and it's an email. Wasn't it supposed to warn before breach?",
+    "score": 0.5,
+    "hits": [
+     true,
+     false
+    ],
+    "forbidden": [],
+    "passed": false,
+    "chars": 670,
+    "seconds": 0.0,
+    "tools": null
+   }
+  ],
+  "baseline (extractive top-25, no LLM)": [
+   {
+    "id": "q01",
+    "q": "Which features have a requirement that was changed in chat but never reflected in the ticket?",
+    "answer": "[2026-09-29T07:12:00Z discord#design] priya: No, keep System and make it the default, exactly as BD-105 says. Most people never touch the setting.\n[ticket BD-103, state Done, assignee dev, sprint s1] SLA breach notifications: When a ticket breaches its SLA, send an email notification to the ticket's assignee. (history: 2026-09-14T06:20:00Z: When a ticket breaches its SLA, send an email notification to the ticket's assignee.)\n[ticket BD-112, state Done, assignee sofia, sprint s2] Search pagination returns duplicates: Page 2 of ticket search repeats results from page 1 when tickets share a created_at timestamp. (history: 2026-09-29T06:00:00Z: Page 2 of ticket search repeats results from page 1 when tickets share a created_at timestamp.)\n[ticket BD-114, state Done, assignee dev, sprint s2] API README: Document authentication and the tickets endpoints in the repo README. (history: 2026-10-01T04:00:00Z: Document authentication and the tickets endpoints in the repo README.)\n[2026-09-14T05:10:00Z slack#product] maya: Kicking off Sprint 1. Top item for me is ticket export (BD-101): admins should be able to download the last 30 days of tickets as CSV. Customers keep asking for it.\n[ticket BD-102, state Done, assignee kenji, sprint s2] Export button in ticket list view: Add an 'Export' button to the ticket list toolbar that downloads the CSV from the export endpoint (see BD-101). Admin only. (history: 2026-09-14T05:00:00Z: Add an 'Export' button to the ticket list toolbar that downloads the CSV from the export endpoint (see BD-101). Admin only.)\n[ticket BD-101, state Done, assignee sofia, sprint s1] Ticket export to CSV: Admins can export tickets created in the last 30 days as a CSV file. Columns: id, subject, status, created_at, assignee. (history: 2026-09-14T04:50:00Z: Admins can export tickets created in the last 30 days as a CSV file. Columns: id, subject, status, created_at. | 2026-09-15T10:30:00Z: Admins can export tickets created in the last 30 days as a CSV file. Columns: id, subject, status, created_at, assignee.)\n[2026-10-08T11:09:00Z discord#engineering] zara: BD-112 is reproducible: two tickets with the same created_at.\n[2026-09-14T07:10:00Z slack#engineering] dev: BD-112 is reproducible: two tickets with the same created_at.\n[PR #7 by kenji, created 2026-09-30T08:25:00Z, merged 2026-10-01T09:00:00Z] Add export button to ticket list\n\nAdds a toolbar button that downloads the CSV from /api/tickets/export. Only visible to admins.\n[2026-10-08T11:14:00Z discord#engineering] sofia: BD-112 is reproducible: two tickets with the same created_at.\n[2026-10-07T06:56:00Z slack#engineering] dev: BD-112 is reproducible: two tickets with the same created_at.\n[ticket BD-108, state Backlog, assignee sofia, sprint s2] Export performance for large accounts: Profile the export endpoint for accounts with >100k tickets; consider background job + emailed link. (history: 2026-09-26T04:00:00Z: Profile the export endpoint for accounts with >100k tickets; consider background job + emailed link.)\n[PR #6 by sofia, created 2026-09-24T10:00:00Z, merged 2026-09-25T05:44:00Z] BD-101: CSV export endpoint\n\nFixes BD-101. GET /api/tickets/export streams tickets created in the last 30 days as CSV with columns id, subject, status, created_at, assignee.\n[2026-09-14T05:22:00Z slack#product] maya: Yes, that's what's in the ticket. Kenji, can you do the button in the list view (BD-102)?\n[2026-10-08T05:15:00Z discord#design] priya: Checked the dark mode build, matches the ticket. Shipping it 🎉\n[2026-09-30T08:20:00Z slack#engineering] kenji: Export button is wired into the ticket list now, calls Sofia's endpoint. Opening a PR.\n[2026-09-14T06:41:00Z discord#engineering] dev: I'll take BD-103. Probably a periodic job that checks open tickets against their deadlines.\n[PR #11 by dev, created 2026-10-06T04:30:00Z, merged 2026-10-06T06:00:00Z] docs: API README\n\nFixes BD-114. Documents auth and the tickets endpoints.\n[2026-09-15T08:02:00Z slack#support-escalations] liam: Acme Corp asked whether the export will include who each ticket is assigned to. Without that they can't do per-agent reporting.\n[PR #5 by dev, created 2026-09-23T09:10:00Z, merged 2026-09-24T11:00:00Z] SLA breach email notifications\n\nCloses BD-103. A periodic job finds tickets past their SLA deadline and emails the assignee using the existing mailer.\n[2026-09-14T06:30:00Z discord#engineering] maya: Second big item for Sprint 1 is SLA alerts, BD-103: when a ticket breaches its SLA we email the assignee. BD-104 covers the settings page where admins set SLA hours per priority.\n[ticket BD-110, state Done, assignee kenji, sprint s1] Fix typo on onboarding screen: Onboarding step 2 says 'Recieve'. Should be 'Receive'. (history: 2026-09-15T09:00:00Z: Onboarding step 2 says 'Recieve'. Should be 'Receive'.)\n[ticket BD-111, state Done, assignee sofia, sprint s1] Upgrade backend dependencies: Bump FastAPI, SQLAlchemy and pydantic to current versions; fix deprecation warnings. (history: 2026-09-14T04:00:00Z: Bump FastAPI, SQLAlchemy and pydantic to current versions; fix deprecation warnings.)\n[ticket BD-109, state Backlog, assignee None, sprint s2] SLA metrics on dashboard: Show the count of SLA breaches per week on the reporting dashboard. (history: 2026-09-29T05:00:00Z: Show the count of SLA breaches per week on the reporting dashboard.)",
+    "score": 1.0,
+    "hits": [
+     true,
+     true
+    ],
+    "forbidden": [
+     false
+    ],
+    "passed": true,
+    "chars": 5344,
+    "seconds": 0.0,
+    "tools": null
+   },
+   {
+    "id": "q02",
+    "q": "What is the current requirement for the ticket CSV export?",
+    "answer": "[ticket BD-102, state Done, assignee kenji, sprint s2] Export button in ticket list view: Add an 'Export' button to the ticket list toolbar that downloads the CSV from the export endpoint (see BD-101). Admin only. (history: 2026-09-14T05:00:00Z: Add an 'Export' button to the ticket list toolbar that downloads the CSV from the export endpoint (see BD-101). Admin only.)\n[ticket BD-101, state Done, assignee sofia, sprint s1] Ticket export to CSV: Admins can export tickets created in the last 30 days as a CSV file. Columns: id, subject, status, created_at, assignee. (history: 2026-09-14T04:50:00Z: Admins can export tickets created in the last 30 days as a CSV file. Columns: id, subject, status, created_at. | 2026-09-15T10:30:00Z: Admins can export tickets created in the last 30 days as a CSV file. Columns: id, subject, status, created_at, assignee.)\n[PR #6 by sofia, created 2026-09-24T10:00:00Z, merged 2026-09-25T05:44:00Z] BD-101: CSV export endpoint\n\nFixes BD-101. GET /api/tickets/export streams tickets created in the last 30 days as CSV with columns id, subject, status, created_at, assignee.\n[PR #7 by kenji, created 2026-09-30T08:25:00Z, merged 2026-10-01T09:00:00Z] Add export button to ticket list\n\nAdds a toolbar button that downloads the CSV from /api/tickets/export. Only visible to admins.\n[2026-09-14T05:10:00Z slack#product] maya: Kicking off Sprint 1. Top item for me is ticket export (BD-101): admins should be able to download the last 30 days of tickets as CSV. Customers keep asking for it.\n[ticket BD-111, state Done, assignee sofia, sprint s1] Upgrade backend dependencies: Bump FastAPI, SQLAlchemy and pydantic to current versions; fix deprecation warnings. (history: 2026-09-14T04:00:00Z: Bump FastAPI, SQLAlchemy and pydantic to current versions; fix deprecation warnings.)\n[2026-09-24T10:05:00Z slack#engineering] sofia: PR for the export endpoint is up: last 30 days, CSV, id/subject/status/created_at/assignee. Reviews welcome.\n[2026-09-16T06:12:00Z slack#engineering] sofia: Export endpoint skeleton is up locally. Streaming the CSV so big accounts don't time out.\n[ticket BD-108, state Backlog, assignee sofia, sprint s2] Export performance for large accounts: Profile the export endpoint for accounts with >100k tickets; consider background job + emailed link. (history: 2026-09-26T04:00:00Z: Profile the export endpoint for accounts with >100k tickets; consider background job + emailed link.)\n[2026-09-30T08:20:00Z slack#engineering] kenji: Export button is wired into the ticket list now, calls Sofia's endpoint. Opening a PR.\n[ticket BD-103, state Done, assignee dev, sprint s1] SLA breach notifications: When a ticket breaches its SLA, send an email notification to the ticket's assignee. (history: 2026-09-14T06:20:00Z: When a ticket breaches its SLA, send an email notification to the ticket's assignee.)\n[ticket BD-112, state Done, assignee sofia, sprint s2] Search pagination returns duplicates: Page 2 of ticket search repeats results from page 1 when tickets share a created_at timestamp. (history: 2026-09-29T06:00:00Z: Page 2 of ticket search repeats results from page 1 when tickets share a created_at timestamp.)\n[2026-09-15T08:02:00Z slack#support-escalations] liam: Acme Corp asked whether the export will include who each ticket is assigned to. Without that they can't do per-agent reporting.\n[2026-09-23T06:31:00Z slack#product] maya: Not this quarter. CSV with UTF-8 BOM should fix the Excel encoding issue. Let's park XLSX.\n[ticket BD-114, state Done, assignee dev, sprint s2] API README: Document authentication and the tickets endpoints in the repo README. (history: 2026-10-01T04:00:00Z: Document authentication and the tickets endpoints in the repo README.)\n[2026-10-08T11:09:00Z discord#engineering] zara: BD-112 is reproducible: two tickets with the same created_at.\n[2026-09-15T08:40:00Z slack#support-escalations] maya: Good call. Let's add an assignee column to the export. I'm updating BD-101 now.\n[2026-09-14T07:10:00Z slack#engineering] dev: BD-112 is reproducible: two tickets with the same created_at.\n[2026-09-14T05:30:00Z slack#product] kenji: Sure, I'll pick up the export button once Sofia's endpoint shape is settled.\n[2026-10-08T11:14:00Z discord#engineering] sofia: BD-112 is reproducible: two tickets with the same created_at.\n[2026-10-07T06:56:00Z slack#engineering] dev: BD-112 is reproducible: two tickets with the same created_at.\n[2026-10-06T07:10:00Z slack#support-escalations] liam: Acme tried the new export and it only gives them 30 days, and no custom fields. I thought we agreed on 12 months?\n[2026-09-23T06:15:00Z slack#product] kenji: While we're on export, should we also offer XLSX? Some users open CSVs in Excel and complain about encoding.\n[2026-09-14T05:22:00Z slack#product] maya: Yes, that's what's in the ticket. Kenji, can you do the button in the list view (BD-102)?\n[2026-10-08T05:15:00Z discord#design] priya: Checked the dark mode build, matches the ticket. Shipping it 🎉",
+    "score": 1.0,
+    "hits": [
+     true,
+     true
+    ],
+    "forbidden": [],
+    "passed": true,
+    "chars": 4981,
+    "seconds": 0.0,
+    "tools": null
+   },
+   {
+    "id": "q03",
+    "q": "Does the export that shipped match what was decided? Which PR shipped it?",
+    "answer": "[PR #7 by kenji, created 2026-09-30T08:25:00Z, merged 2026-10-01T09:00:00Z] Add export button to ticket list\n\nAdds a toolbar button that downloads the CSV from /api/tickets/export. Only visible to admins.\n[ticket BD-102, state Done, assignee kenji, sprint s2] Export button in ticket list view: Add an 'Export' button to the ticket list toolbar that downloads the CSV from the export endpoint (see BD-101). Admin only. (history: 2026-09-14T05:00:00Z: Add an 'Export' button to the ticket list toolbar that downloads the CSV from the export endpoint (see BD-101). Admin only.)\n[2026-09-30T08:20:00Z slack#engineering] kenji: Export button is wired into the ticket list now, calls Sofia's endpoint. Opening a PR.\n[2026-09-24T10:05:00Z slack#engineering] sofia: PR for the export endpoint is up: last 30 days, CSV, id/subject/status/created_at/assignee. Reviews welcome.\n[2026-09-24T06:14:00Z slack#engineering] arjun: did anyone see the match last night?\n[2026-09-15T07:17:00Z slack#engineering] kenji: did anyone see the match last night?\n[2026-10-06T04:49:00Z slack#product] arjun: did anyone see the match last night?\n[2026-09-23T06:26:00Z slack#product] liam: did anyone see the match last night?\n[2026-09-17T04:40:00Z slack#product] maya: did anyone see the match last night?\n[2026-10-06T05:52:00Z discord#design] kenji: did anyone see the match last night?\n[2026-09-29T11:31:00Z discord#design] kenji: did anyone see the match last night?\n[PR #6 by sofia, created 2026-09-24T10:00:00Z, merged 2026-09-25T05:44:00Z] BD-101: CSV export endpoint\n\nFixes BD-101. GET /api/tickets/export streams tickets created in the last 30 days as CSV with columns id, subject, status, created_at, assignee.\n[2026-10-09T03:39:00Z discord#random] arjun: did anyone see the match last night?\n[2026-09-21T08:07:00Z discord#engineering] arjun: Can someone review my PR? Small one.\n[2026-09-16T04:07:00Z slack#engineering] sofia: Can someone review my PR? Small one.\n[2026-09-18T11:43:00Z discord#engineering] zara: Can someone review my PR? Small one.\n[ticket BD-108, state Backlog, assignee sofia, sprint s2] Export performance for large accounts: Profile the export endpoint for accounts with >100k tickets; consider background job + emailed link. (history: 2026-09-26T04:00:00Z: Profile the export endpoint for accounts with >100k tickets; consider background job + emailed link.)\n[ticket BD-101, state Done, assignee sofia, sprint s1] Ticket export to CSV: Admins can export tickets created in the last 30 days as a CSV file. Columns: id, subject, status, created_at, assignee. (history: 2026-09-14T04:50:00Z: Admins can export tickets created in the last 30 days as a CSV file. Columns: id, subject, status, created_at. | 2026-09-15T10:30:00Z: Admins can export tickets created in the last 30 days as a CSV file. Columns: id, subject, status, created_at, assignee.)\n[2026-09-15T08:40:00Z slack#support-escalations] maya: Good call. Let's add an assignee column to the export. I'm updating BD-101 now.\n[2026-09-14T05:30:00Z slack#product] kenji: Sure, I'll pick up the export button once Sofia's endpoint shape is settled.\n[2026-09-23T09:15:00Z discord#engineering] dev: SLA notifier PR is up, using the existing mailer so it was quick.\n[2026-09-16T06:12:00Z slack#engineering] sofia: Export endpoint skeleton is up locally. Streaming the CSV so big accounts don't time out.\n[2026-10-06T07:10:00Z slack#support-escalations] liam: Acme tried the new export and it only gives them 30 days, and no custom fields. I thought we agreed on 12 months?\n[2026-09-23T06:15:00Z slack#product] kenji: While we're on export, should we also offer XLSX? Some users open CSVs in Excel and complain about encoding.\n[2026-09-15T08:02:00Z slack#support-escalations] liam: Acme Corp asked whether the export will include who each ticket is assigned to. Without that they can't do per-agent reporting.",
+    "score": 1.0,
+    "hits": [
+     true,
+     true,
+     true
+    ],
+    "forbidden": [],
+    "passed": true,
+    "chars": 3864,
+    "seconds": 0.0,
+    "tools": null
+   },
+   {
+    "id": "q04",
+    "q": "Who decided that SLA warnings should go to Slack before the breach, and where was it decided?",
+    "answer": "[2026-10-01T06:50:00Z discord#engineering] zara: Testing SLA alerts: the notification fires at breach and it's an email. Wasn't it supposed to warn before breach?\n[2026-09-17T05:31:00Z discord#engineering] maya: Agreed. Let's change it: send the warning 15 minutes BEFORE the breach, and post it to the team's Slack channel instead of email. We drop email notifications for this entirely.\n[PR #5 by dev, created 2026-09-23T09:10:00Z, merged 2026-09-24T11:00:00Z] SLA breach email notifications\n\nCloses BD-103. A periodic job finds tickets past their SLA deadline and emails the assignee using the existing mailer.\n[2026-09-17T05:05:00Z discord#engineering] dev: Talked to a couple of support leads at Acme. They said an email *at* breach is too late; by then the customer is already annoyed. They want a heads-up before it happens, somewhere the team actually looks.\n[ticket BD-103, state Done, assignee dev, sprint s1] SLA breach notifications: When a ticket breaches its SLA, send an email notification to the ticket's assignee. (history: 2026-09-14T06:20:00Z: When a ticket breaches its SLA, send an email notification to the ticket's assignee.)\n[2026-09-14T06:30:00Z discord#engineering] maya: Second big item for Sprint 1 is SLA alerts, BD-103: when a ticket breaches its SLA we email the assignee. BD-104 covers the settings page where admins set SLA hours per priority.\n[PR #3 by kenji, created 2026-09-18T06:30:00Z, merged 2026-09-18T08:10:00Z] SLA settings page\n\nFixes BD-104. Admins can set SLA hours for Urgent / High / Medium / Low.\n[2026-09-28T06:20:00Z slack#engineering] dev: Merged the dependency bumps for BD-111, watch for deprecation warnings.\n[2026-10-06T08:49:00Z slack#engineering] dev: Merged the dependency bumps for BD-111, watch for deprecation warnings.\n[2026-09-17T07:37:00Z slack#engineering] dev: Merged the dependency bumps for BD-111, watch for deprecation warnings.\n[2026-10-01T07:05:00Z discord#engineering] dev: I built it to BD-103, which says email at breach. Was there a change?\n[2026-09-30T11:15:00Z discord#engineering] arjun: Merged the dependency bumps for BD-111, watch for deprecation warnings.\n[ticket BD-109, state Backlog, assignee None, sprint s2] SLA metrics on dashboard: Show the count of SLA breaches per week on the reporting dashboard. (history: 2026-09-29T05:00:00Z: Show the count of SLA breaches per week on the reporting dashboard.)\n[2026-10-09T06:18:00Z discord#engineering] dev: Merged the dependency bumps for BD-111, watch for deprecation warnings.\n[2026-10-02T03:31:00Z discord#engineering] sofia: Merged the dependency bumps for BD-111, watch for deprecation warnings.\n[2026-09-28T05:20:00Z discord#design] priya: Sprint 2: dark mode is go. Spec is in BD-105: follow the OS theme by default, with a Light / Dark / System toggle. BD-106 is the theme token refactor that has to land first.\n[ticket BD-104, state Done, assignee kenji, sprint s1] SLA settings page: Admins can configure SLA response time in hours for each priority level (Urgent, High, Medium, Low). (history: 2026-09-14T06:25:00Z: Admins can configure SLA response time in hours for each priority level (Urgent, High, Medium, Low).)\n[ticket BD-111, state Done, assignee sofia, sprint s1] Upgrade backend dependencies: Bump FastAPI, SQLAlchemy and pydantic to current versions; fix deprecation warnings. (history: 2026-09-14T04:00:00Z: Bump FastAPI, SQLAlchemy and pydantic to current versions; fix deprecation warnings.)\n[2026-09-23T09:15:00Z discord#engineering] dev: SLA notifier PR is up, using the existing mailer so it was quick.\n[2026-09-18T08:00:00Z discord#engineering] kenji: SLA settings page (BD-104) is done: per-priority hours, validation, saves to the org settings.\n[PR #4 by dev, created 2026-09-22T05:30:00Z, merged 2026-09-22T07:00:00Z] Freeze time in SLA job test\n\nFixes BD-115. The test depended on wall-clock time.\n[ticket BD-115, state Done, assignee dev, sprint s1] Flaky notification test: test_sla_job fails ~1 in 10 runs because it depends on wall-clock time. Freeze time in the test. (history: 2026-09-21T05:00:00Z: test_sla_job fails ~1 in 10 runs because it depends on wall-clock time. Freeze time in the test.)\n[2026-10-06T03:59:00Z slack#engineering] dev: on it\n[2026-10-05T05:38:00Z slack#engineering] sofia: +1\n[2026-09-15T07:28:00Z slack#engineering] zara: nice 🎉",
+    "score": 1.0,
+    "hits": [
+     true,
+     true
+    ],
+    "forbidden": [],
+    "passed": true,
+    "chars": 4324,
+    "seconds": 0.0,
+    "tools": null
+   },
+   {
+    "id": "q05",
+    "q": "What does BD-103 say and is it still accurate?",
+    "answer": "[2026-10-02T06:00:00Z discord#design] priya: Decision after the design review: the theme toggle lives in Settings > Appearance, not in the navbar. I've updated BD-105 to say so.\n[2026-10-01T07:05:00Z discord#engineering] dev: I built it to BD-103, which says email at breach. Was there a change?\n[2026-09-14T06:41:00Z discord#engineering] dev: I'll take BD-103. Probably a periodic job that checks open tickets against their deadlines.\n[2026-09-14T06:30:00Z discord#engineering] maya: Second big item for Sprint 1 is SLA alerts, BD-103: when a ticket breaches its SLA we email the assignee. BD-104 covers the settings page where admins set SLA hours per priority.\n[PR #5 by dev, created 2026-09-23T09:10:00Z, merged 2026-09-24T11:00:00Z] SLA breach email notifications\n\nCloses BD-103. A periodic job finds tickets past their SLA deadline and emails the assignee using the existing mailer.\n[2026-09-28T05:34:00Z discord#design] kenji: I'll do BD-106 first, then BD-105.\n[ticket BD-103, state Done, assignee dev, sprint s1] SLA breach notifications: When a ticket breaches its SLA, send an email notification to the ticket's assignee. (history: 2026-09-14T06:20:00Z: When a ticket breaches its SLA, send an email notification to the ticket's assignee.)\n[2026-10-08T11:09:00Z discord#engineering] zara: BD-112 is reproducible: two tickets with the same created_at.\n[2026-09-14T07:10:00Z slack#engineering] dev: BD-112 is reproducible: two tickets with the same created_at.\n[2026-10-08T11:14:00Z discord#engineering] sofia: BD-112 is reproducible: two tickets with the same created_at.\n[2026-10-07T06:56:00Z slack#engineering] dev: BD-112 is reproducible: two tickets with the same created_at.\n[2026-09-28T05:20:00Z discord#design] priya: Sprint 2: dark mode is go. Spec is in BD-105: follow the OS theme by default, with a Light / Dark / System toggle. BD-106 is the theme token refactor that has to land first.\n[2026-09-18T06:50:00Z discord#engineering] arjun: Standup: yesterday reviews, today dependency bumps (BD-111), no blockers.\n[2026-10-01T09:10:00Z discord#design] kenji: Typo on onboarding (BD-110) is fixed in the copy doc.\n[2026-09-30T11:15:00Z discord#engineering] arjun: Merged the dependency bumps for BD-111, watch for deprecation warnings.\n[PR #6 by sofia, created 2026-09-24T10:00:00Z, merged 2026-09-25T05:44:00Z] BD-101: CSV export endpoint\n\nFixes BD-101. GET /api/tickets/export streams tickets created in the last 30 days as CSV with columns id, subject, status, created_at, assignee.\n[2026-09-14T05:22:00Z slack#product] maya: Yes, that's what's in the ticket. Kenji, can you do the button in the list view (BD-102)?\n[2026-10-05T08:07:00Z discord#design] priya: Typo on onboarding (BD-110) is fixed in the copy doc.\n[2026-09-28T06:20:00Z slack#engineering] dev: Merged the dependency bumps for BD-111, watch for deprecation warnings.\n[2026-10-09T06:18:00Z discord#engineering] dev: Merged the dependency bumps for BD-111, watch for deprecation warnings.\n[2026-10-08T10:23:00Z discord#design] kenji: Typo on onboarding (BD-110) is fixed in the copy doc.\n[2026-10-02T03:31:00Z discord#engineering] sofia: Merged the dependency bumps for BD-111, watch for deprecation warnings.\n[ticket BD-102, state Done, assignee kenji, sprint s2] Export button in ticket list view: Add an 'Export' button to the ticket list toolbar that downloads the CSV from the export endpoint (see BD-101). Admin only. (history: 2026-09-14T05:00:00Z: Add an 'Export' button to the ticket list toolbar that downloads the CSV from the export endpoint (see BD-101). Admin only.)\n[2026-10-02T12:05:00Z discord#design] priya: Avatar upload mocks for BD-113 are in Figma.\n[2026-09-24T05:08:00Z slack#engineering] kenji: Finished dependency bumps (BD-111), picking up the next thing from the board.",
+    "score": 0.667,
+    "hits": [
+     true,
+     false,
+     true
+    ],
+    "forbidden": [],
+    "passed": false,
+    "chars": 3781,
+    "seconds": 0.0,
+    "tools": null
+   },
+   {
+    "id": "q06",
+    "q": "Which pull request implemented the SLA notifications, and did it follow the latest decision?",
+    "answer": "[ticket BD-103, state Done, assignee dev, sprint s1] SLA breach notifications: When a ticket breaches its SLA, send an email notification to the ticket's assignee. (history: 2026-09-14T06:20:00Z: When a ticket breaches its SLA, send an email notification to the ticket's assignee.)\n[PR #1 by arjun, created 2026-09-14T04:20:00Z, merged 2026-09-14T05:00:00Z] Set up CI with GitHub Actions\n\nRuns lint and unit tests on every push and pull request.\n[PR #5 by dev, created 2026-09-23T09:10:00Z, merged 2026-09-24T11:00:00Z] SLA breach email notifications\n\nCloses BD-103. A periodic job finds tickets past their SLA deadline and emails the assignee using the existing mailer.\n[2026-09-14T06:30:00Z discord#engineering] maya: Second big item for Sprint 1 is SLA alerts, BD-103: when a ticket breaches its SLA we email the assignee. BD-104 covers the settings page where admins set SLA hours per priority.\n[2026-10-01T06:50:00Z discord#engineering] zara: Testing SLA alerts: the notification fires at breach and it's an email. Wasn't it supposed to warn before breach?\n[PR #3 by kenji, created 2026-09-18T06:30:00Z, merged 2026-09-18T08:10:00Z] SLA settings page\n\nFixes BD-104. Admins can set SLA hours for Urgent / High / Medium / Low.\n[2026-10-02T06:00:00Z discord#design] priya: Decision after the design review: the theme toggle lives in Settings > Appearance, not in the navbar. I've updated BD-105 to say so.\n[ticket BD-109, state Backlog, assignee None, sprint s2] SLA metrics on dashboard: Show the count of SLA breaches per week on the reporting dashboard. (history: 2026-09-29T05:00:00Z: Show the count of SLA breaches per week on the reporting dashboard.)\n[ticket BD-105, state Done, assignee kenji, sprint s2] Dark mode: Support dark mode. Default follows the OS theme. Users can pick Light / Dark / System with a toggle located in Settings > Appearance (not the navbar). (history: 2026-09-28T05:00:00Z: Support dark mode. Default follows the OS theme. Users can pick Light / Dark / System with a toggle. | 2026-10-02T06:05:00Z: Support dark mode. Default follows the OS theme. Users can pick Light / Dark / System with a toggle located in Settings > Appearance (not the navbar).)\n[ticket BD-104, state Done, assignee kenji, sprint s1] SLA settings page: Admins can configure SLA response time in hours for each priority level (Urgent, High, Medium, Low). (history: 2026-09-14T06:25:00Z: Admins can configure SLA response time in hours for each priority level (Urgent, High, Medium, Low).)\n[2026-09-17T05:12:00Z discord#engineering] zara: Also email notifications get filtered into folders nobody reads, from what I've seen in testing.\n[ticket BD-115, state Done, assignee dev, sprint s1] Flaky notification test: test_sla_job fails ~1 in 10 runs because it depends on wall-clock time. Freeze time in the test. (history: 2026-09-21T05:00:00Z: test_sla_job fails ~1 in 10 runs because it depends on wall-clock time. Freeze time in the test.)\n[2026-09-22T09:40:00Z slack#support-escalations] maya: Decision: the export must support any custom date range up to 12 months (not a fixed 30 days), and it must include all custom fields as extra columns. Arjun, can you make sure the team knows?\n[2026-09-23T09:15:00Z discord#engineering] dev: SLA notifier PR is up, using the existing mailer so it was quick.\n[2026-09-28T05:20:00Z discord#design] priya: Sprint 2: dark mode is go. Spec is in BD-105: follow the OS theme by default, with a Light / Dark / System toggle. BD-106 is the theme token refactor that has to land first.\n[2026-09-17T05:31:00Z discord#engineering] maya: Agreed. Let's change it: send the warning 15 minutes BEFORE the breach, and post it to the team's Slack channel instead of email. We drop email notifications for this entirely.\n[PR #12 by kenji, created 2026-10-07T09:30:00Z, merged 2026-10-08T05:20:00Z] Dark mode with Light / Dark / System toggle\n\nCloses BD-105. Adds a dark theme on top of the tokens. Default is System (follows OS). Toggle lives in Settings > Appearance.\n[2026-09-18T08:00:00Z discord#engineering] kenji: SLA settings page (BD-104) is done: per-priority hours, validation, saves to the org settings.\n[PR #4 by dev, created 2026-09-22T05:30:00Z, merged 2026-09-22T07:00:00Z] Freeze time in SLA job test\n\nFixes BD-115. The test depended on wall-clock time.\n[2026-09-14T03:36:00Z slack#engineering] zara: happy friday!\n[2026-09-14T03:43:00Z slack#product] arjun: nice 🎉\n[2026-09-14T05:10:00Z slack#product] maya: Kicking off Sprint 1. Top item for me is ticket export (BD-101): admins should be able to download the last 30 days of tickets as CSV. Customers keep asking for it.\n[2026-09-14T05:18:00Z slack#product] sofia: I can take the backend for BD-101. Columns id, subject, status, created_at to start?\n[2026-09-14T05:22:00Z slack#product] maya: Yes, that's what's in the ticket. Kenji, can you do the button in the list view (BD-102)?\n[2026-09-14T05:30:00Z slack#product] kenji: Sure, I'll pick up the export button once Sofia's endpoint shape is settled.",
+    "score": 1.0,
+    "hits": [
+     true,
+     true,
+     true
+    ],
+    "forbidden": [],
+    "passed": true,
+    "chars": 5002,
+    "seconds": 0.0,
+    "tools": null
+   },
+   {
+    "id": "q07",
+    "q": "Was the dark mode toggle placement change written back into the ticket?",
+    "answer": "[ticket BD-105, state Done, assignee kenji, sprint s2] Dark mode: Support dark mode. Default follows the OS theme. Users can pick Light / Dark / System with a toggle located in Settings > Appearance (not the navbar). (history: 2026-09-28T05:00:00Z: Support dark mode. Default follows the OS theme. Users can pick Light / Dark / System with a toggle. | 2026-10-02T06:05:00Z: Support dark mode. Default follows the OS theme. Users can pick Light / Dark / System with a toggle located in Settings > Appearance (not the navbar).)\n[PR #12 by kenji, created 2026-10-07T09:30:00Z, merged 2026-10-08T05:20:00Z] Dark mode with Light / Dark / System toggle\n\nCloses BD-105. Adds a dark theme on top of the tokens. Default is System (follows OS). Toggle lives in Settings > Appearance.\n[2026-10-07T09:30:00Z slack#engineering] kenji: Dark mode PR is up: Light/Dark/System, System default, toggle under Settings > Appearance.\n[2026-09-28T05:20:00Z discord#design] priya: Sprint 2: dark mode is go. Spec is in BD-105: follow the OS theme by default, with a Light / Dark / System toggle. BD-106 is the theme token refactor that has to land first.\n[2026-10-08T05:15:00Z discord#design] priya: Checked the dark mode build, matches the ticket. Shipping it 🎉\n[2026-10-01T07:09:00Z discord#engineering] zara: No idea, I'll ask Maya when she's back.\n[2026-09-17T05:36:00Z discord#engineering] arjun: ok, agreed. Dev, that changes your job a bit.\n[2026-09-22T07:20:00Z slack#support-escalations] arjun: How far back do they need? Unbounded ranges would be expensive.\n[2026-09-15T08:59:00Z slack#engineering] kenji: Rolling back the last deploy, seeing 500s on /login.\n[2026-10-05T09:11:00Z discord#engineering] dev: Rolling back the last deploy, seeing 500s on /login.\n[2026-10-01T07:05:00Z discord#engineering] dev: I built it to BD-103, which says email at breach. Was there a change?\n[2026-09-21T05:16:00Z slack#product] maya: Onboarding completion went from 61% to 68% after the copy change.\n[2026-09-17T10:44:00Z slack#product] maya: Onboarding completion went from 61% to 68% after the copy change.\n[ticket BD-103, state Done, assignee dev, sprint s1] SLA breach notifications: When a ticket breaches its SLA, send an email notification to the ticket's assignee. (history: 2026-09-14T06:20:00Z: When a ticket breaches its SLA, send an email notification to the ticket's assignee.)\n[2026-09-29T07:00:00Z discord#design] kenji: Do we really need the System option? Light/Dark would be simpler.\n[ticket BD-112, state Done, assignee sofia, sprint s2] Search pagination returns duplicates: Page 2 of ticket search repeats results from page 1 when tickets share a created_at timestamp. (history: 2026-09-29T06:00:00Z: Page 2 of ticket search repeats results from page 1 when tickets share a created_at timestamp.)\n[2026-10-02T06:00:00Z discord#design] priya: Decision after the design review: the theme toggle lives in Settings > Appearance, not in the navbar. I've updated BD-105 to say so.\n[2026-09-17T05:31:00Z discord#engineering] maya: Agreed. Let's change it: send the warning 15 minutes BEFORE the breach, and post it to the team's Slack channel instead of email. We drop email notifications for this entirely.\n[ticket BD-114, state Done, assignee dev, sprint s2] API README: Document authentication and the tickets endpoints in the repo README. (history: 2026-10-01T04:00:00Z: Document authentication and the tickets endpoints in the repo README.)\n[2026-09-14T05:10:00Z slack#product] maya: Kicking off Sprint 1. Top item for me is ticket export (BD-101): admins should be able to download the last 30 days of tickets as CSV. Customers keep asking for it.\n[ticket BD-102, state Done, assignee kenji, sprint s2] Export button in ticket list view: Add an 'Export' button to the ticket list toolbar that downloads the CSV from the export endpoint (see BD-101). Admin only. (history: 2026-09-14T05:00:00Z: Add an 'Export' button to the ticket list toolbar that downloads the CSV from the export endpoint (see BD-101). Admin only.)\n[ticket BD-101, state Done, assignee sofia, sprint s1] Ticket export to CSV: Admins can export tickets created in the last 30 days as a CSV file. Columns: id, subject, status, created_at, assignee. (history: 2026-09-14T04:50:00Z: Admins can export tickets created in the last 30 days as a CSV file. Columns: id, subject, status, created_at. | 2026-09-15T10:30:00Z: Admins can export tickets created in the last 30 days as a CSV file. Columns: id, subject, status, created_at, assignee.)\n[2026-10-08T11:09:00Z discord#engineering] zara: BD-112 is reproducible: two tickets with the same created_at.\n[2026-09-14T07:10:00Z slack#engineering] dev: BD-112 is reproducible: two tickets with the same created_at.\n[PR #7 by kenji, created 2026-09-30T08:25:00Z, merged 2026-10-01T09:00:00Z] Add export button to ticket list\n\nAdds a toolbar button that downloads the CSV from /api/tickets/export. Only visible to admins.",
+    "score": 1.0,
+    "hits": [
+     true,
+     true
+    ],
+    "forbidden": [],
+    "passed": true,
+    "chars": 4923,
+    "seconds": 0.0,
+    "tools": null
+   },
+   {
+    "id": "q08",
+    "q": "Is there any drift on the dark mode feature?",
+    "answer": "[ticket BD-105, state Done, assignee kenji, sprint s2] Dark mode: Support dark mode. Default follows the OS theme. Users can pick Light / Dark / System with a toggle located in Settings > Appearance (not the navbar). (history: 2026-09-28T05:00:00Z: Support dark mode. Default follows the OS theme. Users can pick Light / Dark / System with a toggle. | 2026-10-02T06:05:00Z: Support dark mode. Default follows the OS theme. Users can pick Light / Dark / System with a toggle located in Settings > Appearance (not the navbar).)\n[2026-10-07T09:30:00Z slack#engineering] kenji: Dark mode PR is up: Light/Dark/System, System default, toggle under Settings > Appearance.\n[PR #12 by kenji, created 2026-10-07T09:30:00Z, merged 2026-10-08T05:20:00Z] Dark mode with Light / Dark / System toggle\n\nCloses BD-105. Adds a dark theme on top of the tokens. Default is System (follows OS). Toggle lives in Settings > Appearance.\n[2026-10-08T05:15:00Z discord#design] priya: Checked the dark mode build, matches the ticket. Shipping it 🎉\n[2026-09-28T05:20:00Z discord#design] priya: Sprint 2: dark mode is go. Spec is in BD-105: follow the OS theme by default, with a Light / Dark / System toggle. BD-106 is the theme token refactor that has to land first.\n[2026-09-29T07:00:00Z discord#design] kenji: Do we really need the System option? Light/Dark would be simpler.\n[2026-09-14T03:36:00Z slack#engineering] zara: happy friday!\n[2026-09-14T03:43:00Z slack#product] arjun: nice 🎉\n[2026-09-14T05:10:00Z slack#product] maya: Kicking off Sprint 1. Top item for me is ticket export (BD-101): admins should be able to download the last 30 days of tickets as CSV. Customers keep asking for it.\n[2026-09-14T05:18:00Z slack#product] sofia: I can take the backend for BD-101. Columns id, subject, status, created_at to start?\n[2026-09-14T05:22:00Z slack#product] maya: Yes, that's what's in the ticket. Kenji, can you do the button in the list view (BD-102)?\n[2026-09-14T05:30:00Z slack#product] kenji: Sure, I'll pick up the export button once Sofia's endpoint shape is settled.\n[2026-09-14T06:10:00Z slack#product] maya: Standup: yesterday reviews, today release notes, no blockers.\n[2026-09-14T06:30:00Z discord#engineering] maya: Second big item for Sprint 1 is SLA alerts, BD-103: when a ticket breaches its SLA we email the assignee. BD-104 covers the settings page where admins set SLA hours per priority.\n[2026-09-14T06:41:00Z discord#engineering] dev: I'll take BD-103. Probably a periodic job that checks open tickets against their deadlines.\n[2026-09-14T07:10:00Z slack#engineering] dev: BD-112 is reproducible: two tickets with the same created_at.\n[2026-09-14T07:56:00Z discord#engineering] sofia: Fixed, it was a missing env var.\n[2026-09-14T08:08:00Z discord#engineering] sofia: nice 🎉\n[2026-09-14T09:11:00Z slack#support-escalations] arjun: brb, meeting\n[2026-09-14T09:33:00Z discord#engineering] arjun: Rate limit for logins (BD-107): 10 attempts / 5 min, then 15 min lock. Sound right?\n[2026-09-14T09:47:00Z slack#support-escalations] maya: Yesterday: an Umbrella Inc. attachment upload failure. Today: same, plus code review. Blockers: none.\n[2026-09-14T11:12:00Z discord#engineering] zara: brb, meeting\n[2026-09-14T11:20:00Z slack#engineering] zara: Working on reviewing PRs today. Might need a second pair of eyes this afternoon.\n[2026-09-14T11:36:00Z discord#random] liam: Recommendation: 'Shape Up' is a good read.\n[2026-09-14T12:19:00Z discord#design] kenji: that demo went well 🙌",
+    "score": 1.0,
+    "hits": [
+     true
+    ],
+    "forbidden": [],
+    "passed": true,
+    "chars": 3478,
+    "seconds": 0.0,
+    "tools": null
+   },
+   {
+    "id": "q09",
+    "q": "Which PR added the export button, and which ticket does it belong to?",
+    "answer": "[PR #7 by kenji, created 2026-09-30T08:25:00Z, merged 2026-10-01T09:00:00Z] Add export button to ticket list\n\nAdds a toolbar button that downloads the CSV from /api/tickets/export. Only visible to admins.\n[ticket BD-102, state Done, assignee kenji, sprint s2] Export button in ticket list view: Add an 'Export' button to the ticket list toolbar that downloads the CSV from the export endpoint (see BD-101). Admin only. (history: 2026-09-14T05:00:00Z: Add an 'Export' button to the ticket list toolbar that downloads the CSV from the export endpoint (see BD-101). Admin only.)\n[2026-09-30T08:20:00Z slack#engineering] kenji: Export button is wired into the ticket list now, calls Sofia's endpoint. Opening a PR.\n[2026-09-14T05:22:00Z slack#product] maya: Yes, that's what's in the ticket. Kenji, can you do the button in the list view (BD-102)?\n[PR #6 by sofia, created 2026-09-24T10:00:00Z, merged 2026-09-25T05:44:00Z] BD-101: CSV export endpoint\n\nFixes BD-101. GET /api/tickets/export streams tickets created in the last 30 days as CSV with columns id, subject, status, created_at, assignee.\n[2026-09-14T05:30:00Z slack#product] kenji: Sure, I'll pick up the export button once Sofia's endpoint shape is settled.\n[ticket BD-101, state Done, assignee sofia, sprint s1] Ticket export to CSV: Admins can export tickets created in the last 30 days as a CSV file. Columns: id, subject, status, created_at, assignee. (history: 2026-09-14T04:50:00Z: Admins can export tickets created in the last 30 days as a CSV file. Columns: id, subject, status, created_at. | 2026-09-15T10:30:00Z: Admins can export tickets created in the last 30 days as a CSV file. Columns: id, subject, status, created_at, assignee.)\n[ticket BD-108, state Backlog, assignee sofia, sprint s2] Export performance for large accounts: Profile the export endpoint for accounts with >100k tickets; consider background job + emailed link. (history: 2026-09-26T04:00:00Z: Profile the export endpoint for accounts with >100k tickets; consider background job + emailed link.)\n[2026-09-14T05:10:00Z slack#product] maya: Kicking off Sprint 1. Top item for me is ticket export (BD-101): admins should be able to download the last 30 days of tickets as CSV. Customers keep asking for it.\n[2026-09-24T10:05:00Z slack#engineering] sofia: PR for the export endpoint is up: last 30 days, CSV, id/subject/status/created_at/assignee. Reviews welcome.\n[ticket BD-103, state Done, assignee dev, sprint s1] SLA breach notifications: When a ticket breaches its SLA, send an email notification to the ticket's assignee. (history: 2026-09-14T06:20:00Z: When a ticket breaches its SLA, send an email notification to the ticket's assignee.)\n[ticket BD-112, state Done, assignee sofia, sprint s2] Search pagination returns duplicates: Page 2 of ticket search repeats results from page 1 when tickets share a created_at timestamp. (history: 2026-09-29T06:00:00Z: Page 2 of ticket search repeats results from page 1 when tickets share a created_at timestamp.)\n[2026-09-15T08:02:00Z slack#support-escalations] liam: Acme Corp asked whether the export will include who each ticket is assigned to. Without that they can't do per-agent reporting.\n[PR #11 by dev, created 2026-10-06T04:30:00Z, merged 2026-10-06T06:00:00Z] docs: API README\n\nFixes BD-114. Documents auth and the tickets endpoints.\n[2026-09-21T08:07:00Z discord#engineering] arjun: Can someone review my PR? Small one.\n[2026-09-16T04:07:00Z slack#engineering] sofia: Can someone review my PR? Small one.\n[2026-09-18T11:43:00Z discord#engineering] zara: Can someone review my PR? Small one.\n[ticket BD-114, state Done, assignee dev, sprint s2] API README: Document authentication and the tickets endpoints in the repo README. (history: 2026-10-01T04:00:00Z: Document authentication and the tickets endpoints in the repo README.)\n[PR #5 by dev, created 2026-09-23T09:10:00Z, merged 2026-09-24T11:00:00Z] SLA breach email notifications\n\nCloses BD-103. A periodic job finds tickets past their SLA deadline and emails the assignee using the existing mailer.\n[2026-10-08T11:09:00Z discord#engineering] zara: BD-112 is reproducible: two tickets with the same created_at.\n[2026-09-15T08:40:00Z slack#support-escalations] maya: Good call. Let's add an assignee column to the export. I'm updating BD-101 now.\n[2026-09-14T07:10:00Z slack#engineering] dev: BD-112 is reproducible: two tickets with the same created_at.\n[2026-09-23T09:15:00Z discord#engineering] dev: SLA notifier PR is up, using the existing mailer so it was quick.\n[2026-10-08T11:14:00Z discord#engineering] sofia: BD-112 is reproducible: two tickets with the same created_at.\n[2026-10-07T06:56:00Z slack#engineering] dev: BD-112 is reproducible: two tickets with the same created_at.",
+    "score": 1.0,
+    "hits": [
+     true,
+     true
+    ],
+    "forbidden": [],
+    "passed": true,
+    "chars": 4737,
+    "seconds": 0.0,
+    "tools": null
+   },
+   {
+    "id": "q10",
+    "q": "Who knows the most about the ticket export feature?",
+    "answer": "[ticket BD-102, state Done, assignee kenji, sprint s2] Export button in ticket list view: Add an 'Export' button to the ticket list toolbar that downloads the CSV from the export endpoint (see BD-101). Admin only. (history: 2026-09-14T05:00:00Z: Add an 'Export' button to the ticket list toolbar that downloads the CSV from the export endpoint (see BD-101). Admin only.)\n[PR #7 by kenji, created 2026-09-30T08:25:00Z, merged 2026-10-01T09:00:00Z] Add export button to ticket list\n\nAdds a toolbar button that downloads the CSV from /api/tickets/export. Only visible to admins.\n[ticket BD-101, state Done, assignee sofia, sprint s1] Ticket export to CSV: Admins can export tickets created in the last 30 days as a CSV file. Columns: id, subject, status, created_at, assignee. (history: 2026-09-14T04:50:00Z: Admins can export tickets created in the last 30 days as a CSV file. Columns: id, subject, status, created_at. | 2026-09-15T10:30:00Z: Admins can export tickets created in the last 30 days as a CSV file. Columns: id, subject, status, created_at, assignee.)\n[ticket BD-108, state Backlog, assignee sofia, sprint s2] Export performance for large accounts: Profile the export endpoint for accounts with >100k tickets; consider background job + emailed link. (history: 2026-09-26T04:00:00Z: Profile the export endpoint for accounts with >100k tickets; consider background job + emailed link.)\n[2026-09-22T09:40:00Z slack#support-escalations] maya: Decision: the export must support any custom date range up to 12 months (not a fixed 30 days), and it must include all custom fields as extra columns. Arjun, can you make sure the team knows?\n[PR #6 by sofia, created 2026-09-24T10:00:00Z, merged 2026-09-25T05:44:00Z] BD-101: CSV export endpoint\n\nFixes BD-101. GET /api/tickets/export streams tickets created in the last 30 days as CSV with columns id, subject, status, created_at, assignee.\n[2026-09-29T07:12:00Z discord#design] priya: No, keep System and make it the default, exactly as BD-105 says. Most people never touch the setting.\n[2026-09-14T05:10:00Z slack#product] maya: Kicking off Sprint 1. Top item for me is ticket export (BD-101): admins should be able to download the last 30 days of tickets as CSV. Customers keep asking for it.\n[2026-09-30T08:20:00Z slack#engineering] kenji: Export button is wired into the ticket list now, calls Sofia's endpoint. Opening a PR.\n[ticket BD-103, state Done, assignee dev, sprint s1] SLA breach notifications: When a ticket breaches its SLA, send an email notification to the ticket's assignee. (history: 2026-09-14T06:20:00Z: When a ticket breaches its SLA, send an email notification to the ticket's assignee.)\n[ticket BD-112, state Done, assignee sofia, sprint s2] Search pagination returns duplicates: Page 2 of ticket search repeats results from page 1 when tickets share a created_at timestamp. (history: 2026-09-29T06:00:00Z: Page 2 of ticket search repeats results from page 1 when tickets share a created_at timestamp.)\n[2026-09-15T08:02:00Z slack#support-escalations] liam: Acme Corp asked whether the export will include who each ticket is assigned to. Without that they can't do per-agent reporting.\n[ticket BD-114, state Done, assignee dev, sprint s2] API README: Document authentication and the tickets endpoints in the repo README. (history: 2026-10-01T04:00:00Z: Document authentication and the tickets endpoints in the repo README.)\n[2026-10-08T11:09:00Z discord#engineering] zara: BD-112 is reproducible: two tickets with the same created_at.\n[2026-09-15T08:40:00Z slack#support-escalations] maya: Good call. Let's add an assignee column to the export. I'm updating BD-101 now.\n[2026-09-14T07:10:00Z slack#engineering] dev: BD-112 is reproducible: two tickets with the same created_at.\n[2026-09-14T05:30:00Z slack#product] kenji: Sure, I'll pick up the export button once Sofia's endpoint shape is settled.\n[2026-10-08T11:14:00Z discord#engineering] sofia: BD-112 is reproducible: two tickets with the same created_at.\n[2026-09-24T10:05:00Z slack#engineering] sofia: PR for the export endpoint is up: last 30 days, CSV, id/subject/status/created_at/assignee. Reviews welcome.\n[2026-10-07T06:56:00Z slack#engineering] dev: BD-112 is reproducible: two tickets with the same created_at.\n[2026-09-16T06:12:00Z slack#engineering] sofia: Export endpoint skeleton is up locally. Streaming the CSV so big accounts don't time out.\n[2026-10-06T07:10:00Z slack#support-escalations] liam: Acme tried the new export and it only gives them 30 days, and no custom fields. I thought we agreed on 12 months?\n[2026-09-23T06:15:00Z slack#product] kenji: While we're on export, should we also offer XLSX? Some users open CSVs in Excel and complain about encoding.\n[2026-09-14T05:22:00Z slack#product] maya: Yes, that's what's in the ticket. Kenji, can you do the button in the list view (BD-102)?\n[2026-10-08T05:15:00Z discord#design] priya: Checked the dark mode build, matches the ticket. Shipping it 🎉",
+    "score": 1.0,
+    "hits": [
+     true
+    ],
+    "forbidden": [],
+    "passed": true,
+    "chars": 4953,
+    "seconds": 0.0,
+    "tools": null
+   },
+   {
+    "id": "q11",
+    "q": "Was XLSX export agreed as a requirement?",
+    "answer": "[2026-09-23T06:15:00Z slack#product] kenji: While we're on export, should we also offer XLSX? Some users open CSVs in Excel and complain about encoding.\n[2026-10-06T07:10:00Z slack#support-escalations] liam: Acme tried the new export and it only gives them 30 days, and no custom fields. I thought we agreed on 12 months?\n[2026-09-17T05:36:00Z discord#engineering] arjun: ok, agreed. Dev, that changes your job a bit.\n[ticket BD-102, state Done, assignee kenji, sprint s2] Export button in ticket list view: Add an 'Export' button to the ticket list toolbar that downloads the CSV from the export endpoint (see BD-101). Admin only. (history: 2026-09-14T05:00:00Z: Add an 'Export' button to the ticket list toolbar that downloads the CSV from the export endpoint (see BD-101). Admin only.)\n[2026-09-23T06:31:00Z slack#product] maya: Not this quarter. CSV with UTF-8 BOM should fix the Excel encoding issue. Let's park XLSX.\n[PR #7 by kenji, created 2026-09-30T08:25:00Z, merged 2026-10-01T09:00:00Z] Add export button to ticket list\n\nAdds a toolbar button that downloads the CSV from /api/tickets/export. Only visible to admins.\n[2026-09-17T05:31:00Z discord#engineering] maya: Agreed. Let's change it: send the warning 15 minutes BEFORE the breach, and post it to the team's Slack channel instead of email. We drop email notifications for this entirely.\n[ticket BD-108, state Backlog, assignee sofia, sprint s2] Export performance for large accounts: Profile the export endpoint for accounts with >100k tickets; consider background job + emailed link. (history: 2026-09-26T04:00:00Z: Profile the export endpoint for accounts with >100k tickets; consider background job + emailed link.)\n[PR #6 by sofia, created 2026-09-24T10:00:00Z, merged 2026-09-25T05:44:00Z] BD-101: CSV export endpoint\n\nFixes BD-101. GET /api/tickets/export streams tickets created in the last 30 days as CSV with columns id, subject, status, created_at, assignee.\n[ticket BD-101, state Done, assignee sofia, sprint s1] Ticket export to CSV: Admins can export tickets created in the last 30 days as a CSV file. Columns: id, subject, status, created_at, assignee. (history: 2026-09-14T04:50:00Z: Admins can export tickets created in the last 30 days as a CSV file. Columns: id, subject, status, created_at. | 2026-09-15T10:30:00Z: Admins can export tickets created in the last 30 days as a CSV file. Columns: id, subject, status, created_at, assignee.)\n[2026-09-15T08:40:00Z slack#support-escalations] maya: Good call. Let's add an assignee column to the export. I'm updating BD-101 now.\n[2026-09-14T05:30:00Z slack#product] kenji: Sure, I'll pick up the export button once Sofia's endpoint shape is settled.\n[2026-09-30T08:20:00Z slack#engineering] kenji: Export button is wired into the ticket list now, calls Sofia's endpoint. Opening a PR.\n[2026-09-24T10:05:00Z slack#engineering] sofia: PR for the export endpoint is up: last 30 days, CSV, id/subject/status/created_at/assignee. Reviews welcome.\n[2026-09-16T06:12:00Z slack#engineering] sofia: Export endpoint skeleton is up locally. Streaming the CSV so big accounts don't time out.\n[2026-09-15T08:02:00Z slack#support-escalations] liam: Acme Corp asked whether the export will include who each ticket is assigned to. Without that they can't do per-agent reporting.\n[2026-09-14T05:10:00Z slack#product] maya: Kicking off Sprint 1. Top item for me is ticket export (BD-101): admins should be able to download the last 30 days of tickets as CSV. Customers keep asking for it.\n[2026-09-22T07:05:00Z slack#support-escalations] liam: Just came off calls with Acme and Globex about the export. Both said 30 days is useless for quarterly business reviews, and they need their custom fields in the file too, not just the standard columns.\n[2026-09-22T09:40:00Z slack#support-escalations] maya: Decision: the export must support any custom date range up to 12 months (not a fixed 30 days), and it must include all custom fields as extra columns. Arjun, can you make sure the team knows?\n[2026-09-14T03:36:00Z slack#engineering] zara: happy friday!\n[2026-09-14T03:43:00Z slack#product] arjun: nice 🎉\n[2026-09-14T05:18:00Z slack#product] sofia: I can take the backend for BD-101. Columns id, subject, status, created_at to start?\n[2026-09-14T05:22:00Z slack#product] maya: Yes, that's what's in the ticket. Kenji, can you do the button in the list view (BD-102)?\n[2026-09-14T06:10:00Z slack#product] maya: Standup: yesterday reviews, today release notes, no blockers.\n[2026-09-14T06:30:00Z discord#engineering] maya: Second big item for Sprint 1 is SLA alerts, BD-103: when a ticket breaches its SLA we email the assignee. BD-104 covers the settings page where admins set SLA hours per priority.",
+    "score": 1.0,
+    "hits": [
+     true
+    ],
+    "forbidden": [],
+    "passed": true,
+    "chars": 4710,
+    "seconds": 0.0,
+    "tools": null
+   },
+   {
+    "id": "q12",
+    "q": "What changed in the export requirements on 15 September, and was it shipped?",
+    "answer": "[ticket BD-102, state Done, assignee kenji, sprint s2] Export button in ticket list view: Add an 'Export' button to the ticket list toolbar that downloads the CSV from the export endpoint (see BD-101). Admin only. (history: 2026-09-14T05:00:00Z: Add an 'Export' button to the ticket list toolbar that downloads the CSV from the export endpoint (see BD-101). Admin only.)\n[2026-09-23T06:15:00Z slack#product] kenji: While we're on export, should we also offer XLSX? Some users open CSVs in Excel and complain about encoding.\n[2026-09-15T07:15:00Z discord#random] kenji: Offsite poll closes Friday!\n[PR #7 by kenji, created 2026-09-30T08:25:00Z, merged 2026-10-01T09:00:00Z] Add export button to ticket list\n\nAdds a toolbar button that downloads the CSV from /api/tickets/export. Only visible to admins.\n[2026-10-07T06:15:00Z discord#random] zara: Recommendation: 'Shape Up' is a good read.\n[2026-10-08T07:15:00Z discord#random] liam: running 5 min late to standup\n[ticket BD-108, state Backlog, assignee sofia, sprint s2] Export performance for large accounts: Profile the export endpoint for accounts with >100k tickets; consider background job + emailed link. (history: 2026-09-26T04:00:00Z: Profile the export endpoint for accounts with >100k tickets; consider background job + emailed link.)\n[PR #6 by sofia, created 2026-09-24T10:00:00Z, merged 2026-09-25T05:44:00Z] BD-101: CSV export endpoint\n\nFixes BD-101. GET /api/tickets/export streams tickets created in the last 30 days as CSV with columns id, subject, status, created_at, assignee.\n[2026-09-30T11:15:00Z discord#engineering] arjun: Merged the dependency bumps for BD-111, watch for deprecation warnings.\n[ticket BD-101, state Done, assignee sofia, sprint s1] Ticket export to CSV: Admins can export tickets created in the last 30 days as a CSV file. Columns: id, subject, status, created_at, assignee. (history: 2026-09-14T04:50:00Z: Admins can export tickets created in the last 30 days as a CSV file. Columns: id, subject, status, created_at. | 2026-09-15T10:30:00Z: Admins can export tickets created in the last 30 days as a CSV file. Columns: id, subject, status, created_at, assignee.)\n[2026-10-09T09:15:00Z discord#design] kenji: Yesterday: spacing on the settings page. Today: same, plus code review. Blockers: none.\n[2026-09-30T07:15:00Z discord#design] kenji: Yesterday: spacing on the settings page. Today: same, plus code review. Blockers: none.\n[2026-09-23T09:15:00Z discord#engineering] dev: SLA notifier PR is up, using the existing mailer so it was quick.\n[2026-09-15T08:40:00Z slack#support-escalations] maya: Good call. Let's add an assignee column to the export. I'm updating BD-101 now.\n[2026-10-08T05:15:00Z discord#design] priya: Checked the dark mode build, matches the ticket. Shipping it 🎉\n[2026-09-14T05:30:00Z slack#product] kenji: Sure, I'll pick up the export button once Sofia's endpoint shape is settled.\n[2026-09-30T08:20:00Z slack#engineering] kenji: Export button is wired into the ticket list now, calls Sofia's endpoint. Opening a PR.\n[2026-09-24T10:05:00Z slack#engineering] sofia: PR for the export endpoint is up: last 30 days, CSV, id/subject/status/created_at/assignee. Reviews welcome.\n[2026-09-28T07:39:00Z discord#engineering] arjun: Rate limit for logins (BD-107): 10 attempts / 5 min, then 15 min lock. Sound right?\n[2026-09-14T09:33:00Z discord#engineering] arjun: Rate limit for logins (BD-107): 10 attempts / 5 min, then 15 min lock. Sound right?\n[2026-10-06T04:08:00Z slack#engineering] sofia: Rate limit for logins (BD-107): 10 attempts / 5 min, then 15 min lock. Sound right?\n[2026-09-16T06:12:00Z slack#engineering] sofia: Export endpoint skeleton is up locally. Streaming the CSV so big accounts don't time out.\n[2026-09-30T03:45:00Z slack#engineering] dev: Rate limit for logins (BD-107): 10 attempts / 5 min, then 15 min lock. Sound right?\n[2026-10-09T08:55:00Z slack#engineering] zara: Rate limit for logins (BD-107): 10 attempts / 5 min, then 15 min lock. Sound right?\n[2026-10-06T07:10:00Z slack#support-escalations] liam: Acme tried the new export and it only gives them 30 days, and no custom fields. I thought we agreed on 12 months?",
+    "score": 1.0,
+    "hits": [
+     true,
+     true
+    ],
+    "forbidden": [],
+    "passed": true,
+    "chars": 4157,
+    "seconds": 0.0,
+    "tools": null
+   },
+   {
+    "id": "q13",
+    "q": "Who owns BD-101 and which decision makes their shipped work stale?",
+    "answer": "[2026-09-17T05:40:00Z discord#engineering] dev: Makes sense, noted.\n[2026-09-23T09:31:00Z slack#engineering] zara: Finished the login rate limit work (BD-107), picking up the next thing from the board.\n[2026-09-24T11:49:00Z slack#engineering] arjun: Finished the login rate limit work (BD-107), picking up the next thing from the board.\n[2026-10-06T07:57:00Z slack#engineering] kenji: Who owns the cron config these days?\n[2026-10-09T06:13:00Z discord#engineering] zara: Who owns the cron config these days?\n[PR #6 by sofia, created 2026-09-24T10:00:00Z, merged 2026-09-25T05:44:00Z] BD-101: CSV export endpoint\n\nFixes BD-101. GET /api/tickets/export streams tickets created in the last 30 days as CSV with columns id, subject, status, created_at, assignee.\n[2026-09-23T05:57:00Z discord#engineering] sofia: Who owns the cron config these days?\n[2026-10-05T09:29:00Z discord#engineering] arjun: Who owns the cron config these days?\n[2026-10-02T06:09:00Z discord#design] kenji: Works for me, cleaner navbar anyway.\n[2026-09-15T10:31:00Z slack#support-escalations] maya: Done, BD-101 now lists assignee as a required column.\n[2026-10-02T06:00:00Z discord#design] priya: Decision after the design review: the theme toggle lives in Settings > Appearance, not in the navbar. I've updated BD-105 to say so.\n[2026-09-25T05:44:00Z slack#engineering] arjun: LGTM, merging. Nice work on the streaming.\n[2026-09-15T08:40:00Z slack#support-escalations] maya: Good call. Let's add an assignee column to the export. I'm updating BD-101 now.\n[2026-09-14T05:18:00Z slack#product] sofia: I can take the backend for BD-101. Columns id, subject, status, created_at to start?\n[ticket BD-102, state Done, assignee kenji, sprint s2] Export button in ticket list view: Add an 'Export' button to the ticket list toolbar that downloads the CSV from the export endpoint (see BD-101). Admin only. (history: 2026-09-14T05:00:00Z: Add an 'Export' button to the ticket list toolbar that downloads the CSV from the export endpoint (see BD-101). Admin only.)\n[2026-09-14T05:10:00Z slack#product] maya: Kicking off Sprint 1. Top item for me is ticket export (BD-101): admins should be able to download the last 30 days of tickets as CSV. Customers keep asking for it.\n[2026-09-22T09:40:00Z slack#support-escalations] maya: Decision: the export must support any custom date range up to 12 months (not a fixed 30 days), and it must include all custom fields as extra columns. Arjun, can you make sure the team knows?\n[2026-09-28T05:34:00Z discord#design] kenji: I'll do BD-106 first, then BD-105.\n[2026-10-08T11:09:00Z discord#engineering] zara: BD-112 is reproducible: two tickets with the same created_at.\n[2026-09-14T07:10:00Z slack#engineering] dev: BD-112 is reproducible: two tickets with the same created_at.\n[2026-10-08T11:14:00Z discord#engineering] sofia: BD-112 is reproducible: two tickets with the same created_at.\n[2026-10-07T06:56:00Z slack#engineering] dev: BD-112 is reproducible: two tickets with the same created_at.\n[2026-09-14T06:30:00Z discord#engineering] maya: Second big item for Sprint 1 is SLA alerts, BD-103: when a ticket breaches its SLA we email the assignee. BD-104 covers the settings page where admins set SLA hours per priority.\n[2026-09-28T05:20:00Z discord#design] priya: Sprint 2: dark mode is go. Spec is in BD-105: follow the OS theme by default, with a Light / Dark / System toggle. BD-106 is the theme token refactor that has to land first.\n[2026-09-18T06:50:00Z discord#engineering] arjun: Standup: yesterday reviews, today dependency bumps (BD-111), no blockers.",
+    "score": 1.0,
+    "hits": [
+     true,
+     true
+    ],
+    "forbidden": [],
+    "passed": true,
+    "chars": 3571,
+    "seconds": 0.0,
+    "tools": null
+   },
+   {
+    "id": "q14",
+    "q": "List the decisions made in Sprint 1 that are not shipped.",
+    "answer": "[ticket BD-102, state Done, assignee kenji, sprint s2] Export button in ticket list view: Add an 'Export' button to the ticket list toolbar that downloads the CSV from the export endpoint (see BD-101). Admin only. (history: 2026-09-14T05:00:00Z: Add an 'Export' button to the ticket list toolbar that downloads the CSV from the export endpoint (see BD-101). Admin only.)\n[2026-09-14T05:22:00Z slack#product] maya: Yes, that's what's in the ticket. Kenji, can you do the button in the list view (BD-102)?\n[2026-09-15T10:31:00Z slack#support-escalations] maya: Done, BD-101 now lists assignee as a required column.\n[2026-10-02T06:00:00Z discord#design] priya: Decision after the design review: the theme toggle lives in Settings > Appearance, not in the navbar. I've updated BD-105 to say so.\n[2026-09-30T08:20:00Z slack#engineering] kenji: Export button is wired into the ticket list now, calls Sofia's endpoint. Opening a PR.\n[2026-09-22T09:40:00Z slack#support-escalations] maya: Decision: the export must support any custom date range up to 12 months (not a fixed 30 days), and it must include all custom fields as extra columns. Arjun, can you make sure the team knows?\n[2026-10-08T11:42:00Z slack#product] arjun: Release notes for this sprint are drafted.\n[2026-09-30T09:51:00Z slack#product] maya: Release notes for this sprint are drafted.\n[2026-10-02T05:56:00Z slack#product] priya: Release notes for this sprint are drafted.\n[2026-09-25T07:34:00Z slack#product] maya: Release notes for this sprint are drafted.\n[PR #7 by kenji, created 2026-09-30T08:25:00Z, merged 2026-10-01T09:00:00Z] Add export button to ticket list\n\nAdds a toolbar button that downloads the CSV from /api/tickets/export. Only visible to admins.\n[2026-09-14T05:10:00Z slack#product] maya: Kicking off Sprint 1. Top item for me is ticket export (BD-101): admins should be able to download the last 30 days of tickets as CSV. Customers keep asking for it.\n[2026-09-14T06:30:00Z discord#engineering] maya: Second big item for Sprint 1 is SLA alerts, BD-103: when a ticket breaches its SLA we email the assignee. BD-104 covers the settings page where admins set SLA hours per priority.\n[2026-09-28T05:20:00Z discord#design] priya: Sprint 2: dark mode is go. Spec is in BD-105: follow the OS theme by default, with a Light / Dark / System toggle. BD-106 is the theme token refactor that has to land first.\n[ticket BD-110, state Done, assignee kenji, sprint s1] Fix typo on onboarding screen: Onboarding step 2 says 'Recieve'. Should be 'Receive'. (history: 2026-09-15T09:00:00Z: Onboarding step 2 says 'Recieve'. Should be 'Receive'.)\n[ticket BD-114, state Done, assignee dev, sprint s2] API README: Document authentication and the tickets endpoints in the repo README. (history: 2026-10-01T04:00:00Z: Document authentication and the tickets endpoints in the repo README.)\n[ticket BD-111, state Done, assignee sofia, sprint s1] Upgrade backend dependencies: Bump FastAPI, SQLAlchemy and pydantic to current versions; fix deprecation warnings. (history: 2026-09-14T04:00:00Z: Bump FastAPI, SQLAlchemy and pydantic to current versions; fix deprecation warnings.)\n[ticket BD-103, state Done, assignee dev, sprint s1] SLA breach notifications: When a ticket breaches its SLA, send an email notification to the ticket's assignee. (history: 2026-09-14T06:20:00Z: When a ticket breaches its SLA, send an email notification to the ticket's assignee.)\n[ticket BD-109, state Backlog, assignee None, sprint s2] SLA metrics on dashboard: Show the count of SLA breaches per week on the reporting dashboard. (history: 2026-09-29T05:00:00Z: Show the count of SLA breaches per week on the reporting dashboard.)\n[ticket BD-113, state In Progress, assignee kenji, sprint s2] Avatar upload: Let agents upload a profile picture (PNG/JPG, max 2 MB), cropped to a circle. (history: 2026-09-30T05:00:00Z: Let agents upload a profile picture (PNG/JPG, max 2 MB), cropped to a circle.)\n[ticket BD-107, state Done, assignee dev, sprint s2] Rate-limit login attempts: Lock an account for 15 minutes after 10 failed login attempts within 5 minutes. (history: 2026-09-28T04:30:00Z: Lock an account for 15 minutes after 10 failed login attempts within 5 minutes.)\n[ticket BD-112, state Done, assignee sofia, sprint s2] Search pagination returns duplicates: Page 2 of ticket search repeats results from page 1 when tickets share a created_at timestamp. (history: 2026-09-29T06:00:00Z: Page 2 of ticket search repeats results from page 1 when tickets share a created_at timestamp.)\n[ticket BD-106, state Done, assignee kenji, sprint s2] Theme tokens refactor: Replace hard-coded colours with CSS custom-property design tokens so themes can be swapped. (history: 2026-09-28T05:05:00Z: Replace hard-coded colours with CSS custom-property design tokens so themes can be swapped.)\n[ticket BD-108, state Backlog, assignee sofia, sprint s2] Export performance for large accounts: Profile the export endpoint for accounts with >100k tickets; consider background job + emailed link. (history: 2026-09-26T04:00:00Z: Profile the export endpoint for accounts with >100k tickets; consider background job + emailed link.)\n[ticket BD-104, state Done, assignee kenji, sprint s1] SLA settings page: Admins can configure SLA response time in hours for each priority level (Urgent, High, Medium, Low). (history: 2026-09-14T06:25:00Z: Admins can configure SLA response time in hours for each priority level (Urgent, High, Medium, Low).)",
+    "score": 1.0,
+    "hits": [
+     true,
+     true
+    ],
+    "forbidden": [
+     false
+    ],
+    "passed": true,
+    "chars": 5458,
+    "seconds": 0.0,
+    "tools": null
+   },
+   {
+    "id": "q15",
+    "q": "Which tickets and PRs are affected by the decision to send SLA warnings 15 minutes before breach?",
+    "answer": "[2026-09-17T05:31:00Z discord#engineering] maya: Agreed. Let's change it: send the warning 15 minutes BEFORE the breach, and post it to the team's Slack channel instead of email. We drop email notifications for this entirely.\n[ticket BD-103, state Done, assignee dev, sprint s1] SLA breach notifications: When a ticket breaches its SLA, send an email notification to the ticket's assignee. (history: 2026-09-14T06:20:00Z: When a ticket breaches its SLA, send an email notification to the ticket's assignee.)\n[2026-10-01T06:50:00Z discord#engineering] zara: Testing SLA alerts: the notification fires at breach and it's an email. Wasn't it supposed to warn before breach?\n[ticket BD-107, state Done, assignee dev, sprint s2] Rate-limit login attempts: Lock an account for 15 minutes after 10 failed login attempts within 5 minutes. (history: 2026-09-28T04:30:00Z: Lock an account for 15 minutes after 10 failed login attempts within 5 minutes.)\n[PR #9 by dev, created 2026-10-03T05:00:00Z, merged 2026-10-03T08:00:00Z] Login rate limiting\n\nLocks an account for 15 minutes after 10 failed logins within 5 minutes (BD-107).\n[PR #5 by dev, created 2026-09-23T09:10:00Z, merged 2026-09-24T11:00:00Z] SLA breach email notifications\n\nCloses BD-103. A periodic job finds tickets past their SLA deadline and emails the assignee using the existing mailer.\n[2026-09-30T11:15:00Z discord#engineering] arjun: Merged the dependency bumps for BD-111, watch for deprecation warnings.\n[2026-09-14T06:30:00Z discord#engineering] maya: Second big item for Sprint 1 is SLA alerts, BD-103: when a ticket breaches its SLA we email the assignee. BD-104 covers the settings page where admins set SLA hours per priority.\n[2026-09-17T05:05:00Z discord#engineering] dev: Talked to a couple of support leads at Acme. They said an email *at* breach is too late; by then the customer is already annoyed. They want a heads-up before it happens, somewhere the team actually looks.\n[2026-09-23T09:15:00Z discord#engineering] dev: SLA notifier PR is up, using the existing mailer so it was quick.\n[ticket BD-109, state Backlog, assignee None, sprint s2] SLA metrics on dashboard: Show the count of SLA breaches per week on the reporting dashboard. (history: 2026-09-29T05:00:00Z: Show the count of SLA breaches per week on the reporting dashboard.)\n[2026-10-01T07:58:00Z discord#engineering] dev: Standup: yesterday reviews, today reviewing PRs, no blockers.\n[2026-09-30T12:25:00Z discord#engineering] zara: Standup: yesterday reviews, today reviewing PRs, no blockers.\n[PR #3 by kenji, created 2026-09-18T06:30:00Z, merged 2026-09-18T08:10:00Z] SLA settings page\n\nFixes BD-104. Admins can set SLA hours for Urgent / High / Medium / Low.\n[2026-09-24T10:20:00Z slack#engineering] zara: Working on reviewing PRs today. Might need a second pair of eyes this afternoon.\n[2026-09-14T11:20:00Z slack#engineering] zara: Working on reviewing PRs today. Might need a second pair of eyes this afternoon.\n[2026-10-08T05:15:00Z discord#design] priya: Checked the dark mode build, matches the ticket. Shipping it 🎉\n[2026-09-29T09:26:00Z discord#engineering] arjun: Yesterday: reviewing PRs. Today: same, plus code review. Blockers: none.\n[2026-10-08T09:38:00Z slack#engineering] dev: Working on reviewing PRs today. Might need a second pair of eyes this afternoon.\n[2026-10-02T06:00:00Z discord#design] priya: Decision after the design review: the theme toggle lives in Settings > Appearance, not in the navbar. I've updated BD-105 to say so.\n[ticket BD-104, state Done, assignee kenji, sprint s1] SLA settings page: Admins can configure SLA response time in hours for each priority level (Urgent, High, Medium, Low). (history: 2026-09-14T06:25:00Z: Admins can configure SLA response time in hours for each priority level (Urgent, High, Medium, Low).)\n[2026-10-01T07:05:00Z discord#engineering] dev: I built it to BD-103, which says email at breach. Was there a change?\n[ticket BD-111, state Done, assignee sofia, sprint s1] Upgrade backend dependencies: Bump FastAPI, SQLAlchemy and pydantic to current versions; fix deprecation warnings. (history: 2026-09-14T04:00:00Z: Bump FastAPI, SQLAlchemy and pydantic to current versions; fix deprecation warnings.)\n[2026-09-28T06:20:00Z slack#engineering] dev: Merged the dependency bumps for BD-111, watch for deprecation warnings.\n[2026-10-09T06:18:00Z discord#engineering] dev: Merged the dependency bumps for BD-111, watch for deprecation warnings.",
+    "score": 1.0,
+    "hits": [
+     true,
+     true
+    ],
+    "forbidden": [],
+    "passed": true,
+    "chars": 4448,
+    "seconds": 0.0,
+    "tools": null
+   }
+  ]
+ }
+}

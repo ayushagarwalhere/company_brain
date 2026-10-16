@@ -7,8 +7,14 @@
 Scoring is deterministic: each question lists required facts (any synonym in a group
 must appear) and optional forbidden claims. Results go to benchmark/results/.
 
-    python -m benchmark.run                # both systems
-    python -m benchmark.run --only graph
+    python -m benchmark.run                # LLM mode if DeepSeek answers, otherwise --no-llm
+    python -m benchmark.run --no-llm       # rules agent vs. extractive retrieval (k=3 and k=25)
+
+Two modes, never mixed in one result file:
+  llm     graph = DeepSeek tool-calling agent; baseline = TF-IDF top-25 -> DeepSeek (classic RAG)
+  no-llm  graph = rules agent (agent/router.py) over the same graph tools;
+          baseline = extractive retrieval: the top-k TF-IDF passages ARE the answer (k=3 and k=25,
+          both reported because k is arbitrary)
 """
 import argparse
 import json
@@ -52,6 +58,17 @@ def graph_answer(q: str) -> dict:
     return ask(q)
 
 
+def graph_answer_rules(q: str) -> dict:
+    from agent.router import ask
+    return ask(q)
+
+
+def baseline_extractive(q: str, index: TfIdf, docs: dict[str, str], k: int) -> dict:
+    """No-LLM baseline: the k best-matching raw passages are returned verbatim as the answer."""
+    ranked = sorted(index.scores(q).items(), key=lambda kv: -kv[1])[:k]
+    return {"answer": "\n".join(docs[d] for d, _ in ranked), "retrieved": [d for d, _ in ranked]}
+
+
 def grade(answer: str, item: dict) -> dict:
     a = (answer or "").lower()
     hits = [any(s.lower() in a for s in group) for group in item["must"]]
@@ -64,27 +81,42 @@ def grade(answer: str, item: dict) -> dict:
 
 def main():
     ap = argparse.ArgumentParser()
-    ap.add_argument("--only", choices=["graph", "baseline"])
+    ap.add_argument("--no-llm", action="store_true", help="rules agent vs. extractive retrieval")
     a = ap.parse_args()
-    systems = [a.only] if a.only else ["graph", "baseline"]
+    from pipeline import llm
+    mode = "no-llm" if a.no_llm or not llm.available() else "llm"
+    if mode == "no-llm" and not a.no_llm:
+        print(f"LLM unavailable ({llm.unavailable_reason()}): running the no-LLM benchmark")
     docs = corpus()
     index = TfIdf(docs)
+    if mode == "llm":
+        systems = {"graph (DeepSeek agent)": graph_answer,
+                   "baseline (TF-IDF top-25 -> DeepSeek)": lambda q: baseline_answer(q, index, docs)}
+    else:
+        systems = {"graph (rules agent, no LLM)": graph_answer_rules,
+                   "baseline (extractive top-3, no LLM)": lambda q: baseline_extractive(q, index, docs, 3),
+                   "baseline (extractive top-25, no LLM)": lambda q: baseline_extractive(q, index, docs, 25)}
     results = {s: [] for s in systems}
     for item in QUESTIONS:
-        for s in systems:
+        for s, fn in systems.items():
             t0 = time.time()
-            out = graph_answer(item["q"]) if s == "graph" else baseline_answer(item["q"], index, docs)
+            out = fn(item["q"])
             g = grade(out["answer"], item)
-            results[s].append({"id": item["id"], "q": item["q"], "answer": out["answer"], **g,
-                               "seconds": round(time.time() - t0, 1), "tools": out.get("tool_calls")})
-            print(f"{item['id']} {s:8s} {g['score']:.2f}")
-    summary = {s: round(sum(r["score"] for r in rs) / len(rs), 3) for s, rs in results.items()}
-    print("\nmean score:", summary)
+            results[s].append({"id": item["id"], "q": item["q"], "answer": out["answer"], **g, "passed": g["score"] == 1.0,
+                               "chars": len(out["answer"] or ""), "seconds": round(time.time() - t0, 2),
+                               "tools": out.get("tool_calls")})
+            print(f"{item['id']} {g['score']:.2f}  {s}")
+    summary = {s: {"mean_score": round(sum(r["score"] for r in rs) / len(rs), 3),
+                   "passed": sum(r["passed"] for r in rs), "questions": len(rs),
+                   "mean_answer_chars": round(sum(r["chars"] for r in rs) / len(rs))} for s, rs in results.items()}
+    print("\n" + json.dumps(summary, indent=1))
+    payload = {"mode": mode, "grader": "keyword facts per question (benchmark/questions.json); lenient, see README",
+               "summary": summary, "results": results}
     out_dir = HERE / "results"
     out_dir.mkdir(exist_ok=True)
     stamp = datetime.now(timezone.utc).strftime("%Y%m%dT%H%M%SZ")
-    (out_dir / f"run_{stamp}.json").write_text(json.dumps({"summary": summary, "results": results}, indent=1, ensure_ascii=False), encoding="utf-8")
-    (out_dir / "latest.json").write_text(json.dumps({"summary": summary, "results": results}, indent=1, ensure_ascii=False), encoding="utf-8")
+    for name in (f"run_{mode}_{stamp}.json", "latest.json"):
+        (out_dir / name).write_text(json.dumps(payload, indent=1, ensure_ascii=False), encoding="utf-8")
 
 
 if __name__ == "__main__":
