@@ -53,3 +53,8 @@ class Settings:
 
 
 settings = Settings()
+
+
+# ---------------------------------------------------------------- tuning constants (one place, with reasons)
+# Rules agent: minimum TF-IDF similarity between a question and a feature's name/titles to call it a match.
+ROUTER_FEATURE_MIN_SIM = 0.12

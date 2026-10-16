@@ -3,10 +3,10 @@
  "grader": "keyword facts per question (benchmark/questions.json); lenient, see README",
  "summary": {
   "graph (rules agent, no LLM)": {
-   "mean_score": 0.956,
-   "passed": 14,
+   "mean_score": 1.0,
+   "passed": 15,
    "questions": 15,
-   "mean_answer_chars": 983
+   "mean_answer_chars": 936
   },
   "baseline (extractive top-3, no LLM)": {
    "mean_score": 0.6,
@@ -26,7 +26,7 @@
    {
     "id": "q01",
     "q": "Which features have a requirement that was changed in chat but never reflected in the ticket?",
-    "answer": "2026-09-15: chat change on BD-101: \"Let's add an assignee column to the export. I'm updating BD-101 now.\" (written into BD-101 (v2), shipped in #6).\n2026-09-22: chat change on BD-101: \"the export must support any custom date range up to 12 months (not a fixed 30 days), and it must include all custom fields as extra columns.\" (never written into the ticket, not implemented).\nDRIFT on Ticket export to CSV: maya decided \"the export must support any custom date range up to 12 months (not a fixed 30 days), and it must include all custom fields as extra columns.\" on 2026-09-22 (slack #support-escalations), but BD-101 still says \"Admins can export tickets created in the last 30 days as a CSV file. Columns: id, subject, status, created_at, assignee.\". PRs that shipped the old version: #6. Docs still describing the old version: PRD — Ticket export.\n\nEvidence:\n(Person maya)-[:POSTED]->(Message m_exp_12 @ slack#support-escalations, 2026-09-22T09:40:00Z)-[:CHANGES]->(Requirement \"the export must support any custom date range up to 12 months (not a fixed 30 days), and it must include all custom fields as extra columns.\")-[:AMENDS]->(Ticket BD-101)-[:ABOUT]->(Feature feat_ticket_export_to_csv) ; (PullRequest #6)-[:REFERENCES]->(Ticket BD-101), IMPLEMENTS older \"Admins can export tickets created in the last 30 days as a CSV file. Columns: id, subject, status, created_at, assignee.\" ; (Document DOC-1 \"PRD — Ticket export\", updated 2026-09-15)-[:MENTIONS]->(Ticket BD-101), older than the change\n(Ticket BD-101)-[:STATES]->(Requirement req:BD-101:v1 @ 2026-09-14T04:50:00Z)\n(Decision dec:m_exp_06)-[:CHANGES]->(Requirement req:m_exp_06 @ 2026-09-15T08:40:00Z)-[:SUPERSEDES]->(Requirement req:BD-101:v1)",
+    "answer": "DRIFT on Ticket export to CSV: maya decided \"the export must support any custom date range up to 12 months (not a fixed 30 days), and it must include all custom fields as extra columns.\" on 2026-09-22 (slack #support-escalations), but BD-101 still says \"Admins can export tickets created in the last 30 days as a CSV file. Columns: id, subject, status, created_at, assignee.\". PRs that shipped the old version: none. Merged after the decision but not matched to it: #6. Docs still describing the old version: PRD — Ticket export.\n\nEvidence:\n(Person maya)-[:POSTED]->(Message m_exp_12 @ slack#support-escalations, 2026-09-22T09:40:00Z)-[:CHANGES]->(Requirement \"the export must support any custom date range up to 12 months (not a fixed 30 days), and it must include all custom fields as extra columns.\")-[:AMENDS]->(Ticket BD-101)-[:ABOUT]->(Feature feat_ticket_export_to_csv) ; (PullRequest #6)-[:REFERENCES]->(Ticket BD-101), merged after the decision but not matched to it (check), IMPLEMENTS older \"Admins can export tickets created in the last 30 days as a CSV file. Columns: id, subject, status, created_at, assignee.\" ; (Document DOC-1 \"PRD — Ticket export\", updated 2026-09-15)-[:MENTIONS]->(Ticket BD-101), older than the change",
     "score": 1.0,
     "hits": [
      true,
@@ -36,8 +36,8 @@
      false
     ],
     "passed": true,
-    "chars": 1709,
-    "seconds": 0.13,
+    "chars": 1237,
+    "seconds": 0.56,
     "tools": [
      {
       "tool": "drift_for_feature",
@@ -45,20 +45,13 @@
        "feature": "feat_ticket_export_to_csv"
       },
       "rows": 1
-     },
-     {
-      "tool": "decision_history",
-      "args": {
-       "feature": "feat_ticket_export_to_csv"
-      },
-      "rows": 8
      }
     ]
    },
    {
     "id": "q02",
     "q": "What is the current requirement for the ticket CSV export?",
-    "answer": "2026-09-15: chat change on BD-101: \"Let's add an assignee column to the export. I'm updating BD-101 now.\" (written into BD-101 (v2), shipped in #6).\n2026-09-22: chat change on BD-101: \"the export must support any custom date range up to 12 months (not a fixed 30 days), and it must include all custom fields as extra columns.\" (never written into the ticket, not implemented).\nDRIFT on Ticket export to CSV: maya decided \"the export must support any custom date range up to 12 months (not a fixed 30 days), and it must include all custom fields as extra columns.\" on 2026-09-22 (slack #support-escalations), but BD-101 still says \"Admins can export tickets created in the last 30 days as a CSV file. Columns: id, subject, status, created_at, assignee.\". PRs that shipped the old version: #6. Docs still describing the old version: PRD — Ticket export.\n\nEvidence:\n(Person maya)-[:POSTED]->(Message m_exp_12 @ slack#support-escalations, 2026-09-22T09:40:00Z)-[:CHANGES]->(Requirement \"the export must support any custom date range up to 12 months (not a fixed 30 days), and it must include all custom fields as extra columns.\")-[:AMENDS]->(Ticket BD-101)-[:ABOUT]->(Feature feat_ticket_export_to_csv) ; (PullRequest #6)-[:REFERENCES]->(Ticket BD-101), IMPLEMENTS older \"Admins can export tickets created in the last 30 days as a CSV file. Columns: id, subject, status, created_at, assignee.\" ; (Document DOC-1 \"PRD — Ticket export\", updated 2026-09-15)-[:MENTIONS]->(Ticket BD-101), older than the change\n(Ticket BD-101)-[:STATES]->(Requirement req:BD-101:v1 @ 2026-09-14T04:50:00Z)\n(Decision dec:m_exp_06)-[:CHANGES]->(Requirement req:m_exp_06 @ 2026-09-15T08:40:00Z)-[:SUPERSEDES]->(Requirement req:BD-101:v1)",
+    "answer": "2026-09-15: chat change on BD-101: \"Let's add an assignee column to the export. I'm updating BD-101 now.\" (written into BD-101 (v2), shipped in #6).\n2026-09-22: chat change on BD-101: \"the export must support any custom date range up to 12 months (not a fixed 30 days), and it must include all custom fields as extra columns.\" (never written into the ticket, not implemented).\nDRIFT on Ticket export to CSV: maya decided \"the export must support any custom date range up to 12 months (not a fixed 30 days), and it must include all custom fields as extra columns.\" on 2026-09-22 (slack #support-escalations), but BD-101 still says \"Admins can export tickets created in the last 30 days as a CSV file. Columns: id, subject, status, created_at, assignee.\". PRs that shipped the old version: none. Merged after the decision but not matched to it: #6. Docs still describing the old version: PRD — Ticket export.\n\nEvidence:\n(Ticket BD-101)-[:STATES]->(Requirement req:BD-101:v1 @ 2026-09-14T04:50:00Z)\n(Decision dec:m_exp_06)-[:CHANGES]->(Requirement req:m_exp_06 @ 2026-09-15T08:40:00Z)-[:SUPERSEDES]->(Requirement req:BD-101:v1)\n(Message m_exp_06)-[:CHANGES]->(Requirement req:m_exp_06 @ 2026-09-15T08:40:00Z)-[:SUPERSEDES]->(Requirement req:BD-101:v1)",
     "score": 1.0,
     "hits": [
      true,
@@ -66,53 +59,60 @@
     ],
     "forbidden": [],
     "passed": true,
-    "chars": 1709,
+    "chars": 1248,
     "seconds": 0.01,
     "tools": [
-     {
-      "tool": "drift_for_feature",
-      "args": {
-       "feature": "feat_ticket_export_to_csv"
-      },
-      "rows": 1
-     },
      {
       "tool": "decision_history",
       "args": {
        "feature": "feat_ticket_export_to_csv"
       },
       "rows": 8
+     },
+     {
+      "tool": "drift_for_feature",
+      "args": {
+       "feature": "feat_ticket_export_to_csv"
+      },
+      "rows": 1
      }
     ]
    },
    {
     "id": "q03",
     "q": "Does the export that shipped match what was decided? Which PR shipped it?",
-    "answer": "PR #6 \"BD-101: CSV export endpoint\" by sofia → BD-101.\nPR #7 \"Add export button to ticket list\" by kenji → BD-102, linked by proximity+semantic (the PR never names its ticket).\n\nEvidence:\n(PullRequest #6)-[:REFERENCES {via: hard}]->(Ticket BD-101)\n(PullRequest #7)-[:REFERENCES {via: proximity+semantic}]->(Ticket BD-102)",
-    "score": 0.333,
+    "answer": "2026-09-15: chat change on BD-101: \"Let's add an assignee column to the export. I'm updating BD-101 now.\" (written into BD-101 (v2), shipped in #6).\n2026-09-22: chat change on BD-101: \"the export must support any custom date range up to 12 months (not a fixed 30 days), and it must include all custom fields as extra columns.\" (never written into the ticket, not implemented).\nDRIFT on Ticket export to CSV: maya decided \"the export must support any custom date range up to 12 months (not a fixed 30 days), and it must include all custom fields as extra columns.\" on 2026-09-22 (slack #support-escalations), but BD-101 still says \"Admins can export tickets created in the last 30 days as a CSV file. Columns: id, subject, status, created_at, assignee.\". PRs that shipped the old version: none. Merged after the decision but not matched to it: #6. Docs still describing the old version: PRD — Ticket export.\n\nEvidence:\n(Ticket BD-101)-[:STATES]->(Requirement req:BD-101:v1 @ 2026-09-14T04:50:00Z)\n(Decision dec:m_exp_06)-[:CHANGES]->(Requirement req:m_exp_06 @ 2026-09-15T08:40:00Z)-[:SUPERSEDES]->(Requirement req:BD-101:v1)\n(Message m_exp_06)-[:CHANGES]->(Requirement req:m_exp_06 @ 2026-09-15T08:40:00Z)-[:SUPERSEDES]->(Requirement req:BD-101:v1)",
+    "score": 1.0,
     "hits": [
      true,
-     false,
-     false
+     true,
+     true
     ],
     "forbidden": [],
-    "passed": false,
-    "chars": 321,
-    "seconds": 0.0,
+    "passed": true,
+    "chars": 1248,
+    "seconds": 0.01,
     "tools": [
      {
-      "tool": "feature_prs",
+      "tool": "decision_history",
       "args": {
        "feature": "feat_ticket_export_to_csv"
       },
-      "rows": 2
+      "rows": 8
+     },
+     {
+      "tool": "drift_for_feature",
+      "args": {
+       "feature": "feat_ticket_export_to_csv"
+      },
+      "rows": 1
      }
     ]
    },
    {
     "id": "q04",
     "q": "Who decided that SLA warnings should go to Slack before the breach, and where was it decided?",
-    "answer": "2026-09-17: chat change on BD-103: \"Let's change it: send the warning 15 minutes BEFORE the breach, and post it to the team's Slack channel instead of email. We drop email notifications for this entirely.\" (never written into the ticket, not implemented).\nDRIFT on SLA breach notifications: maya decided \"Let's change it: send the warning 15 minutes BEFORE the breach, and post it to the team's Slack channel instead of email. We drop email notifications for this entirely.\" on 2026-09-17 (discord #engineering), but BD-103 still says \"When a ticket breaches its SLA, send an email notification to the ticket's assignee.\". PRs that shipped the old version: #5. Docs still describing the old version: Design note — SLA breach notifications.\n\nEvidence:\n(Person maya)-[:POSTED]->(Message m_sla_05 @ discord#engineering, 2026-09-17T05:31:00Z)-[:CHANGES]->(Requirement \"Let's change it: send the warning 15 minutes BEFORE the breach, and post it to the team's Slack channel instead of email. We drop email notifications for this entirely.\")-[:AMENDS]->(Ticket BD-103)-[:ABOUT]->(Feature feat_sla_breach_notifications) ; (PullRequest #5)-[:REFERENCES]->(Ticket BD-103), IMPLEMENTS older \"When a ticket breaches its SLA, send an email notification to the ticket's assignee.\" ; (Document DOC-2 \"Design note — SLA breach notifications\", updated 2026-09-14)-[:MENTIONS]->(Ticket BD-103), older than the change\n(Ticket BD-103)-[:STATES]->(Requirement req:BD-103:v1 @ 2026-09-14T06:20:00Z) <-[:IMPLEMENTS]- PR [5]\n(Decision dec:m_sla_05)-[:CHANGES]->(Requirement req:m_sla_05 @ 2026-09-17T05:31:00Z)-[:SUPERSEDES]->(Requirement req:BD-103:v1)",
+    "answer": "2026-09-17: chat change on BD-103: \"Let's change it: send the warning 15 minutes BEFORE the breach, and post it to the team's Slack channel instead of email. We drop email notifications for this entirely.\" (never written into the ticket, not implemented).\nDRIFT on SLA breach notifications: maya decided \"Let's change it: send the warning 15 minutes BEFORE the breach, and post it to the team's Slack channel instead of email. We drop email notifications for this entirely.\" on 2026-09-17 (discord #engineering), but BD-103 still says \"When a ticket breaches its SLA, send an email notification to the ticket's assignee.\". PRs that shipped the old version: none. Merged after the decision but not matched to it: #5. Docs still describing the old version: Design note — SLA breach notifications.\n\nEvidence:\n(Ticket BD-103)-[:STATES]->(Requirement req:BD-103:v1 @ 2026-09-14T06:20:00Z) <-[:IMPLEMENTS]- PR [5]\n(Decision dec:m_sla_05)-[:CHANGES]->(Requirement req:m_sla_05 @ 2026-09-17T05:31:00Z)-[:SUPERSEDES]->(Requirement req:BD-103:v1)\n(Message m_sla_05)-[:CHANGES]->(Requirement req:m_sla_05 @ 2026-09-17T05:31:00Z)-[:SUPERSEDES]->(Requirement req:BD-103:v1)",
     "score": 1.0,
     "hits": [
      true,
@@ -120,29 +120,29 @@
     ],
     "forbidden": [],
     "passed": true,
-    "chars": 1630,
+    "chars": 1160,
     "seconds": 0.01,
     "tools": [
-     {
-      "tool": "drift_for_feature",
-      "args": {
-       "feature": "feat_sla_breach_notifications"
-      },
-      "rows": 1
-     },
      {
       "tool": "decision_history",
       "args": {
        "feature": "feat_sla_breach_notifications"
       },
       "rows": 6
+     },
+     {
+      "tool": "drift_for_feature",
+      "args": {
+       "feature": "feat_sla_breach_notifications"
+      },
+      "rows": 1
      }
     ]
    },
    {
     "id": "q05",
     "q": "What does BD-103 say and is it still accurate?",
-    "answer": "DRIFT on SLA breach notifications: maya decided \"Let's change it: send the warning 15 minutes BEFORE the breach, and post it to the team's Slack channel instead of email. We drop email notifications for this entirely.\" on 2026-09-17 (discord #engineering), but BD-103 still says \"When a ticket breaches its SLA, send an email notification to the ticket's assignee.\". PRs that shipped the old version: #5. Docs still describing the old version: Design note — SLA breach notifications.\n\nEvidence:\n(Person maya)-[:POSTED]->(Message m_sla_05 @ discord#engineering, 2026-09-17T05:31:00Z)-[:CHANGES]->(Requirement \"Let's change it: send the warning 15 minutes BEFORE the breach, and post it to the team's Slack channel instead of email. We drop email notifications for this entirely.\")-[:AMENDS]->(Ticket BD-103)-[:ABOUT]->(Feature feat_sla_breach_notifications) ; (PullRequest #5)-[:REFERENCES]->(Ticket BD-103), IMPLEMENTS older \"When a ticket breaches its SLA, send an email notification to the ticket's assignee.\" ; (Document DOC-2 \"Design note — SLA breach notifications\", updated 2026-09-14)-[:MENTIONS]->(Ticket BD-103), older than the change",
+    "answer": "DRIFT on SLA breach notifications: maya decided \"Let's change it: send the warning 15 minutes BEFORE the breach, and post it to the team's Slack channel instead of email. We drop email notifications for this entirely.\" on 2026-09-17 (discord #engineering), but BD-103 still says \"When a ticket breaches its SLA, send an email notification to the ticket's assignee.\". PRs that shipped the old version: none. Merged after the decision but not matched to it: #5. Docs still describing the old version: Design note — SLA breach notifications.\n\nEvidence:\n(Person maya)-[:POSTED]->(Message m_sla_05 @ discord#engineering, 2026-09-17T05:31:00Z)-[:CHANGES]->(Requirement \"Let's change it: send the warning 15 minutes BEFORE the breach, and post it to the team's Slack channel instead of email. We drop email notifications for this entirely.\")-[:AMENDS]->(Ticket BD-103)-[:ABOUT]->(Feature feat_sla_breach_notifications) ; (PullRequest #5)-[:REFERENCES]->(Ticket BD-103), merged after the decision but not matched to it (check), IMPLEMENTS older \"When a ticket breaches its SLA, send an email notification to the ticket's assignee.\" ; (Document DOC-2 \"Design note — SLA breach notifications\", updated 2026-09-14)-[:MENTIONS]->(Ticket BD-103), older than the change",
     "score": 1.0,
     "hits": [
      true,
@@ -151,8 +151,8 @@
     ],
     "forbidden": [],
     "passed": true,
-    "chars": 1143,
-    "seconds": 0.0,
+    "chars": 1255,
+    "seconds": 0.01,
     "tools": [
      {
       "tool": "drift_for_feature",
@@ -166,7 +166,7 @@
    {
     "id": "q06",
     "q": "Which pull request implemented the SLA notifications, and did it follow the latest decision?",
-    "answer": "PR #3 \"SLA settings page\" by kenji → BD-104.\nPR #4 \"Freeze time in SLA job test\" by dev → BD-115.\nPR #5 \"SLA breach email notifications\" by dev → BD-103.\n\nEvidence:\n(PullRequest #3)-[:REFERENCES {via: hard}]->(Ticket BD-104)\n(PullRequest #4)-[:REFERENCES {via: hard}]->(Ticket BD-115)\n(PullRequest #5)-[:REFERENCES {via: hard}]->(Ticket BD-103)",
+    "answer": "2026-09-17: chat change on BD-103: \"Let's change it: send the warning 15 minutes BEFORE the breach, and post it to the team's Slack channel instead of email. We drop email notifications for this entirely.\" (never written into the ticket, not implemented).\nDRIFT on SLA breach notifications: maya decided \"Let's change it: send the warning 15 minutes BEFORE the breach, and post it to the team's Slack channel instead of email. We drop email notifications for this entirely.\" on 2026-09-17 (discord #engineering), but BD-103 still says \"When a ticket breaches its SLA, send an email notification to the ticket's assignee.\". PRs that shipped the old version: none. Merged after the decision but not matched to it: #5. Docs still describing the old version: Design note — SLA breach notifications.\n\nEvidence:\n(Ticket BD-103)-[:STATES]->(Requirement req:BD-103:v1 @ 2026-09-14T06:20:00Z) <-[:IMPLEMENTS]- PR [5]\n(Decision dec:m_sla_05)-[:CHANGES]->(Requirement req:m_sla_05 @ 2026-09-17T05:31:00Z)-[:SUPERSEDES]->(Requirement req:BD-103:v1)\n(Message m_sla_05)-[:CHANGES]->(Requirement req:m_sla_05 @ 2026-09-17T05:31:00Z)-[:SUPERSEDES]->(Requirement req:BD-103:v1)",
     "score": 1.0,
     "hits": [
      true,
@@ -175,15 +175,22 @@
     ],
     "forbidden": [],
     "passed": true,
-    "chars": 344,
-    "seconds": 0.0,
+    "chars": 1160,
+    "seconds": 0.01,
     "tools": [
      {
-      "tool": "feature_prs",
+      "tool": "decision_history",
       "args": {
        "feature": "feat_sla_breach_notifications"
       },
-      "rows": 3
+      "rows": 6
+     },
+     {
+      "tool": "drift_for_feature",
+      "args": {
+       "feature": "feat_sla_breach_notifications"
+      },
+      "rows": 1
      }
     ]
    },
@@ -199,21 +206,21 @@
     "forbidden": [],
     "passed": true,
     "chars": 626,
-    "seconds": 0.0,
+    "seconds": 0.01,
     "tools": [
-     {
-      "tool": "drift_for_feature",
-      "args": {
-       "feature": "feat_dark_mode"
-      },
-      "rows": 0
-     },
      {
       "tool": "decision_history",
       "args": {
        "feature": "feat_dark_mode"
       },
       "rows": 5
+     },
+     {
+      "tool": "drift_for_feature",
+      "args": {
+       "feature": "feat_dark_mode"
+      },
+      "rows": 0
      }
     ]
    },
@@ -228,7 +235,7 @@
     "forbidden": [],
     "passed": true,
     "chars": 74,
-    "seconds": 0.0,
+    "seconds": 0.01,
     "tools": [
      {
       "tool": "drift_for_feature",
@@ -251,7 +258,7 @@
     "forbidden": [],
     "passed": true,
     "chars": 321,
-    "seconds": 0.0,
+    "seconds": 0.01,
     "tools": [
      {
       "tool": "feature_prs",
@@ -273,7 +280,7 @@
     "forbidden": [],
     "passed": true,
     "chars": 479,
-    "seconds": 0.01,
+    "seconds": 0.02,
     "tools": [
      {
       "tool": "who_knows",
@@ -287,36 +294,36 @@
    {
     "id": "q11",
     "q": "Was XLSX export agreed as a requirement?",
-    "answer": "2026-09-15: chat change on BD-101: \"Let's add an assignee column to the export. I'm updating BD-101 now.\" (written into BD-101 (v2), shipped in #6).\n2026-09-22: chat change on BD-101: \"the export must support any custom date range up to 12 months (not a fixed 30 days), and it must include all custom fields as extra columns.\" (never written into the ticket, not implemented).\nDRIFT on Ticket export to CSV: maya decided \"the export must support any custom date range up to 12 months (not a fixed 30 days), and it must include all custom fields as extra columns.\" on 2026-09-22 (slack #support-escalations), but BD-101 still says \"Admins can export tickets created in the last 30 days as a CSV file. Columns: id, subject, status, created_at, assignee.\". PRs that shipped the old version: #6. Docs still describing the old version: PRD — Ticket export.\n\nEvidence:\n(Person maya)-[:POSTED]->(Message m_exp_12 @ slack#support-escalations, 2026-09-22T09:40:00Z)-[:CHANGES]->(Requirement \"the export must support any custom date range up to 12 months (not a fixed 30 days), and it must include all custom fields as extra columns.\")-[:AMENDS]->(Ticket BD-101)-[:ABOUT]->(Feature feat_ticket_export_to_csv) ; (PullRequest #6)-[:REFERENCES]->(Ticket BD-101), IMPLEMENTS older \"Admins can export tickets created in the last 30 days as a CSV file. Columns: id, subject, status, created_at, assignee.\" ; (Document DOC-1 \"PRD — Ticket export\", updated 2026-09-15)-[:MENTIONS]->(Ticket BD-101), older than the change\n(Ticket BD-101)-[:STATES]->(Requirement req:BD-101:v1 @ 2026-09-14T04:50:00Z)\n(Decision dec:m_exp_06)-[:CHANGES]->(Requirement req:m_exp_06 @ 2026-09-15T08:40:00Z)-[:SUPERSEDES]->(Requirement req:BD-101:v1)",
+    "answer": "2026-09-15: chat change on BD-101: \"Let's add an assignee column to the export. I'm updating BD-101 now.\" (written into BD-101 (v2), shipped in #6).\n2026-09-22: chat change on BD-101: \"the export must support any custom date range up to 12 months (not a fixed 30 days), and it must include all custom fields as extra columns.\" (never written into the ticket, not implemented).\nDRIFT on Ticket export to CSV: maya decided \"the export must support any custom date range up to 12 months (not a fixed 30 days), and it must include all custom fields as extra columns.\" on 2026-09-22 (slack #support-escalations), but BD-101 still says \"Admins can export tickets created in the last 30 days as a CSV file. Columns: id, subject, status, created_at, assignee.\". PRs that shipped the old version: none. Merged after the decision but not matched to it: #6. Docs still describing the old version: PRD — Ticket export.\n\nEvidence:\n(Ticket BD-101)-[:STATES]->(Requirement req:BD-101:v1 @ 2026-09-14T04:50:00Z)\n(Decision dec:m_exp_06)-[:CHANGES]->(Requirement req:m_exp_06 @ 2026-09-15T08:40:00Z)-[:SUPERSEDES]->(Requirement req:BD-101:v1)\n(Message m_exp_06)-[:CHANGES]->(Requirement req:m_exp_06 @ 2026-09-15T08:40:00Z)-[:SUPERSEDES]->(Requirement req:BD-101:v1)",
     "score": 1.0,
     "hits": [
      true
     ],
     "forbidden": [],
     "passed": true,
-    "chars": 1709,
+    "chars": 1248,
     "seconds": 0.01,
     "tools": [
-     {
-      "tool": "drift_for_feature",
-      "args": {
-       "feature": "feat_ticket_export_to_csv"
-      },
-      "rows": 1
-     },
      {
       "tool": "decision_history",
       "args": {
        "feature": "feat_ticket_export_to_csv"
       },
       "rows": 8
+     },
+     {
+      "tool": "drift_for_feature",
+      "args": {
+       "feature": "feat_ticket_export_to_csv"
+      },
+      "rows": 1
      }
     ]
    },
    {
     "id": "q12",
     "q": "What changed in the export requirements on 15 September, and was it shipped?",
-    "answer": "2026-09-15: chat change on BD-101: \"Let's add an assignee column to the export. I'm updating BD-101 now.\" (written into BD-101 (v2), shipped in #6).\n2026-09-22: chat change on BD-101: \"the export must support any custom date range up to 12 months (not a fixed 30 days), and it must include all custom fields as extra columns.\" (never written into the ticket, not implemented).\nDRIFT on Ticket export to CSV: maya decided \"the export must support any custom date range up to 12 months (not a fixed 30 days), and it must include all custom fields as extra columns.\" on 2026-09-22 (slack #support-escalations), but BD-101 still says \"Admins can export tickets created in the last 30 days as a CSV file. Columns: id, subject, status, created_at, assignee.\". PRs that shipped the old version: #6. Docs still describing the old version: PRD — Ticket export.\n\nEvidence:\n(Person maya)-[:POSTED]->(Message m_exp_12 @ slack#support-escalations, 2026-09-22T09:40:00Z)-[:CHANGES]->(Requirement \"the export must support any custom date range up to 12 months (not a fixed 30 days), and it must include all custom fields as extra columns.\")-[:AMENDS]->(Ticket BD-101)-[:ABOUT]->(Feature feat_ticket_export_to_csv) ; (PullRequest #6)-[:REFERENCES]->(Ticket BD-101), IMPLEMENTS older \"Admins can export tickets created in the last 30 days as a CSV file. Columns: id, subject, status, created_at, assignee.\" ; (Document DOC-1 \"PRD — Ticket export\", updated 2026-09-15)-[:MENTIONS]->(Ticket BD-101), older than the change\n(Ticket BD-101)-[:STATES]->(Requirement req:BD-101:v1 @ 2026-09-14T04:50:00Z)\n(Decision dec:m_exp_06)-[:CHANGES]->(Requirement req:m_exp_06 @ 2026-09-15T08:40:00Z)-[:SUPERSEDES]->(Requirement req:BD-101:v1)",
+    "answer": "2026-09-15: chat change on BD-101: \"Let's add an assignee column to the export. I'm updating BD-101 now.\" (written into BD-101 (v2), shipped in #6).\n2026-09-22: chat change on BD-101: \"the export must support any custom date range up to 12 months (not a fixed 30 days), and it must include all custom fields as extra columns.\" (never written into the ticket, not implemented).\nDRIFT on Ticket export to CSV: maya decided \"the export must support any custom date range up to 12 months (not a fixed 30 days), and it must include all custom fields as extra columns.\" on 2026-09-22 (slack #support-escalations), but BD-101 still says \"Admins can export tickets created in the last 30 days as a CSV file. Columns: id, subject, status, created_at, assignee.\". PRs that shipped the old version: none. Merged after the decision but not matched to it: #6. Docs still describing the old version: PRD — Ticket export.\n\nEvidence:\n(Ticket BD-101)-[:STATES]->(Requirement req:BD-101:v1 @ 2026-09-14T04:50:00Z)\n(Decision dec:m_exp_06)-[:CHANGES]->(Requirement req:m_exp_06 @ 2026-09-15T08:40:00Z)-[:SUPERSEDES]->(Requirement req:BD-101:v1)\n(Message m_exp_06)-[:CHANGES]->(Requirement req:m_exp_06 @ 2026-09-15T08:40:00Z)-[:SUPERSEDES]->(Requirement req:BD-101:v1)",
     "score": 1.0,
     "hits": [
      true,
@@ -324,29 +331,29 @@
     ],
     "forbidden": [],
     "passed": true,
-    "chars": 1709,
+    "chars": 1248,
     "seconds": 0.01,
     "tools": [
-     {
-      "tool": "drift_for_feature",
-      "args": {
-       "feature": "feat_ticket_export_to_csv"
-      },
-      "rows": 1
-     },
      {
       "tool": "decision_history",
       "args": {
        "feature": "feat_ticket_export_to_csv"
       },
       "rows": 8
+     },
+     {
+      "tool": "drift_for_feature",
+      "args": {
+       "feature": "feat_ticket_export_to_csv"
+      },
+      "rows": 1
      }
     ]
    },
    {
     "id": "q13",
     "q": "Who owns BD-101 and which decision makes their shipped work stale?",
-    "answer": "BD-101 is owned by Sofia Alvarez (Backend Engineer).\nTheir shipped work (#6) is stale because of maya's decision on 2026-09-22: \"the export must support any custom date range up to 12 months (not a fixed 30 days), and it must include all custom fields as extra columns.\".\n\nEvidence:\n(Person maya)-[:POSTED]->(Message m_exp_12 @ slack#support-escalations, 2026-09-22T09:40:00Z)-[:CHANGES]->(Requirement \"the export must support any custom date range up to 12 months (not a fixed 30 days), and it must include all custom fields as extra columns.\")-[:AMENDS]->(Ticket BD-101)-[:ABOUT]->(Feature feat_ticket_export_to_csv) ; (PullRequest #6)-[:REFERENCES]->(Ticket BD-101), IMPLEMENTS older \"Admins can export tickets created in the last 30 days as a CSV file. Columns: id, subject, status, created_at, assignee.\" ; (Document DOC-1 \"PRD — Ticket export\", updated 2026-09-15)-[:MENTIONS]->(Ticket BD-101), older than the change",
+    "answer": "BD-101 is owned by Sofia Alvarez (Backend Engineer).\nTheir shipped work (#6) is stale because of maya's decision on 2026-09-22: \"the export must support any custom date range up to 12 months (not a fixed 30 days), and it must include all custom fields as extra columns.\".\n\nEvidence:\n(Person maya)-[:POSTED]->(Message m_exp_12 @ slack#support-escalations, 2026-09-22T09:40:00Z)-[:CHANGES]->(Requirement \"the export must support any custom date range up to 12 months (not a fixed 30 days), and it must include all custom fields as extra columns.\")-[:AMENDS]->(Ticket BD-101)-[:ABOUT]->(Feature feat_ticket_export_to_csv) ; (PullRequest #6)-[:REFERENCES]->(Ticket BD-101), merged after the decision but not matched to it (check), IMPLEMENTS older \"Admins can export tickets created in the last 30 days as a CSV file. Columns: id, subject, status, created_at, assignee.\" ; (Document DOC-1 \"PRD — Ticket export\", updated 2026-09-15)-[:MENTIONS]->(Ticket BD-101), older than the change",
     "score": 1.0,
     "hits": [
      true,
@@ -354,8 +361,8 @@
     ],
     "forbidden": [],
     "passed": true,
-    "chars": 922,
-    "seconds": 0.0,
+    "chars": 979,
+    "seconds": 0.01,
     "tools": [
      {
       "tool": "drift_for_feature",
@@ -369,7 +376,7 @@
    {
     "id": "q14",
     "q": "List the decisions made in Sprint 1 that are not shipped.",
-    "answer": "2026-09-15: chat change on BD-101: \"Let's add an assignee column to the export. I'm updating BD-101 now.\" (written into BD-101 (v2), shipped in #6).\n2026-09-22: chat change on BD-101: \"the export must support any custom date range up to 12 months (not a fixed 30 days), and it must include all custom fields as extra columns.\" (never written into the ticket, not implemented).\nDRIFT on Ticket export to CSV: maya decided \"the export must support any custom date range up to 12 months (not a fixed 30 days), and it must include all custom fields as extra columns.\" on 2026-09-22 (slack #support-escalations), but BD-101 still says \"Admins can export tickets created in the last 30 days as a CSV file. Columns: id, subject, status, created_at, assignee.\". PRs that shipped the old version: #6. Docs still describing the old version: PRD — Ticket export.\n\nEvidence:\n(Person maya)-[:POSTED]->(Message m_exp_12 @ slack#support-escalations, 2026-09-22T09:40:00Z)-[:CHANGES]->(Requirement \"the export must support any custom date range up to 12 months (not a fixed 30 days), and it must include all custom fields as extra columns.\")-[:AMENDS]->(Ticket BD-101)-[:ABOUT]->(Feature feat_ticket_export_to_csv) ; (PullRequest #6)-[:REFERENCES]->(Ticket BD-101), IMPLEMENTS older \"Admins can export tickets created in the last 30 days as a CSV file. Columns: id, subject, status, created_at, assignee.\" ; (Document DOC-1 \"PRD — Ticket export\", updated 2026-09-15)-[:MENTIONS]->(Ticket BD-101), older than the change\n(Ticket BD-101)-[:STATES]->(Requirement req:BD-101:v1 @ 2026-09-14T04:50:00Z)\n(Decision dec:m_exp_06)-[:CHANGES]->(Requirement req:m_exp_06 @ 2026-09-15T08:40:00Z)-[:SUPERSEDES]->(Requirement req:BD-101:v1)",
+    "answer": "2026-09-15: chat change on BD-101: \"Let's add an assignee column to the export. I'm updating BD-101 now.\" (written into BD-101 (v2), shipped in #6).\n2026-09-22: chat change on BD-101: \"the export must support any custom date range up to 12 months (not a fixed 30 days), and it must include all custom fields as extra columns.\" (never written into the ticket, not implemented).\nDRIFT on Ticket export to CSV: maya decided \"the export must support any custom date range up to 12 months (not a fixed 30 days), and it must include all custom fields as extra columns.\" on 2026-09-22 (slack #support-escalations), but BD-101 still says \"Admins can export tickets created in the last 30 days as a CSV file. Columns: id, subject, status, created_at, assignee.\". PRs that shipped the old version: none. Merged after the decision but not matched to it: #6. Docs still describing the old version: PRD — Ticket export.\n\nEvidence:\n(Ticket BD-101)-[:STATES]->(Requirement req:BD-101:v1 @ 2026-09-14T04:50:00Z)\n(Decision dec:m_exp_06)-[:CHANGES]->(Requirement req:m_exp_06 @ 2026-09-15T08:40:00Z)-[:SUPERSEDES]->(Requirement req:BD-101:v1)\n(Message m_exp_06)-[:CHANGES]->(Requirement req:m_exp_06 @ 2026-09-15T08:40:00Z)-[:SUPERSEDES]->(Requirement req:BD-101:v1)",
     "score": 1.0,
     "hits": [
      true,
@@ -379,29 +386,29 @@
      false
     ],
     "passed": true,
-    "chars": 1709,
-    "seconds": 0.0,
+    "chars": 1248,
+    "seconds": 0.01,
     "tools": [
-     {
-      "tool": "drift_for_feature",
-      "args": {
-       "feature": "feat_ticket_export_to_csv"
-      },
-      "rows": 1
-     },
      {
       "tool": "decision_history",
       "args": {
        "feature": "feat_ticket_export_to_csv"
       },
       "rows": 8
+     },
+     {
+      "tool": "drift_for_feature",
+      "args": {
+       "feature": "feat_ticket_export_to_csv"
+      },
+      "rows": 1
      }
     ]
    },
    {
     "id": "q15",
     "q": "Which tickets and PRs are affected by the decision to send SLA warnings 15 minutes before breach?",
-    "answer": "PR #3 \"SLA settings page\" by kenji → BD-104.\nPR #4 \"Freeze time in SLA job test\" by dev → BD-115.\nPR #5 \"SLA breach email notifications\" by dev → BD-103.\n\nEvidence:\n(PullRequest #3)-[:REFERENCES {via: hard}]->(Ticket BD-104)\n(PullRequest #4)-[:REFERENCES {via: hard}]->(Ticket BD-115)\n(PullRequest #5)-[:REFERENCES {via: hard}]->(Ticket BD-103)",
+    "answer": "maya's decision on 2026-09-17 (\"Let's change it: send the warning 15 minutes BEFORE the breach, and post it to the team's Slack channel instead of email. We drop email notifications for this entirely.\") changes BD-103 (owner dev); PRs on it: #5; related tickets: BD-115, BD-109, BD-104.\n\nEvidence:\n(Person maya)-[:MADE]->(Decision dec:m_sla_05)-[:RECORDED_IN]->(Message @ discord#engineering)\n(Decision dec:m_sla_05)-[:CHANGES]->(Requirement)-[:AMENDS]->(Ticket BD-103) <-[:REFERENCES]- PRs [5]; owner dev",
     "score": 1.0,
     "hits": [
      true,
@@ -409,15 +416,22 @@
     ],
     "forbidden": [],
     "passed": true,
-    "chars": 344,
-    "seconds": 0.0,
+    "chars": 505,
+    "seconds": 0.01,
     "tools": [
      {
-      "tool": "feature_prs",
+      "tool": "list_decisions",
       "args": {
        "feature": "feat_sla_breach_notifications"
       },
-      "rows": 3
+      "rows": 1
+     },
+     {
+      "tool": "decision_impact",
+      "args": {
+       "decision": "dec:m_sla_05"
+      },
+      "rows": 1
      }
     ]
    }
@@ -884,5 +898,6 @@
     "tools": null
    }
   ]
- }
+ },
+ "model": null
 }
