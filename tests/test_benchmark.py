@@ -57,3 +57,19 @@ def test_recall_samples_are_fixed_and_labelled():
     labels = json.loads((Path(__file__).resolve().parent.parent / "benchmark" / "real_data_recall_labels.json").read_text(encoding="utf-8"))
     urls = [c["url"] for c in recall_sample() + proposal_sample()]
     assert urls == [l["url"] for l in labels["labels"]] and len(urls) == 60
+
+
+def test_sql_baseline_chain_vs_latest_on_a_buried_decision():
+    """The relational baseline: with the version chain, drift is an anti-join; without it ("newest wins"),
+    a later misread message on the same ticket buries the real decision (benchmark/sql_baseline.py)."""
+    from benchmark.sql_baseline import SQL_CHAIN, SQL_LATEST, load
+    out = {"requirements": [{"id": "req:T-1:v1", "ticket": "T-1", "origin": "ticket", "at_ms": 1, "text": "old"},
+                            {"id": "req:m1", "ticket": "T-1", "origin": "chat", "at_ms": 2, "text": "the decision"},
+                            {"id": "req:m2", "ticket": "T-1", "origin": "chat", "at_ms": 3, "text": "misread status update"}],
+           "changes": [{"id": "req:m1", "msg": "m1", "author": "a"}, {"id": "req:m2", "msg": "m2", "author": "a"}],
+           "ticket_feature": {"T-1": "f"}, "prs": [{"id": "PR-1", "number": 1, "merged_ms": 5}],
+           "pr_links": {"PR-1": [("T-1", "hard", 1.0)]}, "implements": [{"pr": "PR-1", "r": "req:m2"}],
+           "supersedes": [{"new": "req:m1", "old": "req:T-1:v1"}]}  # no chat->chat edge: m2 doesn't replace m1
+    db = load(out)
+    assert {r for r, _ in db.execute(SQL_CHAIN).fetchall()} == {"req:m1"}
+    assert db.execute(SQL_LATEST).fetchall() == []  # newest is m2, and a PR "implements" it: the decision is buried

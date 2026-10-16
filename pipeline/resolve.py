@@ -358,4 +358,7 @@ def resolve(g, extractor_name: str = "llm", semantic: str | None = None, log=pri
     relink(g)
 
     return {"features": features, "msg_feature": msg_feature, "pr_links": pr_links,
-            "classification": cls, "changes": changes, "implements": impl}
+            "classification": cls, "changes": changes, "implements": impl,
+            # plain-data copies of what was written, for consumers that must not read the graph (benchmark/sql_baseline.py)
+            "requirements": [r for rs in reqs_by_ticket.values() for r in rs], "supersedes": pairs, "prs": prs,
+            "ticket_feature": feat_of_ticket}

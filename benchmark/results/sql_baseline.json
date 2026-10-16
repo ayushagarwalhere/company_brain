@@ -1,0 +1,129 @@
+{
+ "note": "same extracted facts on both sides; the SQL side never reads the graph",
+ "lines_of_query_code": {
+  "graph DRIFT (Cypher)": 24,
+  "sql_chain drift": 6,
+  "sql_latest drift": 8,
+  "graph current requirement": 1,
+  "sql current requirement": 1
+ },
+ "results": [
+  {
+   "dataset": "demo (300 messages)",
+   "requirements": 21,
+   "chat_changes": 4,
+   "drift": {
+    "graph": {
+     "found": 2,
+     "true": 2,
+     "false": 0,
+     "missed": 0
+    },
+    "sql_chain": {
+     "found": 2,
+     "true": 2,
+     "false": 0,
+     "missed": 0
+    },
+    "sql_latest": {
+     "found": 2,
+     "true": 2,
+     "false": 0,
+     "missed": 0
+    }
+   },
+   "same_drift_as_graph": {
+    "sql_chain": true,
+    "sql_latest": true
+   },
+   "same_stale_prs_as_graph": {
+    "sql_chain": true,
+    "sql_latest": true
+   },
+   "same_current_requirements_as_graph": true,
+   "p50_ms": {
+    "graph": 5.1,
+    "sql_chain": 0.01,
+    "sql_latest": 0.06
+   }
+  },
+  {
+   "dataset": "demo + 500 noise messages",
+   "requirements": 38,
+   "chat_changes": 21,
+   "drift": {
+    "graph": {
+     "found": 16,
+     "true": 2,
+     "false": 14,
+     "missed": 0
+    },
+    "sql_chain": {
+     "found": 16,
+     "true": 2,
+     "false": 14,
+     "missed": 0
+    },
+    "sql_latest": {
+     "found": 5,
+     "true": 0,
+     "false": 5,
+     "missed": 2
+    }
+   },
+   "same_drift_as_graph": {
+    "sql_chain": true,
+    "sql_latest": false
+   },
+   "same_stale_prs_as_graph": {
+    "sql_chain": true,
+    "sql_latest": false
+   },
+   "same_current_requirements_as_graph": true,
+   "p50_ms": {
+    "graph": 11.11,
+    "sql_chain": 0.04,
+    "sql_latest": 0.1
+   }
+  },
+  {
+   "dataset": "stress test (20,800 messages)",
+   "requirements": 900,
+   "chat_changes": 200,
+   "drift": {
+    "graph": {
+     "found": 100,
+     "true": 100,
+     "false": 0,
+     "missed": 0
+    },
+    "sql_chain": {
+     "found": 100,
+     "true": 100,
+     "false": 0,
+     "missed": 0
+    },
+    "sql_latest": {
+     "found": 100,
+     "true": 100,
+     "false": 0,
+     "missed": 0
+    }
+   },
+   "same_drift_as_graph": {
+    "sql_chain": true,
+    "sql_latest": true
+   },
+   "same_stale_prs_as_graph": {
+    "sql_chain": true,
+    "sql_latest": true
+   },
+   "same_current_requirements_as_graph": true,
+   "p50_ms": {
+    "graph": 121.07,
+    "sql_chain": 1.52,
+    "sql_latest": 12.57
+   }
+  }
+ ]
+}
