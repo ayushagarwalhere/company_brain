@@ -60,9 +60,13 @@ export type TicketRow = { id: string; title: string; description: string; state:
 export type TicketUpdate = { status: string; ticket: string; version?: string; resolved?: string[]; still_drifting?: string[]; new_drift?: string[] };
 export type LiveEvent = { type: "drift" | "message" | "resolved" | "ticket" | "pr" | "rebuild"; at: number; [k: string]: unknown };
 
+/** Multi-tenancy: ?org=acme in the page URL scopes every request to that org's graph. */
+export const ORG = typeof window !== "undefined" ? new URLSearchParams(window.location.search).get("org") : null;
+
 async function req<T>(path: string, body?: unknown): Promise<T> {
-  const res = await fetch(path, body === undefined ? undefined : {
-    method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(body),
+  const headers: Record<string, string> = ORG ? { "X-Org": ORG } : {};
+  const res = await fetch(path, body === undefined ? { headers } : {
+    method: "POST", headers: { ...headers, "Content-Type": "application/json" }, body: JSON.stringify(body),
   });
   if (!res.ok) {
     const detail = await res.json().then((j) => j.detail).catch(() => null);

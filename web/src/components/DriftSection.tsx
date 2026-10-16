@@ -13,6 +13,7 @@ function DriftCard({ d, i }: { d: Drift; i: number }) {
   const { refresh, openPerson, focusOn, specFor, actor } = useBrain();
   const [busy, setBusy] = useState<string | null>(null);
   const [done, setDone] = useState<string | null>(null);
+  const [open, setOpen] = useState(false);
 
   const act = async (kind: "write-to-ticket" | "dismiss") => {
     setBusy(kind);
@@ -32,36 +33,59 @@ function DriftCard({ d, i }: { d: Drift; i: number }) {
     <motion.article layout className={`violation ${done ? "resolving" : ""}`}
       initial={{ opacity: 0, y: 24 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, x: 40, transition: { duration: 0.4 } }}
       transition={{ duration: 0.7, delay: i * 0.08, ease: [0.2, 0.7, 0.1, 1] }}>
-      <div className="violation__head">
-        <span className="mono violation__tag">Drift {String(i + 1).padStart(2, "0")} · {d.ticket}</span>
-        <span className="mono muted">{day(d.changed_at)} · {d.source} #{d.channel}</span>
-      </div>
-      <h3>{d.feature_name}</h3>
-      <div className="violation__meta">
-        <button className="person-link" onClick={() => openPerson(d.changed_by)}>{d.changed_by}</button> changed the requirement in{" "}
-        <Link url={d.message_url}>{d.source} #{d.channel}</Link>. {d.ticket} was never updated.
-      </div>
+      <header className="dc__head">
+        <div>
+          <span className="mono dc__tag">Drift {String(i + 1).padStart(2, "0")}</span>
+          <h3>{d.feature_name}</h3>
+        </div>
+        <span className="mono dc__when">{day(d.changed_at)}<br />{d.source} #{d.channel}</span>
+      </header>
+
       <div className="diff">
         <div><span className="mono">{d.ticket} still says</span><p>{d.ticket_text}</p></div>
-        <div className="now"><span className="mono">Decided in chat</span><p>{d.requirement_text}</p></div>
+        <div className="now">
+          <span className="mono">Decided in chat · <button className="person-link" onClick={() => openPerson(d.changed_by)}>{d.changed_by}</button></span>
+          <p>{d.requirement_text}</p>
+        </div>
       </div>
-      {d.stale_prs.length > 0 && (
-        <div className="stale">Shipped the old version: {d.stale_prs.map((p, k) => <span key={p.pr}>{k ? ", " : ""}<Link url={p.url}>#{p.pr} {p.title}</Link></span>)}</div>
-      )}
-      {d.stale_docs.length > 0 && (
-        <div className="stale">Docs still describing the old version: {d.stale_docs.map((x, k) => <span key={x.id}>{k ? ", " : ""}{x.title} <span className="muted">(updated {day(x.updated)})</span></span>)}</div>
-      )}
-      <div className="mono kicker">Evidence path</div>
-      <PathChips path={d.path} />
+
+      <div className="trail" aria-label="How the drift happened">
+        <span className="trail__node trail__node--msg"><i />Message<small><Link url={d.message_url}>{d.changed_by} · {day(d.changed_at)}</Link></small></span>
+        <span className="trail__edge">changes</span>
+        <span className="trail__node trail__node--req"><i />Requirement<small>newest · unshipped</small></span>
+        <span className="trail__edge">amends</span>
+        <span className="trail__node trail__node--ticket"><i />{d.ticket}<small>never updated</small></span>
+        {(d.stale_prs.length > 0 || d.stale_docs.length > 0) && <>
+          <span className="trail__edge trail__edge--broken">still on old</span>
+          <span className="trail__stale">
+            {d.stale_prs.map((p) => <span key={p.pr} className="stale-chip"><b>PR</b><Link url={p.url}>#{p.pr}</Link></span>)}
+            {d.stale_docs.map((x) => <span key={x.id} className="stale-chip" title={`${x.title} · updated ${day(x.updated)}`}><b>DOC</b>{x.id}</span>)}
+          </span>
+        </>}
+      </div>
+
       {done && <div className="resolved-note mono">{done}</div>}
-      <div className="actions">
-        <button className="btn btn--sm" disabled={!!busy} onClick={() => act("write-to-ticket")} title="Make the decided requirement the ticket's next version">
-          {busy === "write-to-ticket" ? "Writing…" : `Write to ${d.ticket}`}
-        </button>
-        <button className="btn btn--ghost btn--sm" disabled={!!busy} onClick={() => act("dismiss")} title="Record a decision to keep the old scope">Keep old scope</button>
-        <button className="btn btn--ghost btn--sm" onClick={() => focusOn(d.feature)}>Show in graph</button>
-        <button className="btn btn--ghost btn--sm" onClick={() => void specFor(d.feature)}>Generate spec</button>
-      </div>
+
+      <footer className="dc__foot">
+        <div className="dc__actions">
+          <button className="btn btn--sm" disabled={!!busy} onClick={() => act("write-to-ticket")} title="Make the decided requirement the ticket's next version">
+            {busy === "write-to-ticket" ? "Writing…" : `Write to ${d.ticket}`}
+          </button>
+          <button className="btn btn--ghost btn--sm" disabled={!!busy} onClick={() => act("dismiss")} title="Record a decision to keep the old scope">Keep old scope</button>
+        </div>
+        <div className="dc__links mono">
+          <button onClick={() => focusOn(d.feature)}>Graph ↗</button>
+          <button onClick={() => void specFor(d.feature)}>Spec ↗</button>
+          <button onClick={() => setOpen((o) => !o)} aria-expanded={open}>{open ? "Hide path" : "Graph path"} {open ? "▴" : "▾"}</button>
+        </div>
+      </footer>
+      <AnimatePresence initial={false}>
+        {open && (
+          <motion.div className="dc__path" initial={{ height: 0, opacity: 0 }} animate={{ height: "auto", opacity: 1 }} exit={{ height: 0, opacity: 0 }} transition={{ duration: 0.3 }}>
+            <PathChips path={d.path} />
+          </motion.div>
+        )}
+      </AnimatePresence>
     </motion.article>
   );
 }

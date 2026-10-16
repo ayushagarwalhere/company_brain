@@ -29,7 +29,7 @@ Drift definition (time-ordered path query):
 - [`DECISION_HISTORY`](#decision_history): How a feature's requirements evolved: each version, its source (ticket or chat), what it supersedes, which PRs implement it
 - [`WHO_KNOWS`](#who_knows): Who knows a topic: people connected to the feature through anything they wrote, weighted by kind (a decision or PR counts more than a chat message).
 - [`DECISION_IMPACT`](#decision_impact): Impact: everything reachable downstream of a decision (requirement -> ticket -> PRs, people)
-- [`CONNECTION`](#connection): How are two things connected? Bounded undirected search over causal relationships (FalkorDB's shortestPath is directed-only). ABOUT is left out on purpose: going through the Feature hub is always short and explains nothing.
+- [`CONNECTION`](#connection): How are two things connected? FalkorDB's algo.SPpaths finds the shortest path with relDirection 'both' (Cypher shortestPath is directed-only in FalkorDB). An earlier version enumerated every undirected path up to 7 hops and sorted them, which timed out at ~24k messages (benchmark/scale.py); SPpaths answers the same question in milliseconds. ABOUT is left out on purpose: going through the Feature hub is always short and explains nothing. __LA__ / __LB__ are replaced by labels from label_of() (whitelisted), so both endpoints come from an index seek.
 - [`ORPHAN_PRS`](#orphan_prs): Coverage: merged work that no ticket explains
 - [`DONE_WITHOUT_PR`](#done_without_pr): Coverage: tickets closed as Done with no PR referencing them
 - [`UNDISCUSSED_TICKETS`](#undiscussed_tickets): Coverage: tickets no chat message ever mentions
@@ -66,7 +66,7 @@ RETURN f.id AS feature, f.name AS feature_name, t.id AS ticket, t.title AS ticke
 ORDER BY changed_ms
 ```
 
-Used by: [`agent/retro.py`](../agent/retro.py), [`agent/tools.py`](../agent/tools.py), [`api/main.py`](../api/main.py), [`benchmark/score_resolution.py`](../benchmark/score_resolution.py), [`bots/digest.py`](../bots/digest.py), [`graph/explore.py`](../graph/explore.py), [`pipeline/actions.py`](../pipeline/actions.py), [`pipeline/build.py`](../pipeline/build.py), [`pipeline/live.py`](../pipeline/live.py), [`pipeline/webhooks.py`](../pipeline/webhooks.py)
+Used by: [`agent/retro.py`](../agent/retro.py), [`agent/tools.py`](../agent/tools.py), [`api/main.py`](../api/main.py), [`benchmark/scale.py`](../benchmark/scale.py), [`benchmark/score_resolution.py`](../benchmark/score_resolution.py), [`bots/digest.py`](../bots/digest.py), [`graph/explore.py`](../graph/explore.py), [`pipeline/actions.py`](../pipeline/actions.py), [`pipeline/build.py`](../pipeline/build.py), [`pipeline/live.py`](../pipeline/live.py), [`pipeline/webhooks.py`](../pipeline/webhooks.py)
 
 ## SPRINT_DECISIONS
 
@@ -178,17 +178,17 @@ Used by: [`agent/tools.py`](../agent/tools.py)
 
 ## CONNECTION
 
-How are two things connected? Bounded undirected search over causal relationships (FalkorDB's shortestPath is directed-only). ABOUT is left out on purpose: going through the Feature hub is always short and explains nothing.
+How are two things connected? FalkorDB's algo.SPpaths finds the shortest path with relDirection 'both' (Cypher shortestPath is directed-only in FalkorDB). An earlier version enumerated every undirected path up to 7 hops and sorted them, which timed out at ~24k messages (benchmark/scale.py); SPpaths answers the same question in milliseconds. ABOUT is left out on purpose: going through the Feature hub is always short and explains nothing. __LA__ / __LB__ are replaced by labels from label_of() (whitelisted), so both endpoints come from an index seek.
 
 ```cypher
-MATCH (a {id: $a}), (b {id: $b})
-MATCH p = (a)-[:POSTED|REPLY_TO|CHANGES|AMENDS|STATES|REFERENCES|IMPLEMENTS|MADE|AUTHORED|ASSIGNED_TO|SUPERSEDES|MENTIONS|RECORDED_IN*1..7]-(b)
-RETURN [n IN nodes(p) | {id: n.id, type: labels(n)[0]}] AS nodes, [r IN relationships(p) | type(r)] AS rels,
-       [r IN relationships(p) | startNode(r).id] AS starts, length(p) AS hops
-ORDER BY hops LIMIT 1
+MATCH (a:__LA__ {id: $a}), (b:__LB__ {id: $b})
+CALL algo.SPpaths({sourceNode: a, targetNode: b, relDirection: 'both', maxLen: 7, pathCount: 1,
+                   relTypes: ['POSTED', 'REPLY_TO', 'CHANGES', 'AMENDS', 'STATES', 'REFERENCES', 'IMPLEMENTS', 'MADE',
+                              'AUTHORED', 'ASSIGNED_TO', 'SUPERSEDES', 'MENTIONS', 'RECORDED_IN']})
+YIELD path
+RETURN [n IN nodes(path) | {id: n.id, type: labels(n)[0]}] AS nodes, [r IN relationships(path) | type(r)] AS rels,
+       [r IN relationships(path) | startNode(r).id] AS starts, length(path) AS hops
 ```
-
-Used by: [`agent/tools.py`](../agent/tools.py)
 
 ## ORPHAN_PRS
 

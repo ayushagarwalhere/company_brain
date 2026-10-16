@@ -33,6 +33,20 @@ def _rows(g, q, params=None):
     return [dict(zip(cols, r)) for r in res.result_set]
 
 
+PAGE = 5000  # FalkorDB caps result sets (RESULTSET_SIZE, 10k in the Docker image): large reads must page
+
+
+def _rows_paged(g, q, params=None, page: int = PAGE):
+    """Runs a query that ends in a stable ORDER BY, page by page, so no server-side cap truncates it."""
+    out, skip = [], 0
+    while True:
+        batch = _rows(g, q + " SKIP $_skip LIMIT $_limit", {**(params or {}), "_skip": skip, "_limit": page})
+        out += batch
+        if len(batch) < page:
+            return out
+        skip += page
+
+
 def load_tickets(g):
     return _rows(g, """MATCH (t:Ticket) OPTIONAL MATCH (t)-[:ASSIGNED_TO]->(p:Person)
                        RETURN t.id AS id, t.title AS title, t.description AS description,
@@ -42,12 +56,12 @@ def load_tickets(g):
 
 
 def load_messages(g):
-    return _rows(g, """MATCH (a:Person)-[:POSTED]->(m:Message)
+    return _rows_paged(g, """MATCH (a:Person)-[:POSTED]->(m:Message)
                        OPTIONAL MATCH (m)-[:REPLY_TO]->(parent:Message)
                        OPTIONAL MATCH (m)-[:MENTIONS]->(t:Ticket)
                        RETURN m.id AS id, m.text AS text, m.ts AS ts, m.ts_ms AS ts_ms, m.channel AS channel,
                               m.source AS source, a.id AS author, parent.id AS parent, collect(t.id) AS mentions
-                       ORDER BY m.ts_ms""")
+                       ORDER BY ts_ms, id""")
 
 
 def load_prs(g):
@@ -275,8 +289,8 @@ def resolve(g, extractor_name: str = "deepseek", semantic: str | None = None, lo
 
     # 6. SUPERSEDES chains per ticket ----------------------------------------------
     reqs_by_ticket = defaultdict(list)
-    for r in _rows(g, """MATCH (q:Requirement) RETURN q.id AS id, q.ticket AS ticket, q.text AS text, q.origin AS origin,
-                                                       q.at AS at, q.at_ms AS at_ms ORDER BY q.at_ms, q.id"""):
+    for r in _rows_paged(g, """MATCH (q:Requirement) RETURN q.id AS id, q.ticket AS ticket, q.text AS text, q.origin AS origin,
+                                                       q.at AS at, q.at_ms AS at_ms ORDER BY at_ms, id"""):
         reqs_by_ticket[r["ticket"]].append(r)
     pairs = [] if "supersession" in ablate else [
         p for chain in reqs_by_ticket.values() for p in supersession_pairs(chain, ex.reflects)]

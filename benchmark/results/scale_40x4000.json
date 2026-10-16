@@ -1,0 +1,30 @@
+{
+ "features": 40,
+ "messages": 4160,
+ "tickets": 120,
+ "prs": 40,
+ "ingest_s": 1.01,
+ "resolve_s": 0.66,
+ "nodes": 4620,
+ "relationships": 5540,
+ "drift_expected": 20,
+ "drift_found": 20,
+ "drift_precision": 1.0,
+ "drift_recall": 1.0,
+ "query_drift_all": {
+  "p50_ms": 7.7,
+  "p95_ms": 7.87
+ },
+ "query_drift_one_ticket": {
+  "p50_ms": 1.35,
+  "p95_ms": 1.52
+ },
+ "query_connection": {
+  "p50_ms": 66.6,
+  "p95_ms": 69.14
+ },
+ "query_requirements_of_ticket": {
+  "p50_ms": 0.71,
+  "p95_ms": 1.23
+ }
+}

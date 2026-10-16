@@ -2,24 +2,96 @@
 
     uvicorn api.main:app --reload --port 8000     -> http://localhost:8000
 """
+import logging
+import time
 import uuid
+from contextlib import asynccontextmanager
 from datetime import datetime, timezone
 from pathlib import Path
 
-from fastapi import FastAPI, Header, HTTPException, Request
+from fastapi import Depends, FastAPI, Header, HTTPException, Request
 from fastapi.responses import FileResponse, StreamingResponse
 from fastapi.staticfiles import StaticFiles
 from pydantic import BaseModel
 
 from agent import retro as retro_mod
 from api import bus
+from api.cache import cached
+from api.cache import stats as cache_stats
 from agent import tools
 from graph import queries as Q
 from graph.db import get_graph
 from pipeline.events import Event, from_ms
 
 WEB_DIST = Path(__file__).resolve().parent.parent / "web" / "dist"  # React app: `cd web && npm run build`
-app = FastAPI(title="Context Graph Drift Monitor")
+@asynccontextmanager
+async def lifespan(_app):
+    """Receive events published by other processes (bots, CLI) over FalkorDB's Redis pub/sub."""
+    stop = bus.start_listener()
+    yield
+    stop.set()
+
+
+app = FastAPI(title="Context Graph Drift Monitor", version="1.0", lifespan=lifespan,
+              description="FalkorDB context graph: chat, docs, tickets and PRs linked per requirement; drift detection with graph-path evidence.")
+
+
+def _cors() -> None:
+    """Opt-in CORS (CORS_ORIGINS=comma,separated,origins) for a frontend served from another origin."""
+    import os
+    origins = [o.strip() for o in os.getenv("CORS_ORIGINS", "").split(",") if o.strip()]
+    if origins:
+        from fastapi.middleware.cors import CORSMiddleware
+        app.add_middleware(CORSMiddleware, allow_origins=origins, allow_methods=["GET", "POST"], allow_headers=["*"])
+
+
+_cors()
+
+
+log = logging.getLogger("api")
+SLOW_MS = 250.0
+
+
+@app.middleware("http")
+async def org_scope(request: Request, call_next):
+    """Multi-tenancy: X-Org header (or ?org=, for EventSource) selects the org's isolated graph."""
+    from fastapi.responses import JSONResponse
+    from graph.db import set_org
+    org = request.headers.get("x-org") or request.query_params.get("org")
+    try:
+        token = set_org(org)
+    except ValueError as e:
+        return JSONResponse({"detail": str(e)}, status_code=400)
+    try:
+        return await call_next(request)
+    finally:
+        from graph.db import _org
+        _org.reset(token)
+
+
+@app.middleware("http")
+async def timing(request: Request, call_next):
+    """Server-Timing header on every response (shows in browser dev tools); slow requests are logged."""
+    t0 = time.perf_counter()
+    response = await call_next(request)
+    ms = (time.perf_counter() - t0) * 1000
+    if request.url.path != "/api/events":  # the SSE stream is long-lived by design
+        response.headers["Server-Timing"] = f"app;dur={ms:.1f}"
+        if ms > SLOW_MS:
+            log.warning("slow request %s %s %.0fms", request.method, request.url.path, ms)
+    return response
+
+
+def require_ingest_token(authorization: str | None = Header(default=None), x_ingest_token: str | None = Header(default=None)):
+    """Write endpoints (webhooks, reset) need INGEST_TOKEN when it's set. Open when unset (local demo)."""
+    import hmac
+    import os
+    expected = os.getenv("INGEST_TOKEN", "")
+    if not expected:
+        return
+    given = x_ingest_token or (authorization[7:] if authorization and authorization.lower().startswith("bearer ") else "")
+    if not hmac.compare_digest(given or "", expected):
+        raise HTTPException(401, "missing or invalid ingest token")
 
 
 class AskIn(BaseModel):
@@ -47,6 +119,10 @@ def health():
 
 @app.get("/api/stats")
 def stats():
+    return cached("stats", _stats)
+
+
+def _stats():
     g = get_graph()
     nodes = Q.rows(g, "MATCH (n) RETURN labels(n)[0] AS label, count(*) AS n ORDER BY n DESC")
     rels = Q.rows(g, "MATCH ()-[r]->() RETURN type(r) AS type, count(*) AS n ORDER BY n DESC")
@@ -54,13 +130,17 @@ def stats():
     nodes = [n for n in nodes if n["label"] != "Build"]
     from config import settings
     from pipeline import llm
-    ok = llm.available()
+    ok, reason = llm.peek()  # never blocks the dashboard on a network call
     return {"nodes": nodes, "relationships": rels, "build": build[0] if build else None,
-            "llm": {"model": settings.deepseek_model, "available": ok, "reason": "" if ok else llm.unavailable_reason()}}
+            "llm": {"model": settings.deepseek_model, "available": bool(ok), "reason": reason}}
 
 
 @app.get("/api/features")
 def features():
+    return cached("features", _features)
+
+
+def _features():
     g = get_graph()
     rows = Q.rows(g, """MATCH (f:Feature) OPTIONAL MATCH (t:Ticket)-[:ABOUT]->(f)
                         WITH f, collect(t.id) AS tickets
@@ -76,6 +156,10 @@ def features():
 
 @app.get("/api/drift")
 def drift(feature: str | None = None):
+    return cached("drift", _drift, feature)
+
+
+def _drift(feature: str | None = None):
     rows = Q.drift(get_graph(), feature=feature)
     for d in rows:
         d["path"] = tools.drift_path(d)
@@ -177,6 +261,10 @@ def feature_graph(feature: str):
 
 @app.get("/api/coverage")
 def coverage():
+    return cached("coverage", _coverage)
+
+
+def _coverage():
     """Holes in the company's knowledge: unlinked work, undiscussed tickets, concentrated expertise."""
     g = get_graph()
     return {
@@ -286,7 +374,7 @@ def drift_dismiss(body: DriftActionIn):
     return out
 
 
-@app.post("/api/demo/reset")
+@app.post("/api/demo/reset", dependencies=[Depends(require_ingest_token)])
 def demo_reset():
     """Rebuilds the graph from the source data: undoes simulated messages, ticket writes and dismissals."""
     from pipeline import live
@@ -299,7 +387,8 @@ def demo_reset():
     extractor = prev[0]["e"] if prev else ("deepseek" if llm.available() else "heuristic")
     if extractor == "deepseek" and not llm.available():
         extractor = "heuristic"  # the key stopped working (no balance, revoked): rebuild without the LLM
-    ingest(reset=True)
+    from graph.db import current_graph_name
+    ingest(reset=True, graph_name=current_graph_name())
     g = get_graph()
     resolve(g, extractor, log=lambda *_: None)
     mark_build(g, extractor)
@@ -312,10 +401,42 @@ def demo_reset():
 
 @app.get("/api/events")
 async def events():
-    """Server-Sent Events: drift / message / resolved / ticket / pr / rebuild, pushed as they happen."""
-    q = bus.subscribe()
+    """Server-Sent Events: drift / message / resolved / ticket / pr / rebuild, pushed as they happen (per org)."""
+    from graph.db import current_org
+    q = bus.subscribe(current_org())
     return StreamingResponse(bus.stream(q), media_type="text/event-stream",
                              headers={"Cache-Control": "no-cache", "X-Accel-Buffering": "no"})
+
+
+@app.get("/api/orgs")
+def orgs():
+    from graph.db import current_org, list_orgs
+    return {"current": current_org(), "orgs": list_orgs()}
+
+
+@app.post("/api/orgs/{org}/bootstrap", dependencies=[Depends(require_ingest_token)])
+def bootstrap_org(org: str):
+    """Creates (or rebuilds) an org's isolated graph from the demo data, so a new tenant can be tried at once."""
+    from graph.db import org_graph_name
+    from pipeline import llm
+    from pipeline.build import mark_build
+    from pipeline.ingest import ingest
+    from pipeline.resolve import resolve
+    try:
+        name = org_graph_name(org)
+    except ValueError as e:
+        raise HTTPException(400, str(e))
+    extractor = "deepseek" if llm.available() else "heuristic"
+    counts = ingest(reset=True, graph_name=name)
+    g = get_graph(name)
+    resolve(g, extractor, log=lambda *_: None)
+    mark_build(g, extractor)
+    return {"org": org, "graph": name, "extractor": extractor, "nodes": sum(counts["nodes"].values())}
+
+
+@app.get("/api/cache")
+def cache_info():
+    return {"version": bus.version, **cache_stats}
 
 
 @app.get("/api/events/recent")
@@ -336,7 +457,7 @@ class TicketUpdateIn(BaseModel):
     actor: str = "maya"
 
 
-@app.post("/api/ingest/ticket")
+@app.post("/api/ingest/ticket", dependencies=[Depends(require_ingest_token)])
 def ingest_ticket(body: TicketUpdateIn):
     """Ticket-tracker webhook (Linear/Jira-style): a description changed."""
     from pipeline.webhooks import ticket_updated
@@ -349,7 +470,7 @@ def ingest_ticket(body: TicketUpdateIn):
     return out
 
 
-@app.post("/api/ingest/github")
+@app.post("/api/ingest/github", dependencies=[Depends(require_ingest_token)])
 async def ingest_github(request: Request, x_github_event: str | None = Header(default=None),
                         x_hub_signature_256: str | None = Header(default=None)):
     """GitHub webhook (pull_request events). Verified with GITHUB_WEBHOOK_SECRET when it is set."""

@@ -23,8 +23,10 @@ def search(g, text: str, limit: int = 12) -> list[dict]:
     results: list[dict] = []
     if ID_LIKE.match(text):
         nid = text.upper().replace("#", "PR-")
-        results += Q.rows(g, """MATCH (n {id: $id}) RETURN n.id AS id, labels(n)[0] AS type,
-                                coalesce(n.title, n.name, n.text) AS label, 9.0 AS score""", id=nid)
+        label = Q.label_of(g, nid)
+        if label:
+            results += Q.rows(g, f"""MATCH (n:{label} {{id: $id}}) RETURN n.id AS id, labels(n)[0] AS type,
+                                    coalesce(n.title, n.name, n.text) AS label, 9.0 AS score""", id=nid)
     low = text.lower()
     results += [{"id": p["id"], "type": "Person", "label": p["name"], "score": 9.0}
                 for p in Q.rows(g, "MATCH (p:Person) RETURN p.id AS id, p.name AS name")
@@ -48,11 +50,15 @@ def search(g, text: str, limit: int = 12) -> list[dict]:
         seen.add(r["id"])
         out.append(r)
     ids = [r["id"] for r in out[:limit]]
-    feats = {r["id"]: r["feature"] for r in Q.rows(g, """
-        UNWIND $ids AS i MATCH (n {id: i})
-        OPTIONAL MATCH (n)-[:ABOUT]->(f:Feature)
-        OPTIONAL MATCH (n)-[:REFERENCES|MENTIONS]->(:Ticket)-[:ABOUT]->(f2:Feature)
-        RETURN i AS id, coalesce(f.id, f2.id) AS feature""", ids=ids)}
+    feats = {}
+    for label in {r["type"] for r in out[:limit]}:  # one indexed lookup per label present in the hits
+        if label not in Q.LABELS:
+            continue
+        feats.update({r["id"]: r["feature"] for r in Q.rows(g, f"""
+            UNWIND $ids AS i MATCH (n:{label} {{id: i}})
+            OPTIONAL MATCH (n)-[:ABOUT]->(f:Feature)
+            OPTIONAL MATCH (n)-[:REFERENCES|MENTIONS]->(:Ticket)-[:ABOUT]->(f2:Feature)
+            RETURN i AS id, coalesce(f.id, f2.id) AS feature""", ids=[r["id"] for r in out[:limit] if r["type"] == label])})
     for r in out[:limit]:
         r["feature"] = feats.get(r["id"])
     return out[:limit]
@@ -94,7 +100,10 @@ def person(g, pid: str) -> dict | None:
 
 
 def neighbors(g, nid: str, limit: int = 40) -> dict:
-    rows = Q.rows(g, """MATCH (n {id: $id})-[r]-(m)
+    label = Q.label_of(g, nid)
+    if not label:
+        return {"nodes": [], "edges": []}
+    rows = Q.rows(g, f"""MATCH (n:{label} {{id: $id}})-[r]-(m)
                         WHERE NOT m:Sprint AND NOT m:Build
                         RETURN m.id AS id, labels(m)[0] AS type, coalesce(m.title, m.name, m.text, m.id) AS label,
                                coalesce(m.text, m.description, m.title) AS text, m.number AS number,

@@ -52,6 +52,29 @@ def unavailable_reason() -> str:
     return _status["reason"]
 
 
+_refreshing = {"on": False}
+
+
+def peek(ttl: float = 300.0) -> tuple[bool | None, str]:
+    """Non-blocking status for read paths (dashboard stats): returns the last known result at once and,
+    if it's missing or stale, refreshes it in a background thread. None = not checked yet."""
+    import threading
+    import time
+    if not settings.deepseek_api_key:
+        return False, "DEEPSEEK_API_KEY not set"
+    stale = _status["ok"] is None or time.time() - _status["at"] >= ttl
+    if stale and not _refreshing["on"]:
+        _refreshing["on"] = True
+
+        def run():
+            try:
+                available(ttl=0)
+            finally:
+                _refreshing["on"] = False
+        threading.Thread(target=run, daemon=True).start()
+    return _status["ok"], _status["reason"] if _status["ok"] is False else ("checking…" if _status["ok"] is None else "")
+
+
 def chat_json(system: str, user: str, *, temperature: float = 0.0, use_cache: bool = True) -> dict:
     key = hashlib.sha256(f"{settings.deepseek_model}\n{system}\n{user}".encode()).hexdigest()[:24]
     path = CACHE_DIR / f"{key}.json"

@@ -2,6 +2,7 @@ import { motion, useReducedMotion, useScroll, useTransform } from "framer-motion
 import { lazy, Suspense, useEffect, useRef, useState } from "react";
 import { useBrain } from "../lib/brain";
 import { day, useStaticMode } from "../lib/ui";
+import { ErrorBoundary } from "./ErrorBoundary";
 import { CountUp, EASE, Reveal, SplitText } from "./Motion";
 
 const Planet3D = lazy(() => import("./Planet3D"));
@@ -33,7 +34,7 @@ function useLightTheme() {
 }
 
 export function Hero() {
-  const [gl] = useState(webglOK);
+  const [gl, setGl] = useState(webglOK);
   const [ready, setReady] = useState(false);
   const light = useLightTheme();
   const { setPaletteOpen } = useBrain();
@@ -44,9 +45,11 @@ export function Hero() {
   return (
     <header className={`hero ${gl && ready ? "hero--3d" : ""}`} id="top" ref={ref}>
       {gl && (
-        <Suspense fallback={null}>
-          <Planet3DReady key={light ? "light" : "dark"} light={light} onReady={() => setReady(true)} />
-        </Suspense>
+        <ErrorBoundary onError={() => { setGl(false); setReady(false); }}>
+          <Suspense fallback={null}>
+            <Planet3DReady key={light ? "light" : "dark"} light={light} onReady={() => setReady(true)} />
+          </Suspense>
+        </ErrorBoundary>
       )}
       <div className="sky" aria-hidden>
         <motion.span className="stars" style={{ y: starsY }} />

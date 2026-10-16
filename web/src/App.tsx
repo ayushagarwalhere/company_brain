@@ -10,6 +10,7 @@ import { Toasts } from "./components/Toasts";
 export default function App() {
   return (
     <BrainProvider>
+      <a className="skip" href="#drift">Skip to open drift</a>
       <Loader />
       <Nav />
       <Hero />

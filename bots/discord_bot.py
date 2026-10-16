@@ -53,6 +53,9 @@ async def on_message(msg: discord.Message):
         return
     log.info("%s -> %s", ev.id, result.get("status"))
     if result.get("status") == "drift":
+        from api import bus  # cross-process: shows up live on every open dashboard
+        bus.publish("drift", status="drift", feature=result.get("feature"), ticket=result.get("ticket"),
+                    author=ev.author, text=ev.text[:160])
         await send_long(msg, result["alert"].replace(":warning:", "⚠️"), reply=True)
 
 

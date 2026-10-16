@@ -83,7 +83,7 @@ def list_decisions(feature: str | None = None) -> dict:
 
 def how_connected(a: str, b: str) -> dict:
     """Shortest causal chain between two ids (person, message, ticket BD-.., PR-n, decision dec:..)."""
-    rows = Q.rows(_g(), Q.CONNECTION, a=a, b=b)
+    rows = Q.connection(_g(), a, b)
     paths = []
     for r in rows:
         parts = [f"({r['nodes'][0]['type']} {r['nodes'][0]['id']})"]

@@ -165,7 +165,7 @@ RETURN f, t, r, m, author, collect({pr: pr.number, implements: old.text}) AS sta
 | `KNOWLEDGE_RISK` | per feature, the share of weighted involvement held by the top person (bus factor) |
 | full-text search | `CALL db.idx.fulltext.createNodeIndex('Message', 'text')` (plus Ticket, PullRequest, Person) and `CALL db.idx.fulltext.queryNodes($label, $q)` in [`graph/explore.py`](graph/explore.py) |
 | `FEATURE_EVENTS` | one `CALL { … UNION … }` subquery that puts ticket versions, chat changes and PRs on a single time axis for the timeline |
-| `CONNECTION` | shortest causal chain between any two ids, e.g. `liam` → `PR-6`. This is a bounded undirected search, because FalkorDB's `shortestPath` is directed-only, and it skips the Feature hub so the chain actually explains something |
+| `CONNECTION` | shortest causal chain between any two ids, e.g. `liam` → `PR-6`, using FalkorDB's **`algo.SPpaths`** with `relDirection: 'both'` (Cypher `shortestPath` is directed-only). It skips the Feature hub so the chain actually explains something. The first version enumerated every undirected path and timed out at scale; the scale test caught it |
 
 The `SUPERSEDES` chain is built per ticket in time order ([`supersession_pairs`](pipeline/resolve.py)). A chat change supersedes whatever is current. A later ticket version supersedes earlier ticket versions, but it supersedes a chat change **only if its text actually reflects that change** (DeepSeek `reflects` check). That way an unrelated ticket edit, like a typo fix, can't hide drift. A live change supersedes whichever requirements for that ticket currently have nothing superseding them.
 
@@ -254,13 +254,38 @@ python -m bots.digest --discord 1234567890   # post to Discord (REST, no gateway
 |---|---|
 | `POST /api/ingest/ticket` `{ticket, description, actor}` | Ticket-tracker webhook (Linear/Jira-style). Adds the new description as a `Requirement` version (`STATES`) and recomputes that ticket's `SUPERSEDES` chain with the `reflects` check. An edit that carries the chat decision resolves the drift; a cosmetic edit ("typo fixed") doesn't. The response lists `resolved`, `still_drifting` and `new_drift`. |
 | `POST /api/ingest/github` | GitHub `pull_request` webhook. Verifies `X-Hub-Signature-256` when `GITHUB_WEBHOOK_SECRET` is set, links the PR to the tickets it names, decides which requirement version it `IMPLEMENTS`, and re-checks drift. A PR that delivers the latest decision clears it. |
-| `GET /api/events` | **Server-Sent Events**: `drift`, `resolved`, `ticket`, `pr` and `rebuild` events are pushed to every open dashboard, which shows a toast and refreshes. A thread-safe in-process bus ([`api/bus.py`](api/bus.py)) connects the sync request handlers to the async stream. |
+| `GET /api/events` | **Server-Sent Events**: `drift`, `resolved`, `ticket`, `pr` and `rebuild` events are pushed to every open dashboard, which shows a toast and refreshes. [`api/bus.py`](api/bus.py) delivers locally and also publishes on a Redis channel of the FalkorDB server (it speaks Redis). The API forwards events from other processes, so a drift the **Slack or Discord bot** detects appears live on every dashboard. |
 
 The dashboard's **Simulate the team** section drives both: post a chat message, or edit a ticket the way the tracker webhook would.
 
+## Engineering notes
+
+**Scale.** `python -m benchmark.scale` builds a synthetic org about 60× the demo: 200 features, 600 tickets, 200 PRs and 20,800 messages, with drift planted in half of the features (100 drifts). The ticket ID never appears in the deciding message, and the other half have a ticket edit that carries the decision. It runs the full pipeline with the heuristic extractor and measures each stage. Local Docker FalkorDB on a laptop:
+
+| Stage | Result |
+|---|---|
+| Graph size | 22,940 nodes · 27,700 relationships |
+| Ingest (batched `UNWIND`, 500 rows per round-trip) | 1.5 s |
+| Resolution (features, linking, requirement chains, `IMPLEMENTS`) | 2.0 s (was 8.3 s) |
+| Drift detection | **100 / 100 found, 0 false positives** |
+| Drift query, whole graph | p50 32 ms |
+| Drift query, one ticket (anchored on the `Requirement.ticket` index) | p50 1.3 ms |
+| Connection query (`algo.SPpaths`) | p50 3.8 ms |
+
+**Problems the tooling caught** (each one now has a test or a CI check):
+- **Silent truncation at 10k rows.** The FalkorDB Docker image caps result sets (`RESULTSET_SIZE 10000`). At 20k messages the resolver only saw half of them, and drift recall fell to 0.70 with no error. Large reads now page with a stable `ORDER BY … SKIP/LIMIT` ([`_rows_paged`](pipeline/resolve.py)).
+- **Path enumeration blow-up.** The first connection query enumerated every undirected path up to 7 hops and timed out at scale. `algo.SPpaths` with `relDirection: 'both'` answers it in milliseconds.
+- **Unlabelled lookups.** `MATCH (n {id: $id})` can't use an index, so it scans every node. Lookups now resolve the label through the per-label id indexes first. [`scripts/explain_queries.py`](scripts/explain_queries.py) runs `GRAPH.EXPLAIN` on the hot queries and fails CI if any lookup falls back to a label scan.
+- **A dense similarity scan.** Profiling resolution (`cProfile`) showed 92% of the time in TF-IDF scoring, which walked every feature's vector for every message (79M dict lookups at this scale). An inverted index (token → documents) produces identical scores and made resolution 4.2× faster.
+- **A blocking LLM health check.** The dashboard's first request took 3 s because it checked DeepSeek inline. Read paths now get the last known status immediately and refresh it in the background (`llm.peek()`).
+
+**Multi-tenancy.** One isolated FalkorDB graph per organisation (`company_brain__<org>`). Each request picks its org with an `X-Org` header, or `?org=` for EventSource, which can't send headers; the dashboard forwards `?org=acme` from its own URL. Caches and live events are scoped per org, so one tenant never sees another's alerts. `POST /api/orgs/{org}/bootstrap` seeds a new org with the demo data, and `GET /api/orgs` lists them. Org ids are validated (`[a-z0-9_-]`), so a header can't address an arbitrary graph.
+
+**API.** Optional `INGEST_TOKEN` protects the write endpoints (constant-time compare); the GitHub webhook verifies `X-Hub-Signature-256`; CORS is opt-in (`CORS_ORIGINS`). Heavy reads are cached with a short TTL and invalidated whenever the API writes (each write bumps the event-bus version). Every response carries a `Server-Timing` header, and slow requests are logged. The OpenAPI docs are at `/docs`.
+
 ## Tests and CI
 
-`python -m pytest -q` runs 29 tests: units, end-to-end graph tests on throwaway graphs, and HTTP tests of the API, including both webhooks, the signature check and the SSE bus. None of them need an LLM or API keys. [`.github/workflows/ci.yml`](.github/workflows/ci.yml) runs the same suite on every push against a FalkorDB service container, reruns the ablation study, checks that `docs/QUERIES.md` matches the code, and type-checks and builds the React app.
+`python -m pytest -q` runs 34 tests: units, end-to-end graph tests on throwaway graphs, HTTP tests of the API (both webhooks, the signature and token checks, cache invalidation, org isolation, cross-process events over FalkorDB pub/sub) and a paging regression test. None of them need an LLM or API keys. [`.github/workflows/ci.yml`](.github/workflows/ci.yml) runs the same suite on every push against a FalkorDB service container, reruns the ablation study, builds the demo graph and checks query plans use indexes, runs a smaller scale test, checks that `docs/QUERIES.md` matches the code, and type-checks and builds the React app.
 
 ## Benchmark
 
@@ -305,7 +330,6 @@ _DeepSeek extraction scores and the graph vs. no-graph results go here once the 
 - **Same-ticket scope.** Stale PRs are those that reference the amended ticket. A PR on a sibling ticket of the same feature isn't flagged.
 - **The heuristic extractor is phrase-based.** It catches "Decision: …", "let's change …" and "we'll now …", but not a change implied without that phrasing. That's what the DeepSeek extractor is for.
 - **Seeded timestamps.** Platform timestamps can't be backdated (see above).
-- **Single-process event bus.** Live events reach dashboards connected to the same API process. The Slack and Discord bots run as separate processes and don't publish to it yet; a Redis pub/sub (FalkorDB speaks Redis) would connect them.
 
 ## Future work (out of scope)
 

@@ -1,5 +1,5 @@
 import { createContext, useCallback, useContext, useEffect, useMemo, useState, type ReactNode } from "react";
-import { api, type Coverage, type Drift, type Feature, type LiveEvent, type SpecResult, type Sprint, type Stats } from "./api";
+import { api, ORG, type Coverage, type Drift, type Feature, type LiveEvent, type SpecResult, type Sprint, type Stats } from "./api";
 
 /** App-wide graph state + cross-section actions (open a person, focus a feature, generate a spec). */
 type Brain = {
@@ -56,8 +56,9 @@ export function BrainProvider({ children }: { children: ReactNode }) {
 
   // Live updates: the API pushes drift / resolution / ticket / PR / rebuild events over SSE
   useEffect(() => {
-    if (typeof EventSource === "undefined") return;
-    const es = new EventSource("/api/events");
+    // ?static (screenshots, projectors) skips the stream: an always-open request never lets the page go idle
+    if (typeof EventSource === "undefined" || new URLSearchParams(location.search).has("static")) return;
+    const es = new EventSource(`/api/events${ORG ? `?org=${encodeURIComponent(ORG)}` : ""}`);  // EventSource can't send headers
     let timer: ReturnType<typeof setTimeout> | undefined;
     const onEvent = (e: MessageEvent) => {
       const evt = JSON.parse(e.data) as LiveEvent;

@@ -107,3 +107,57 @@ def test_github_webhook_signature_and_implements(client, monkeypatch):
 def test_reset_rebuilds(client):
     assert client.post("/api/demo/reset").json()["rebuilt_with"] in {"heuristic", "deepseek", "oracle"}
     assert {d["ticket"] for d in client.get("/api/drift").json()} == {"BD-101", "BD-103"}
+
+
+def test_ingest_requires_token_when_configured(client, monkeypatch):
+    monkeypatch.setenv("INGEST_TOKEN", "t0ken")
+    body = {"ticket": "BD-110", "description": "Onboarding step 2 says Receive. (copy check)"}
+    assert client.post("/api/ingest/ticket", json=body).status_code == 401
+    assert client.post("/api/ingest/ticket", json=body, headers={"X-Ingest-Token": "nope"}).status_code == 401
+    assert client.post("/api/ingest/ticket", json=body, headers={"Authorization": "Bearer t0ken"}).status_code == 200
+    assert client.post("/api/demo/reset").status_code == 401
+
+
+def test_cached_reads_invalidate_on_write(client):
+    first = client.get("/api/drift").json()
+    hits_before = client.get("/api/cache").json()["hits"]
+    assert client.get("/api/drift").json() == first                     # served from cache
+    assert client.get("/api/cache").json()["hits"] == hits_before + 1
+    target = next(d for d in first if d["ticket"] == "BD-103")
+    client.post("/api/drift/dismiss", json={"requirement": target["requirement"], "actor": "arjun"})
+    assert "BD-103" not in {d["ticket"] for d in client.get("/api/drift").json()}  # write bumped the version
+
+
+def test_orgs_are_isolated_graphs(client):
+    from api import bus
+    from graph import db as gdb
+    assert client.get("/api/drift", headers={"X-Org": "Bad Org!"}).status_code == 400
+    out = client.post("/api/orgs/acme/bootstrap").json()
+    try:
+        assert out["graph"].endswith("__acme") and out["nodes"] > 300
+        assert "acme" in client.get("/api/orgs").json()["orgs"]
+        acme = client.get("/api/drift", headers={"X-Org": "acme"}).json()
+        assert {d["ticket"] for d in acme} == {"BD-101", "BD-103"}
+        req = next(d["requirement"] for d in acme if d["ticket"] == "BD-101")
+        client.post("/api/drift/dismiss", json={"requirement": req, "actor": "maya"}, headers={"X-Org": "acme"})
+        assert bus.recent[-1]["org"] == "acme"
+        assert "BD-101" not in {d["ticket"] for d in client.get("/api/drift", headers={"X-Org": "acme"}).json()}
+        # the default org's graph is untouched
+        assert "BD-101" in {d["ticket"] for d in client.get("/api/drift").json()}
+        assert client.get("/api/orgs?org=acme").json()["current"] == "acme"
+    finally:
+        gdb.get_graph(out["graph"]).delete()
+
+
+def test_events_from_other_processes_reach_this_one(client):
+    """A bot in another process publishes on the FalkorDB/Redis channel; the API forwards it to its SSE clients."""
+    import time as _t
+    from api import bus
+    from graph import db as gdb
+    evt = {"type": "drift", "at": _t.time(), "org": "default", "ticket": "BD-999", "author": "bot-test"}
+    gdb.get_db().connection.publish(bus.CHANNEL, json.dumps({"origin": "another-process", "event": evt}))
+    for _ in range(40):
+        if any(e.get("ticket") == "BD-999" for e in bus.recent):
+            break
+        _t.sleep(0.05)
+    assert any(e.get("ticket") == "BD-999" for e in bus.recent)

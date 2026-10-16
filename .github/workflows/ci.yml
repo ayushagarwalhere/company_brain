@@ -29,6 +29,12 @@ jobs:
         run: python -m pytest -q
       - name: Ablation study (graph does real work)
         run: python -m benchmark.ablation
+      - name: Build the demo graph and check query plans use indexes
+        run: |
+          python -m pipeline.build --extractor heuristic
+          python -m scripts.explain_queries
+      - name: Scale test (small, keeps CI fast)
+        run: python -m benchmark.scale --features 40 --noise 4000
       - name: Query reference is up to date
         run: |
           python -m scripts.export_queries

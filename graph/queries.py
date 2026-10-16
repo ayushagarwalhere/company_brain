@@ -118,15 +118,20 @@ RETURN d.text AS decision, t.id AS ticket, owner.id AS owner,
 """
 
 
-# How are two things connected? Bounded undirected search over causal relationships
-# (FalkorDB's shortestPath is directed-only). ABOUT is left out on purpose: going
-# through the Feature hub is always short and explains nothing.
+# How are two things connected? FalkorDB's algo.SPpaths finds the shortest path with
+# relDirection 'both' (Cypher shortestPath is directed-only in FalkorDB). An earlier version
+# enumerated every undirected path up to 7 hops and sorted them, which timed out at ~24k messages
+# (benchmark/scale.py); SPpaths answers the same question in milliseconds. ABOUT is left out on
+# purpose: going through the Feature hub is always short and explains nothing.
+# __LA__ / __LB__ are replaced by labels from label_of() (whitelisted), so both endpoints come from an index seek.
 CONNECTION = """
-MATCH (a {id: $a}), (b {id: $b})
-MATCH p = (a)-[:POSTED|REPLY_TO|CHANGES|AMENDS|STATES|REFERENCES|IMPLEMENTS|MADE|AUTHORED|ASSIGNED_TO|SUPERSEDES|MENTIONS|RECORDED_IN*1..7]-(b)
-RETURN [n IN nodes(p) | {id: n.id, type: labels(n)[0]}] AS nodes, [r IN relationships(p) | type(r)] AS rels,
-       [r IN relationships(p) | startNode(r).id] AS starts, length(p) AS hops
-ORDER BY hops LIMIT 1
+MATCH (a:__LA__ {id: $a}), (b:__LB__ {id: $b})
+CALL algo.SPpaths({sourceNode: a, targetNode: b, relDirection: 'both', maxLen: 7, pathCount: 1,
+                   relTypes: ['POSTED', 'REPLY_TO', 'CHANGES', 'AMENDS', 'STATES', 'REFERENCES', 'IMPLEMENTS', 'MADE',
+                              'AUTHORED', 'ASSIGNED_TO', 'SUPERSEDES', 'MENTIONS', 'RECORDED_IN']})
+YIELD path
+RETURN [n IN nodes(path) | {id: n.id, type: labels(n)[0]}] AS nodes, [r IN relationships(path) | type(r)] AS rels,
+       [r IN relationships(path) | startNode(r).id] AS starts, length(path) AS hops
 """
 
 # Coverage: merged work that no ticket explains
@@ -193,8 +198,32 @@ def rows(g, query: str, **params) -> list[dict]:
     return [dict(zip(cols, r)) for r in res.result_set]
 
 
+# Same query anchored on one ticket: starts from the Requirement(ticket) index instead of a label scan
+DRIFT_FOR_TICKET = DRIFT.replace(
+    "MATCH (m:Message)-[:CHANGES]->(r:Requirement)-[:AMENDS]->(t:Ticket)-[:ABOUT]->(f:Feature)",
+    "MATCH (r:Requirement {ticket: $ticket})\nMATCH (m:Message)-[:CHANGES]->(r)-[:AMENDS]->(t:Ticket)-[:ABOUT]->(f:Feature)", 1)
+assert DRIFT_FOR_TICKET != DRIFT, "DRIFT's first MATCH changed; update DRIFT_FOR_TICKET"
+
+LABELS = ("Person", "Ticket", "PullRequest", "Message", "Document", "Requirement", "Decision", "Feature", "Sprint")
+
+
+def label_of(g, node_id: str) -> str | None:
+    """Label of the node with this id, found through the per-label id indexes (never an all-node scan)."""
+    for label in LABELS:
+        if g.query(f"MATCH (n:{label} {{id: $id}}) RETURN 1 LIMIT 1", {"id": node_id}).result_set:
+            return label
+    return None
+
+
+def connection(g, a: str, b: str) -> list[dict]:
+    la, lb = label_of(g, a), label_of(g, b)
+    if not la or not lb:
+        return []
+    return rows(g, CONNECTION.replace("__LA__", la).replace("__LB__", lb), a=a, b=b)
+
+
 def drift(g, feature: str | None = None, ticket: str | None = None) -> list[dict]:
-    out = rows(g, DRIFT, feature=feature, ticket=ticket)
+    out = rows(g, DRIFT_FOR_TICKET if ticket else DRIFT, feature=feature, ticket=ticket)
     for d in out:  # OPTIONAL MATCH with no hit collects a map of nulls
         d["stale_docs"] = [x for x in d["stale_docs"] if x["id"] is not None]
     return out
