@@ -39,6 +39,15 @@ def to_event(msg: discord.Message, smap: dict, people: dict[str, str]) -> Event:
                  channel=msg.channel.name, thread_of=parent)
 
 
+def keep(msg, smap: dict) -> bool:
+    """Human messages and our webhook-seeded scenario messages; skip other bots (incl. our own drift alerts)."""
+    if not msg.content:
+        return False
+    if str(msg.id) in smap:
+        return True
+    return not getattr(msg.author, "bot", False)
+
+
 async def _fetch(limit: int) -> list[Event]:
     intents = discord.Intents.default()
     intents.message_content = True
@@ -53,7 +62,7 @@ async def _fetch(limit: int) -> list[Event]:
             for ch in guild.text_channels:
                 if ch.name in CHANNELS:
                     async for m in ch.history(limit=limit, oldest_first=True):
-                        if m.content:
+                        if keep(m, smap):
                             out.append(to_event(m, smap, people))
         finally:
             await c.close()

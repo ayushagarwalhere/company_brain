@@ -51,36 +51,77 @@ export function AskSection() {
 }
 
 export function RetroSection() {
-  const { sprints, version, openPerson } = useBrain();
+  const { sprints, version, openPerson, focusOn } = useBrain();
   const [sprint, setSprint] = useState<string | null>(null);
   const [r, setR] = useState<Retro | null>(null);
   useEffect(() => { if (!sprint && sprints.length) setSprint(sprints[0].id); }, [sprints, sprint]);
   useEffect(() => { if (sprint) void api.retro(sprint).then(setR); }, [sprint, version]);
-  const status = (d: Retro["decided"][number]) =>
-    d.dismissed_by ? <span className="badge">dismissed · {d.dismissed_by}</span>
-      : d.shipped_in.length ? <span className="badge badge--ok">shipped {d.shipped_in.map((n) => `#${n}`).join(", ")}</span>
-        : d.superseded_by === "ticket" ? <span className="badge">in ticket</span> : <span className="badge badge--warn">not shipped</span>;
+
+  const divergedBy = new Map((r?.diverged || []).map((d) => [`dec:${d.message}`, d]));
+  const decidedIds = new Set((r?.decided || []).map((d) => d.decision));
+  const carried = (r?.diverged || []).filter((d) => !decidedIds.has(`dec:${d.message}`));
+  const shippedCount = (r?.decided || []).filter((d) => d.shipped_in.length).length;
+  const state = (d: Retro["decided"][number]) =>
+    d.dismissed_by ? { cls: "", label: `Dismissed · ${d.dismissed_by}` }
+      : d.shipped_in.length ? { cls: "ok", label: `Shipped ${d.shipped_in.map((n) => `#${n}`).join(", ")}` }
+        : divergedBy.has(d.decision) ? { cls: "warn", label: "Not shipped" }
+          : d.superseded_by === "ticket" ? { cls: "", label: "In ticket" } : { cls: "warn", label: "Not shipped" };
+
   return (
     <Section id="retro-sec" index="007" kicker="Sprint retro" title="Sprint retro" intro="What we decided, what we shipped, where they diverge. Every line has a source."
       aside={<div className="tabs">{sprints.map((s) => <button key={s.id} className={sprint === s.id ? "active" : ""} onClick={() => setSprint(s.id)}>{s.name}</button>)}</div>}>
       {r && (
-        <div className="retro-cols">
-          <div><h3>Decided · {r.decided.length}</h3><ol>{r.decided.map((d, i) => (
-            <motion.li key={d.decision} initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: i * 0.06 }}>
-              <span className="idx">{String(i + 1).padStart(2, "0")}</span>{d.text} {status(d)}
-              <span className="src"><button className="person-link" onClick={() => openPerson(d.by)}>{d.by}</button> · {day(d.at)} · {d.ticket} · {d.platform} #{d.channel}</span>
-            </motion.li>))}{!r.decided.length && <li>No decisions in chat</li>}</ol></div>
-          <div><h3>Shipped · {r.shipped.length}</h3><ol>{r.shipped.map((p, i) => (
-            <motion.li key={p.pr} initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: i * 0.05 }}>
-              <span className="idx">{String(i + 1).padStart(2, "0")}</span>{isExternal(p.url) ? <a href={p.url} target="_blank" rel="noopener">#{p.pr}</a> : `#${p.pr}`} {p.title}
-              <span className="src">{p.author} · {p.tickets.join(", ") || "no ticket"}{p.link.includes("hard") ? "" : ` · linked by ${p.link.join(", ")}`}</span>
-            </motion.li>))}</ol></div>
-          <div><h3>Diverged · {r.diverged.length}</h3><ol>{r.diverged.map((d, i) => (
-            <motion.li key={d.requirement} initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: i * 0.08 }}>
-              <span className="idx">{String(i + 1).padStart(2, "0")}</span><b>{d.feature_name}</b>: decided “{d.requirement_text}”
-              <span className="src">{d.ticket} still says “{d.ticket_text}”{d.stale_prs.length ? ` · ${d.stale_prs.map((p) => `#${p.pr}`).join(", ")} shipped old version` : ""}</span>
-            </motion.li>))}{!r.diverged.length && <li>Nothing diverged</li>}</ol></div>
-        </div>
+        <motion.div key={r.sprint} initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.4 }}>
+          <div className="rt-sum">
+            <div><b>{r.decided.length}</b><span className="mono">Decided in chat</span></div>
+            <div><b>{shippedCount}</b><span className="mono">Decisions shipped</span></div>
+            <div className={r.diverged.length ? "warn" : ""}><b>{r.diverged.length}</b><span className="mono">Diverged</span></div>
+            <div><b>{r.shipped.length}</b><span className="mono">PRs merged</span></div>
+          </div>
+
+          <h3 className="rt-h mono">Decisions</h3>
+          {!r.decided.length && <p className="muted">No decisions recorded in chat this sprint.</p>}
+          <ul className="rt-list">
+            {r.decided.map((d) => {
+              const st = state(d), dv = divergedBy.get(d.decision);
+              return (
+                <li key={d.decision} className={`rt-row ${st.cls === "warn" ? "rt-row--warn" : ""}`}>
+                  <div className="rt-title"><b>{d.feature || d.ticket}</b><span className={`rt-pill ${st.cls}`}>{st.label}</span></div>
+                  <p className="rt-text" title={d.text}>{d.text}</p>
+                  {dv && <p className="rt-gap"><span className="mono">{dv.ticket} still says</span> {dv.ticket_text}</p>}
+                  <div className="rt-meta">
+                    <button className="person-link" onClick={() => openPerson(d.by)}>{d.by}</button>
+                    <span>{day(d.at)}</span><span>{d.platform} #{d.channel}</span><span>{d.ticket}</span>
+                    {dv && <button className="rt-link" onClick={() => focusOn(dv.feature)}>Show in graph ↗</button>}
+                  </div>
+                </li>
+              );
+            })}
+          </ul>
+
+          {carried.length > 0 && <>
+            <h3 className="rt-h mono">Still open from earlier sprints</h3>
+            <ul className="rt-list">
+              {carried.map((d) => (
+                <li key={d.requirement} className="rt-row rt-row--warn rt-row--slim">
+                  <div className="rt-title"><b>{d.feature_name}</b><span className="rt-pill warn">Not shipped</span></div>
+                  <p className="rt-gap"><span className="mono">{d.ticket} still says</span> {d.ticket_text}</p>
+                </li>
+              ))}
+            </ul>
+          </>}
+
+          <h3 className="rt-h mono">Shipped · {r.shipped.length} PRs</h3>
+          <ul className="rt-prs">
+            {r.shipped.map((p) => (
+              <li key={p.pr}>
+                <span className="mono rt-num">{isExternal(p.url) ? <a href={p.url} target="_blank" rel="noopener">#{p.pr}</a> : `#${p.pr}`}</span>
+                <span className="rt-pr-title" title={p.title}>{p.title}</span>
+                <span className="mono rt-tk">{p.tickets.join(", ") || "no ticket"}</span>
+              </li>
+            ))}
+          </ul>
+        </motion.div>
       )}
     </Section>
   );

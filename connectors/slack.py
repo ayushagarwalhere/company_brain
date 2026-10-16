@@ -10,18 +10,27 @@ CHANNELS = ("product", "engineering", "support-escalations")
 
 
 def client() -> WebClient:
-    return WebClient(token=settings.slack_bot_token)
+    from slack_sdk.http_retry.builtin_handlers import ConnectionErrorRetryHandler, RateLimitErrorRetryHandler
+    c = WebClient(token=settings.slack_bot_token)
+    # Slack answers 429 + Retry-After under load (conversations.history is Tier 3): wait and retry
+    c.retry_handlers.extend([RateLimitErrorRetryHandler(max_retry_count=5), ConnectionErrorRetryHandler(max_retry_count=3)])
+    return c
+
+
+def paged(call, key: str, **kwargs):
+    """Yields items across every page of a cursor-paginated Slack Web API method."""
+    cursor = None
+    while True:
+        r = call(**kwargs, cursor=cursor) if cursor else call(**kwargs)
+        yield from r[key]
+        cursor = (r.get("response_metadata") or {}).get("next_cursor")
+        if not cursor:
+            return
 
 
 def channel_ids(c: WebClient) -> dict[str, str]:
     """name -> id for public channels the bot can see."""
-    out, cursor = {}, None
-    while True:
-        r = c.conversations_list(types="public_channel", limit=200, cursor=cursor)
-        out.update({ch["name"]: ch["id"] for ch in r["channels"]})
-        cursor = r.get("response_metadata", {}).get("next_cursor")
-        if not cursor:
-            return out
+    return {ch["name"]: ch["id"] for ch in paged(c.conversations_list, "channels", types="public_channel", limit=200)}
 
 
 class PersonLookup:
@@ -72,8 +81,21 @@ def permalink(channel_id: str, ts: str) -> str:
     return f"https://slack.com/app_redirect?channel={channel_id}&message_ts={ts}"
 
 
-def fetch_history() -> list:
-    c = client()
+SKIP_SUBTYPES = {"channel_join", "channel_leave", "channel_topic", "channel_purpose", "message_deleted"}
+
+
+def keep(m: dict, channel_id: str, smap: dict) -> bool:
+    """Human messages and our seeded scenario messages. Bot posts that aren't seeded (e.g. our own drift
+    alerts) are skipped, or the monitor would read its alerts back as requirement changes."""
+    if m.get("subtype") in SKIP_SUBTYPES:
+        return False
+    if m.get("bot_id") or m.get("subtype") == "bot_message":
+        return f"{channel_id}:{m['ts']}" in smap
+    return bool(m.get("text"))
+
+
+def fetch_history(c: WebClient | None = None) -> list:
+    c = c or client()
     ids = channel_ids(c)
     people = PersonLookup(c)
     smap = seed_map.load("slack")
@@ -81,17 +103,12 @@ def fetch_history() -> list:
     for name in CHANNELS:
         if name not in ids:
             continue
-        cid, cursor = ids[name], None
-        while True:
-            r = c.conversations_history(channel=cid, limit=200, cursor=cursor)
-            for m in r["messages"]:
-                if m.get("subtype") in ("channel_join", "channel_leave"):
-                    continue
+        cid = ids[name]
+        for m in paged(c.conversations_history, "messages", channel=cid, limit=200):
+            if keep(m, cid, smap):
                 events.append(to_event(m, name, cid, people, smap))
-                if m.get("reply_count"):
-                    replies = c.conversations_replies(channel=cid, ts=m["ts"], limit=200)["messages"]
-                    events += [to_event(x, name, cid, people, smap) for x in replies if x["ts"] != m["ts"]]
-            cursor = r.get("response_metadata", {}).get("next_cursor")
-            if not cursor:
-                break
+            if m.get("reply_count"):  # thread replies live behind conversations.replies, paginated too
+                for x in paged(c.conversations_replies, "messages", channel=cid, ts=m["ts"], limit=200):
+                    if x["ts"] != m["ts"] and keep(x, cid, smap):
+                        events.append(to_event(x, name, cid, people, smap))
     return events

@@ -53,6 +53,26 @@ def _event(number: int, title: str, body: str, url: str, state: str,
     )
 
 
+def get_with_retry(url: str, *, params=None, headers=None, attempts: int = 5, sleep=None):
+    """GET with backoff on GitHub's rate limits (403/429 with Retry-After or X-RateLimit-Reset) and 5xx."""
+    import time
+    sleep = sleep or time.sleep
+    for i in range(attempts):
+        r = requests.get(url, params=params, headers=headers, timeout=20)
+        limited = r.status_code in (403, 429) and (r.headers.get("Retry-After") or r.headers.get("X-RateLimit-Remaining") == "0")
+        if not (limited or r.status_code >= 500) or i == attempts - 1:
+            r.raise_for_status()
+            return r
+        if r.headers.get("Retry-After"):
+            wait = float(r.headers["Retry-After"])
+        elif r.headers.get("X-RateLimit-Reset"):
+            wait = max(0.0, float(r.headers["X-RateLimit-Reset"]) - time.time()) + 1
+        else:
+            wait = 2 ** i
+        sleep(min(wait, 60.0))
+    raise RuntimeError("unreachable")
+
+
 def pull_requests_from_api(repo: str | None = None) -> list[Event]:
     repo = repo or settings.github_repo
     headers = {"Accept": "application/vnd.github+json"}
@@ -60,10 +80,8 @@ def pull_requests_from_api(repo: str | None = None) -> list[Event]:
         headers["Authorization"] = f"Bearer {settings.github_token}"
     events, page = [], 1
     while True:
-        r = requests.get(f"https://api.github.com/repos/{repo}/pulls",
-                         params={"state": "all", "per_page": 100, "page": page},
-                         headers=headers, timeout=20)
-        r.raise_for_status()
+        r = get_with_retry(f"https://api.github.com/repos/{repo}/pulls",
+                           params={"state": "all", "per_page": 100, "page": page}, headers=headers)
         batch = r.json()
         for pr in batch:
             events.append(_event(
