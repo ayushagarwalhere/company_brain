@@ -38,7 +38,9 @@ def write_to_ticket(g, requirement: str, actor: str = "maya") -> dict:
                MERGE (t)-[:STATES {at_ms: $ms}]->(q)
                MERGE (q)-[:SUPERSEDES]->(chat)
                SET t.description = $text, t.desc_updated_ms = $ms, t.updated = $iso, t.updated_ms = $ms,
-                   t.versions = $versions, t.version_times = $times
+                   t.versions = $versions, t.version_times = $times,
+                   t.wb_versions = coalesce(t.wb_versions, []) + [$id], t.wb_targets = coalesce(t.wb_targets, []) + [$chat],
+                   t.wb_actors = coalesce(t.wb_actors, []) + [$actor]
                WITH q, f WHERE f IS NOT NULL
                MERGE (q)-[:ABOUT]->(f)""",
             {"t": ticket, "chat": requirement, "id": new_id, "text": text, "ms": ms, "iso": iso, "actor": actor,
@@ -53,7 +55,7 @@ def dismiss(g, requirement: str, actor: str = "maya", reason: str = "keep the ol
     did = f"dismiss:{requirement}"
     g.query("""MATCH (r:Requirement {id: $r}), (p:Person {id: $actor})
                MERGE (d:Decision {id: $did})
-               SET d.kind = 'dismissal', d.text = $reason, d.at = $iso, d.at_ms = $ms
+               SET d.origin = 'human', d.kind = 'dismissal', d.target = $r, d.text = $reason, d.at = $iso, d.at_ms = $ms
                MERGE (p)-[:MADE]->(d)
                MERGE (d)-[:DISMISSES]->(r)""",
             {"r": requirement, "actor": actor, "did": did, "reason": reason, "iso": iso, "ms": ms})

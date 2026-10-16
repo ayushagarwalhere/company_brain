@@ -111,6 +111,8 @@ A: Yes, the chain depends on those judgments, and the Limitations section says s
 
 Keeping each one as an injected function means it can be swapped (rules, LLM or oracle) and tested in isolation.
 
+**Rebuild rule.** `resolve()` deletes and recomputes only what the pipeline derives (features, requirements, extractor-made decisions); human actions carry `origin: 'human'` and the stable ids they attach to (`req:<ticket>:vN`, `req:<message id>`), and are re-attached at the end of every resolve ([`pipeline/human.py`](../pipeline/human.py)). A full `pipeline.build` wipes the graph, so it snapshots dismissals and written-back ticket versions first and restores them after ingest; only "Reset demo data" deliberately throws them away (`tests/test_human_actions.py`).
+
 ---
 
 ## 3. `CONNECTION`: the shortest causal chain between two things

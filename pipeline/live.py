@@ -109,7 +109,7 @@ def process_message(event: Event, g=None, extractor=None) -> dict:
                MERGE (q)-[:ABOUT]->(f)
                WITH m, q, p
                MERGE (d:Decision {id: 'dec:' + m.id})
-               SET d.text = q.text, d.at_ms = q.at_ms, d.at = q.at
+               SET d.text = q.text, d.at_ms = q.at_ms, d.at = q.at, d.origin = 'extractor'
                MERGE (p)-[:MADE]->(d)
                MERGE (d)-[:RECORDED_IN]->(m)
                MERGE (d)-[:CHANGES]->(q)""",

@@ -112,8 +112,10 @@ def supersession_pairs(chain: list[dict], reflects, replaces=None) -> list[dict]
 
 
 def reset_derived(g):
-    for label in ("Feature", "Requirement", "Decision"):
+    """Drops everything resolve() derives. Human Decisions (origin 'human') stay; relink() re-attaches them."""
+    for label in ("Feature", "Requirement"):
         g.query(f"MATCH (n:{label}) DETACH DELETE n")
+    g.query("MATCH (n:Decision) WHERE coalesce(n.origin, 'extractor') <> 'human' DETACH DELETE n")
     g.query("MATCH ()-[r:ABOUT]->() DELETE r")
     g.query("MATCH ()-[r:REFERENCES]->() WHERE r.via = 'resolved' DELETE r")
 
@@ -300,7 +302,7 @@ def resolve(g, extractor_name: str = "llm", semantic: str | None = None, log=pri
     g.query("""UNWIND $cs AS c WITH c WHERE c.decision
                MATCH (m:Message {id: c.msg}), (q:Requirement {id: c.id}), (p:Person {id: c.author})
                MERGE (d:Decision {id: 'dec:' + c.msg})
-               SET d.text = c.text, d.at_ms = c.at_ms, d.at = c.at
+               SET d.text = c.text, d.at_ms = c.at_ms, d.at = c.at, d.origin = 'extractor'
                MERGE (p)-[:MADE]->(d)
                MERGE (d)-[:RECORDED_IN]->(m)
                MERGE (d)-[:CHANGES]->(q)""", {"cs": changes})
@@ -328,6 +330,10 @@ def resolve(g, extractor_name: str = "llm", semantic: str | None = None, log=pri
     g.query("""UNWIND $xs AS x MATCH (pr:PullRequest {id: x.pr}), (q:Requirement {id: x.r})
                MERGE (pr)-[:IMPLEMENTS]->(q)""", {"xs": impl})
     log(f"IMPLEMENTS edges: {len(impl)}")
+
+    # 8. Human actions (dismissals, write-backs) re-attached by stable id ------------
+    from pipeline.human import relink
+    relink(g)
 
     return {"features": features, "msg_feature": msg_feature, "pr_links": pr_links,
             "classification": cls, "changes": changes, "implements": impl}

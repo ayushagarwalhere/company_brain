@@ -22,6 +22,20 @@ def mark_build(g, extractor: str) -> None:
              "at": datetime.now(timezone.utc).strftime("%Y-%m-%dT%H:%M:%SZ")})
 
 
+def build_graph(graph: str | None = None, extractor: str = "heuristic", semantic: str | None = None,
+                live: bool = False, log=print):
+    """What `python -m pipeline.build` does: ingest from source, resolve, record the build.
+    Human actions (dismissals, write-backs) are not in the sources, so they are carried across the wipe."""
+    from pipeline import human
+    kept = human.snapshot(get_graph(graph))
+    log(ingest(live=live, reset=True, graph_name=graph))
+    g = get_graph(graph)
+    human.restore(g, kept)
+    resolve(g, extractor, semantic, log=log)
+    mark_build(g, extractor)
+    return g
+
+
 def main():
     ap = argparse.ArgumentParser()
     ap.add_argument("--extractor", default="auto", choices=["auto", "llm", "deepseek", "heuristic", "oracle"],
@@ -36,10 +50,7 @@ def main():
         a.extractor = "llm" if llm.available() else "heuristic"
         if a.extractor == "heuristic":
             print(f"LLM unavailable ({llm.unavailable_reason()}): using the heuristic extractor")
-    print(ingest(live=a.live, reset=True, graph_name=a.graph))
-    g = get_graph(a.graph)
-    resolve(g, a.extractor, a.semantic)
-    mark_build(g, a.extractor)
+    g = build_graph(a.graph, a.extractor, a.semantic, a.live)
     print("\nDRIFT")
     for d in drift(g):
         prs = ", ".join(f"#{p['pr']}" for p in d["stale_prs"] if p["pr"] is not None) or "none"
