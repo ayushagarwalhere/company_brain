@@ -39,21 +39,49 @@ def falkordb():
     return f"read/write OK ({count} test node)"
 
 
+# Bot token scopes the code actually uses (see docs/REAL_RUN.md): what each one is for
+SLACK_SCOPES = {
+    "channels:read": "list public channels and look up channel names (connector, bot)",
+    "channels:history": "read channel history and thread replies (connector, bot message events)",
+    "users:read": "map Slack users to people (connector)",
+    "chat:write": "post drift alerts (bot)",
+    "chat:write.customize": "post as each fictional author when seeding (scripts/seed_slack)",
+    "app_mentions:read": "answer @mentions (bot)",
+}
+
+
 @check("Slack")
 def slack():
+    """PASS only if the bot token works, has every scope the code uses, Socket Mode has an app token, and
+    the bot can read the test channel. Each FAIL says what to change in the Slack app settings."""
     if not settings.slack_bot_token:
-        raise RuntimeError("SLACK_BOT_TOKEN not set")
+        raise RuntimeError("SLACK_BOT_TOKEN not set: OAuth & Permissions -> Install to Workspace -> copy the xoxb- token into .env")
+    if not settings.slack_bot_token.startswith("xoxb-"):
+        raise RuntimeError("SLACK_BOT_TOKEN must be the Bot User OAuth Token (xoxb-...), not a user or app token")
     from slack_sdk import WebClient
+    from slack_sdk.errors import SlackApiError
 
     client = WebClient(token=settings.slack_bot_token)
     auth = client.auth_test()
-    detail = f"bot '{auth['user']}' in workspace '{auth['team']}'"
-    if settings.slack_test_channel_id:
-        hist = client.conversations_history(channel=settings.slack_test_channel_id, limit=1)
-        msgs = hist.get("messages", [])
-        detail += f"; read {len(msgs)} message(s) from test channel"
+    granted = set(filter(None, (auth.headers.get("x-oauth-scopes") or auth.headers.get("X-OAuth-Scopes") or "").split(",")))
+    missing = [sc for sc in SLACK_SCOPES if sc not in granted]
+    if missing:
+        raise RuntimeError("missing bot scopes: " + ", ".join(f"{sc} ({SLACK_SCOPES[sc]})" for sc in missing)
+                           + ". Add them under OAuth & Permissions -> Bot Token Scopes, then reinstall the app")
     if not settings.slack_app_token.startswith("xapp-"):
-        detail += "; WARNING: SLACK_APP_TOKEN (xapp-) missing, Socket Mode will not work"
+        raise RuntimeError("SLACK_APP_TOKEN (xapp-...) missing: Basic Information -> App-Level Tokens -> generate one "
+                           "with connections:write, and enable Socket Mode")
+    detail = f"bot '{auth['user']}' in workspace '{auth['team']}', all {len(SLACK_SCOPES)} scopes granted"
+    if settings.slack_test_channel_id:
+        try:
+            hist = client.conversations_history(channel=settings.slack_test_channel_id, limit=1)
+        except SlackApiError as e:
+            if e.response.get("error") == "not_in_channel":
+                raise RuntimeError("the bot is not in SLACK_TEST_CHANNEL_ID: type /invite @<bot name> in that channel") from e
+            raise
+        detail += f"; read {len(hist.get('messages', []))} message(s) from the test channel"
+    else:
+        detail += "; SLACK_TEST_CHANNEL_ID not set (optional: the channel the live alert test posts in)"
     return detail
 
 

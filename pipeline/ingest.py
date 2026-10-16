@@ -11,15 +11,34 @@ from graph import writer
 from graph.db import get_graph
 
 
-def collect(live: bool):
-    if live:
-        from connectors import discord as discord_conn
+def collect(live: bool, log=print):
+    """--live reads every configured source from its real API; a source with no credentials falls back to the
+    scenario files, and the log says which is which (a Slack-only workspace is enough for a real run)."""
+    if not live:
+        return scenario.messages(), tickets.tickets(), github.pull_requests_from_scenario()
+    from config import settings
+    messages, used = [], []
+    if settings.slack_bot_token:
         from connectors import slack as slack_conn
-        messages = slack_conn.fetch_history() + discord_conn.fetch_history()
-        prs = github.pull_requests_from_api()
+        messages += slack_conn.fetch_history()
+        used.append("slack: live API")
     else:
-        messages = scenario.messages()
+        messages += [m for m in scenario.messages() if m.source == "slack"]
+        used.append("slack: scenario files (SLACK_BOT_TOKEN not set)")
+    if settings.discord_bot_token:
+        from connectors import discord as discord_conn
+        messages += discord_conn.fetch_history()
+        used.append("discord: live API")
+    else:
+        messages += [m for m in scenario.messages() if m.source == "discord"]
+        used.append("discord: scenario files (DISCORD_BOT_TOKEN not set)")
+    if settings.github_repo:
+        prs = github.pull_requests_from_api()
+        used.append(f"github: live API ({settings.github_repo})")
+    else:
         prs = github.pull_requests_from_scenario()
+        used.append("github: scenario files (GITHUB_REPO not set)")
+    log("sources: " + "; ".join(used))
     return messages, tickets.tickets(), prs
 
 

@@ -141,3 +141,28 @@ def test_decision_rights_are_the_tickets_creator_or_assignee():
     t = {"creator": "maya", "assignee": "sofia"}
     assert has_decision_rights("maya", t) and has_decision_rights("sofia", t)
     assert not has_decision_rights("zara", t) and not has_decision_rights(None, {"creator": None, "assignee": None})
+
+
+def test_slack_check_names_missing_scopes(monkeypatch):
+    """check_setup must say exactly which Slack bot scopes are missing and where to add them."""
+    import dataclasses
+    import slack_sdk
+    from scripts import check_setup as cs
+
+    class Resp(dict):
+        headers = {"x-oauth-scopes": "chat:write,channels:read"}
+
+    class FakeClient:
+        def __init__(self, token):
+            pass
+
+        def auth_test(self):
+            return Resp(user="drift", team="acme")
+
+    monkeypatch.setattr(slack_sdk, "WebClient", FakeClient)
+    monkeypatch.setattr(cs, "settings", dataclasses.replace(cs.settings, slack_bot_token="xoxb-test", slack_app_token="xapp-test"))
+    cs.results.clear()
+    cs.slack()
+    name, ok, detail = cs.results[-1]
+    assert not ok and "channels:history" in detail and "users:read" in detail and "Bot Token Scopes" in detail
+    assert "chat:write (" not in detail  # granted scopes are not reported
