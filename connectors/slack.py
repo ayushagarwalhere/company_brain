@@ -60,6 +60,17 @@ def slack_ts_to_iso(ts: str) -> str:
     return datetime.fromtimestamp(float(ts), tz=UTC).strftime("%Y-%m-%dT%H:%M:%SZ")
 
 
+def plain_text(text: str) -> str:
+    """Slack mrkdwn -> plain text for extraction: code fences and inline code marks dropped (a message typed in the
+    code formatter arrives as ```...```), HTML entities unescaped. Other markup (links, mentions) is left as is."""
+    import html
+    import re
+
+    text = re.sub(r"```\s*(.*?)\s*```", r"\1", text or "", flags=re.S)
+    text = re.sub(r"`([^`]*)`", r"\1", text)
+    return html.unescape(text).strip()
+
+
 def to_event(msg: dict, channel_name: str, channel_id: str, people: PersonLookup, smap: dict):
     from pipeline.events import Event
 
@@ -73,7 +84,7 @@ def to_event(msg: dict, channel_name: str, channel_id: str, people: PersonLookup
             id=seeded["id"],
             author=seeded["author"],
             ts=seeded["ts"],
-            text=msg.get("text", ""),
+            text=plain_text(msg.get("text", "")),
             url=permalink(channel_id, msg["ts"]),
             channel=channel_name,
             thread_of=seeded.get("thread_of"),
@@ -88,7 +99,7 @@ def to_event(msg: dict, channel_name: str, channel_id: str, people: PersonLookup
         id=f"slack:{key}",
         author=people(msg.get("user")),
         ts=slack_ts_to_iso(msg["ts"]),
-        text=msg.get("text", ""),
+        text=plain_text(msg.get("text", "")),
         url=permalink(channel_id, msg["ts"]),
         channel=channel_name,
         thread_of=parent_id,

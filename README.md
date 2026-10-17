@@ -46,7 +46,7 @@ Read these before the numbers. Each one is measured in [Results](#results).
   - The resolution thresholds were set on the same 300 messages: raising the message→feature threshold from 0.22 to 0.30 halves drift recall (1.00 → 0.50).
 - **The strong-LLM path is unmeasured.** No hosted model was run: the DeepSeek key has no balance (`402`), and no other key is configured.
 - **The demo company is synthetic** (300 messages, 15 tickets, 12 PRs), and I wrote the rules while looking at it. The synthetic 1.00s are an upper bound.
-- **No real Slack workspace has been run yet** (see [Run on a real Slack workspace](#run-on-a-real-slack-workspace)).
+- **The real-Slack run uses the synthetic company's messages.** It proves the integration works end to end (see [Run on a real Slack workspace](#run-on-a-real-slack-workspace)), not accuracy on a real team's conversations. Discord and GitHub have not been run live.
 
 ## What it does
 
@@ -266,7 +266,18 @@ How these work: [`docs/EXPLAIN.md`](docs/EXPLAIN.md).
 
 ## Run on a real Slack workspace
 
-**Not done.** No real Slack, Discord or GitHub workspace has been connected; the connectors are tested only against fake APIs ([`tests/test_connectors.py`](tests/test_connectors.py)). The steps are in [`docs/REAL_RUN.md`](docs/REAL_RUN.md): app scopes and tokens, `check_setup` (names any missing scope), `build --live` (Slack alone is enough), and triggering a live alert.
+**Done once, on 2026-10-17**, in a free workspace I created, following [`docs/REAL_RUN.md`](docs/REAL_RUN.md):
+- **Seeded:** the scenario's 156 Slack messages, posted into real `#product`, `#engineering` and `#support-escalations` channels.
+- **Built from the Slack API:** `pipeline.build --live` printed `slack: live API` and found the same two drifts as the offline demo, with the CSV-export one now coming from the real `#support-escalations` channel. Discord and GitHub came from the scenario files.
+- **Live alert:** I posted *"Decision: the export button must also offer a JSON download, BD-102."* in `#engineering`, as the ticket owner (my Slack user mapped to `maya` in `people.json`, locally). The bot replied in the thread within seconds, naming BD-102's old text, PR #7 as shipping the old version, and the graph path. The dashboard showed the new card.
+- **Rebuilt from history:** a later `build --live` found that message as a requirement change on its own (three drifts), so the batch path and the live path agree.
+- **Bug found:** a message typed with Slack's code formatter kept its ``` fences in the requirement text. The connector now strips them ([`tests/test_connectors.py`](tests/test_connectors.py)).
+
+| The bot's reply in the Slack thread | The new drift card on the dashboard |
+|---|---|
+| ![Slack thread: the ticket owner's decision and Drift Monitor's in-thread drift alert](docs/real-slack-thread.png) | ![Dashboard: DRIFT 03, BD-102, decided in Slack #engineering](docs/real-slack-dashboard.png) |
+
+**What this does not show:** accuracy on a real team's conversations (the messages are the synthetic company's), Discord or GitHub live, or more than one person in the workspace.
 
 ## Architecture
 
@@ -387,7 +398,7 @@ Unset, it uses DeepSeek (`DEEPSEEK_*`). Every extraction call is cached by (mode
 
 ### Tests and CI
 
-`python -m pytest -q` runs 107 tests, none of which need an LLM or API keys. They include:
+`python -m pytest -q` runs 108 tests, none of which need an LLM or API keys. They include:
 - the README's headline numbers against the committed result files ([`tests/test_readme_numbers.py`](tests/test_readme_numbers.py));
 - human actions surviving rebuilds, and live updates (a write-back survives a live recompute; an unverified candidate never supersedes the owner's decision);
 - auth on every endpoint that changes the graph, GitHub webhook signatures and replayed deliveries, and per-org event isolation;
@@ -429,7 +440,7 @@ FalkorDB is pinned to `v4.22.1`.
 - **The rules router scores intents and sends PR ids to a PR lookup.** The q03 and stress-test misroutes are fixed (and disclosed as tuned).
 - **`resolve()` is split into stages.** Outputs are byte-identical on every benchmark; constants and weights live in `config.py`.
 - **qwen3:8b measured on the noise set and in LLM-agent Q&A.** The agent result is negative and reported as such.
-- **Real Slack run prepared but not done:** scope-aware `check_setup`, per-source `--live`, `docs/REAL_RUN.md`.
+- **Real Slack run done once:** scope-aware `check_setup`, per-source `--live` and `docs/REAL_RUN.md`, then a live in-thread alert in a real workspace (screenshots above). It found and fixed one bug: Slack code formatting kept in the requirement text.
 - **Hygiene:** MIT license, pinned FalkorDB, ruff and mypy in CI, and an ablation that fails CI on regression.
 - **One stale-PR rule across the product.** The Q&A answer used to say "PRs that shipped the old version: none" while its own evidence path showed PR #5 implementing the older requirement. PRs merged after the decision that implement the old version are now stale everywhere; only PRs with no link either way are "unmatched".
 - **"Days open" no longer grows with the real clock.** On the synthetic company it counts from a fixed reference date in [`data/scenario/config.json`](data/scenario/config.json) (2026-10-10, the morning after the last message); live builds use today.

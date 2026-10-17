@@ -66,7 +66,7 @@ To post as maya, put your own username in her entry **before** step 3. To find y
 python -c "from connectors.slack import client; c=client(); print([(u['name'], u.get('real_name')) for u in c.users_list()['members'] if not u.get('is_bot')])"
 ```
 
-Then set `"slack": "<your username>"` for `maya` in `data/scenario/people.json`. That file is the cast list, not the answer key. Re-run step 3's build afterwards.
+Then set `"slack": "<your username>"` for `maya` in `data/scenario/people.json`. That file is the cast list, not the answer key. Re-run step 3's build afterwards, and don't commit the change (the tests expect `maya.chen`).
 
 **What to expect.** Within a second or two the bot replies **in the thread** with "Requirement drift on Ticket export to CSV …". The reply carries the graph path, and every open dashboard shows the new-drift toast.
 
@@ -75,7 +75,7 @@ Then set `"slack": "<your username>"` for `maya` in `data/scenario/people.json`.
 1. The Slack thread: your message and the bot's reply underneath (the important one).
 2. The dashboard's Open drift section with the new card, on <http://localhost:8000>.
 
-Save them as `docs/real-slack-thread.png` and `docs/real-slack-dashboard.png`, then replace the TODO in the README's "Run on a real Slack workspace" section with the two images.
+Save them as `docs/real-slack-thread.png` and `docs/real-slack-dashboard.png`; the README's "Run on a real Slack workspace" section shows them. Crop out browser tabs and bookmarks first.
 
 ## Afterwards
 

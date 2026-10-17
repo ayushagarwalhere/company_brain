@@ -50,7 +50,11 @@ def on_message(event, client, say):
 @app.event("app_mention")
 def on_mention(event, say):
     text = event.get("text", "").split(">", 1)[-1]
-    reply = handle(text) or HELP
+    try:
+        reply = handle(text) or HELP
+    except Exception as e:  # noqa: BLE001 - answer in the thread instead of going silent
+        log.exception("command failed")
+        reply = f"Sorry, that failed: {e}"
     say(text=reply[:39000], thread_ts=event.get("thread_ts") or event["ts"])
 
 

@@ -281,3 +281,14 @@ def test_live_ingest_through_fake_apis_finds_the_planted_drift(monkeypatch, tmp_
         assert s["drift_requirements"]["f1"] == 1.0 and s["drift_stale_prs"]["f1"] == 1.0, s["drift_requirements"]
     finally:
         g.delete()
+
+
+def test_slack_code_formatting_is_stripped_from_message_text():
+    """A message typed with Slack's code formatter arrives wrapped in ``` fences; the requirement text must not
+    keep them (seen in the first real-workspace run)."""
+    from connectors.slack import plain_text
+
+    assert plain_text("```Decision: the export button must also offer a JSON download, BD-102.```") == (
+        "Decision: the export button must also offer a JSON download, BD-102."
+    )
+    assert plain_text("use `csv` &amp; json") == "use csv & json"

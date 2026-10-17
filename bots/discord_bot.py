@@ -43,7 +43,11 @@ async def on_message(msg: discord.Message):
         return
     if msg.content.startswith(PREFIX):
         text = msg.content[len(PREFIX) :]
-        reply = await asyncio.to_thread(handle, text)
+        try:
+            reply = await asyncio.to_thread(handle, text)
+        except Exception as e:  # noqa: BLE001 - answer instead of going silent
+            log.exception("command failed")
+            reply = f"Sorry, that failed: {e}"
         await send_long(msg, reply or HELP, reply=True)
         return
     ev = to_event(msg, seed_map.load("discord"), _people_by_name())
