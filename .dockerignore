@@ -14,3 +14,7 @@ data/seed_maps
 benchmark/results/*.local.json
 docs/*.png
 docs/*.gif
+
+# local runtime state: connected workspaces (with their bot tokens) and tried repos
+data/installs.json
+data/try

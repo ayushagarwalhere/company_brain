@@ -1,6 +1,6 @@
 # How the core parts work
 
-This covers four pieces: the drift query, the supersession chain, the connection query and paged reads. For each: what it does, why it's written this way, what breaks without it, and two questions a reviewer might ask.
+This covers six pieces: the drift query, the supersession chain, the connection query, paged reads, the MCP server's `current_spec` and the try-your-repo pipeline. For each: what it does, why it's written this way, what breaks without it, and two questions a reviewer might ask.
 
 ---
 
@@ -181,3 +181,76 @@ A: It's a server setting I don't control on FalkorDB Cloud or someone else's dep
 
 **Q: `SKIP` gets slower as the offset grows. Isn't this quadratic?**
 A: In principle each page re-scans up to its offset. At this size it's 5 pages, and resolve takes about 3 s in total for the whole 20k graph. At much larger scale, keyset pagination (`WHERE (m.ts_ms, m.id) > (last_ts, last_id) … LIMIT n`) on the `Message.ts_ms` index would avoid re-scanning. It's a small change I haven't needed yet.
+
+---
+
+## 5. `current_spec`: the MCP tool a coding agent calls first
+
+[`agent/mcp_server.py`](../agent/mcp_server.py)
+
+**What it does.** Given a ticket id, it answers "what should I build?" from the graph, not from the ticket text:
+- the open drift on that ticket (the `DRIFT` query with `$ticket`): if there is one, the newest chat requirement is
+  `current_requirement`, with who decided it, the channel, the time, the message and its link, plus what the ticket still
+  says, the PRs that shipped the old version and the stale docs;
+- otherwise the newest requirement nothing supersedes (`NOT (r)<-[:SUPERSEDES]-()`), which is the ticket's own text;
+- the owners, the three people `WHO_KNOWS` ranks highest, the version history and the graph paths behind each fact.
+
+The server's `instructions` (sent to the client at the MCP handshake) tell the agent to call it before implementing a
+ticket and to build what it returns. That paragraph is the only prompt; there is no CLAUDE.md in the demo.
+
+**Why it's written this way.**
+- **Thin wrappers, no new queries.** Every fact comes from the same queries the dashboard uses (`Q.drift`,
+  `DECISION_HISTORY`, `WHO_KNOWS`), through `GRAPH.RO_QUERY`, then `redact` for the viewer. An agent can't write, and
+  can't see a doc its user couldn't.
+- **One call, not six.** Agents skip tools. The tool an agent will call anyway (it has a ticket id) returns everything
+  needed to build the right thing, so the correct behaviour doesn't depend on a chain of good choices.
+- **Org and viewer per call.** Over HTTP they come from `X-Org` / `X-User` (or `?org=` / `?as=`), read from the request
+  inside the tool; over stdio from `BRAIN_ORG` / `BRAIN_USER`. The tool doesn't rely on the API middleware's context
+  variables reaching the MCP transport's task.
+
+**What breaks without it.** The recorded runs ([`examples/mcp-demo/RUNS.md`](../examples/mcp-demo/RUNS.md)): without the
+server, Claude Code built the ticket's 30-day export and left the custom fields out; with it, the 12-month export with
+every custom field, citing the decision and PR #6.
+
+**Q: Two runs prove nothing. How do you know it generalises?**
+A: They don't, and the README says so. What is guaranteed is narrower: the current requirement and its source are one
+call away, and the server tells the agent to make that call. Whether a given model makes it is the model's behaviour;
+both runs are in the repo so anyone can repeat them.
+
+**Q: On a real repo the extractor is often wrong. Won't `current_spec` mislead an agent?**
+A: On a public repo's graph it adds the rules extractor's measured precision as a caveat, and any earlier hand-check of
+that flag (both FalkorDB flags are known false positives). On the demo company, the rules were tuned on that very data,
+which is exactly why the real-data numbers are published next to it.
+
+---
+
+## 6. Try your repo: a public repo's graph in under 20 seconds
+
+[`pipeline/tryrepo.py`](../pipeline/tryrepo.py)
+
+**What it does.** Reads a public repo's 150 most recently updated issues, 100 PRs, up to 25 older issues those PRs name,
+and 400 recent comments; maps them with the real-data adapter (issue → `Ticket GH-n`, comment → `Message` that
+`MENTIONS` it, PR → `PullRequest`, `#12` → `GH-12`); runs the full `resolve` with the rules extractor and one feature per
+issue; then answers from graph queries: people, who knows what per label, issue ← PR chains (`REFERENCES`), open issues no
+PR names, decisions (`CHANGES`) and drift.
+
+**Why it's written this way.**
+- **The same pipeline as the benchmark.** No new extraction code, so what judges see on their own repo is what the
+  published real-data numbers measure.
+- **Rules, not an LLM.** Fast, free, and deterministic; the cost is low precision on real text, shown on the page with
+  the number (0.17 on 60 labelled comments).
+- **One feature per issue.** The rules' label groups are named after an arbitrary member issue, which reads as nonsense
+  on a real repo; per-issue features keep names true and make "who knows #3070" work.
+- **Guards.** Private repos refused even if the server token could read them; two builds at a time; a 12-hour cache;
+  at most 40 repo graphs; every write endpoint 403 on a repo's graph.
+
+**What breaks without it.** Judges only see the synthetic company, whose 1.00 is an upper bound. Here they see where it
+works (links GitHub already has) and where it doesn't (drift), on data nobody tuned for.
+
+**Q: Why are issue ← PR chains reliable but drift isn't?**
+A: Chains come from text GitHub users write to link things ("fixes #12"), which the hard-id resolver reads exactly. Drift
+needs a judgement that a comment changes the requirement, which is the extractor's weak spot on review-heavy repos.
+
+**Q: Why the most recently *updated* issues, not the newest?**
+A: Activity is where knowledge and decisions are. The newest issues are often untriaged; recently updated ones carry
+the discussion, the labels and the linked PRs.

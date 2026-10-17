@@ -107,7 +107,7 @@ both are in the repo word for word.
 ## Try it on your own repo
 
 The live site also takes any public GitHub repo, reads its recent issues, PRs and comments, and builds the same graph
-in about fifteen seconds with the rules extractor. Who knows what, which PRs close which issues and which open issues
+in under twenty seconds with the rules extractor. Who knows what, which PRs close which issues and which open issues
 nobody is working on come out well, because they come from GitHub's own links. Drift mostly comes back empty or wrong,
 for the reasons above, and the page says so next to every flag.
 

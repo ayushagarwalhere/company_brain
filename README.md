@@ -71,7 +71,7 @@ field as a column), cited the decision and said PR #6 had shipped the old versio
 ## Try it on your own repo
 
 The live site takes any public GitHub repo (`/try/owner/name`). It reads the 150 most recently updated issues, 100 PRs and
-up to 400 comments, runs the same pipeline with the rules extractor (no LLM; about 15 seconds for FalkorDB/FalkorDB) into a graph of its own,
+up to 400 comments, runs the same pipeline with the rules extractor (no LLM; under 20 seconds for FalkorDB/FalkorDB, most of it GitHub's API) into a graph of its own,
 and shows who knows what (per label), which PRs close which issues, open issues no PR touches, decisions in comments and
 drift. FalkorDB/FalkorDB is built at startup, so it opens at once. Private repos are refused even if the server's token
 could read them, and a repo's graph is read-only.
