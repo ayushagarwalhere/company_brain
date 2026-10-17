@@ -69,7 +69,7 @@ The honest boundary: given the same extracted facts and the same version chain, 
   ![Dashboard: DRIFT 03, BD-102, decided in Slack #engineering](docs/real-slack-dashboard.png)
 
 - **At scale.** 22,940 nodes, 27,700 relationships, 20,800 messages: 100 of 100 planted drifts found, 0 false; drift query p50 39 ms for the whole graph, 2.4 ms for one ticket; one live message p50 38 ms.
-- **Tested.** 108 tests (no LLM or API keys needed) and CI with ruff, mypy, the ablation gate, a query-plan index check and a stress test.
+- **Tested.** 109 tests (no LLM or API keys needed) and CI with ruff, mypy, the ablation gate, a query-plan index check and a stress test.
 
 ## Results at a glance
 
@@ -216,7 +216,7 @@ Unset, it uses DeepSeek (`DEEPSEEK_*`). Every extraction call is cached by (mode
 
 ### Tests and CI
 
-`python -m pytest -q` runs 108 tests, none of which need an LLM or API keys. They include:
+`python -m pytest -q` runs 109 tests, none of which need an LLM or API keys. They include:
 - the published numbers in [`docs/RESULTS.md`](docs/RESULTS.md) against the committed result files ([`tests/test_readme_numbers.py`](tests/test_readme_numbers.py));
 - human actions surviving rebuilds, and live updates (a write-back survives a live recompute; an unverified candidate never supersedes the owner's decision);
 - auth on every endpoint that changes the graph, GitHub webhook signatures and replayed deliveries, and per-org event isolation;

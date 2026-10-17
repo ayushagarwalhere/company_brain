@@ -158,7 +158,10 @@ def answer_connect(ctx: Ctx) -> list[str]:
     if len(ids) < 2:
         return ['Name two things to connect, e.g. a person and a PR: "How is liam connected to PR-6?"']
     rows = ctx.run("how_connected", a=ids[0], b=ids[1])
-    return [f"{ids[0]} and {ids[1]} are {rows[0]['hops']} hops apart." if rows else f"No causal path within 7 hops between {ids[0]} and {ids[1]}."]
+    if not rows:
+        return [f"No causal path within 7 hops between {ids[0]} and {ids[1]}."]
+    # the path is the answer: who posted what, which thread, which ticket, which PR
+    return [f"{ids[0]} and {ids[1]} are {rows[0]['hops']} hops apart:", ctx.paths[-1] if ctx.paths else ""]
 
 
 def answer_prs(ctx: Ctx) -> list[str]:

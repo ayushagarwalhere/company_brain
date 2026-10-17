@@ -70,3 +70,10 @@ def test_named_pr_gets_its_own_status(demo):
 def test_weak_feature_match_is_flagged(demo):
     a = ask("any drift on the mobile app push notifications?")
     assert a.startswith("(Low-confidence match: I read this as being about SLA breach notifications.)")
+
+
+def test_connection_answer_shows_the_path(demo):
+    """The multi-hop path is the answer, not just its length."""
+    a = ask("How is liam connected to PR #6?")
+    assert a.startswith("liam and PR-6 are 4 hops apart:")
+    assert "(Person liam)-[:POSTED]->" in a and "(PullRequest PR-6)" in a
