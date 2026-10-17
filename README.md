@@ -97,13 +97,8 @@ LLM_API_KEY=ollama
 LLM_REASONING_EFFORT=none
 ```
 
-For real Slack or Discord data, add the relevant bot credentials to `.env` and follow [`docs/REAL_RUN.md`](docs/REAL_RUN.md). The web overview also provides consent-based “Add to Slack” and “Add to Discord” flows.
+## For real Slack or Discord data, add the relevant bot credentials to `.env` and follow [`docs/REAL_RUN.md`](docs/REAL_RUN.md). The web overview also provides consent-based “Add to Slack” and “Add to Discord” flows.
 
-## Validation and honest boundaries
-
-The repository includes unit, API, connector, graph, access-control, paging, integration, and benchmark tests. CI runs Ruff, mypy, the suite, an ablation gate, and query-plan checks. On the synthetic benchmark, the full graph reaches 1.00 precision and recall for drift; removing version reasoning drops precision to 0.50. A 22,940-node stress test finds 100 of 100 planted drifts with zero false positives.
-
-Those results are an upper bound: rules and thresholds were tuned on the synthetic scenario, which contains two real drifts. Real-text extraction is conservative; Google Drive is tested against a fake API; impact-analysis organisation data and the HR records are hand-written demo data; and project status changes are read from chat with a keyword rule, not a model. The project makes uncertainty and evidence visible rather than pretending a benchmark replaces production calibration.
 
 ## Project map
 
