@@ -8,11 +8,13 @@ const label = (e: LiveEvent): [string, string, "warn" | "ok" | "info"] => {
   switch (e.type) {
     case "drift": return ["New drift detected", `${e.author} changed ${e.ticket ?? "a requirement"}: “${e.text}”`, "warn"];
     case "resolved": return ["Drift resolved", `${e.how} by ${e.by}${e.ticket ? ` · ${e.ticket}` : ""}`, "ok"];
-    case "ticket": return [`Ticket ${e.ticket} updated`, list(e.resolved) ? `resolves ${list(e.resolved)}` : list(e.still_drifting) ? `still drifting: ${list(e.still_drifting)}` : `by ${e.by}`,
+    case "ticket": if (e.created) return [`New ticket ${e.ticket}`, `${e.title}${e.project ? ` · in ${e.project}` : ""} · by ${e.by}`, "info"];
+      return [`Ticket ${e.ticket} updated`, list(e.resolved) ? `resolves ${list(e.resolved)}` : list(e.still_drifting) ? `still drifting: ${list(e.still_drifting)}` : `by ${e.by}`,
       list(e.resolved) ? "ok" : list(e.still_drifting) ? "warn" : "info"];
     case "pr": return [`PR #${e.pr} received`, list(e.resolved) ? `implements the latest decision · resolves ${list(e.resolved)}` : `linked to ${list(e.tickets) || "no ticket"}`, list(e.resolved) ? "ok" : "info"];
     case "doc": return [`Doc ${e.doc} updated`, e.no_longer_stale ? "no longer describes the old version" : `by ${e.by}`, e.no_longer_stale ? "ok" : "info"];
     case "rebuild": return ["Graph rebuilt", `extraction: ${e.extractor}`, "info"];
+    case "project": return [`${e.name} ${e.change === "changed" ? `is now ${e.to}` : "unchanged"}`, `${e.author}: “${e.text}”`, e.change === "changed" ? "warn" : "info"];
     default: return [e.type, "", "info"];
   }
 };

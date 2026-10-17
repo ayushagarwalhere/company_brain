@@ -2,15 +2,14 @@ import { useEffect, useRef, useState, type ReactNode } from "react";
 import { api, type Retro } from "../lib/api";
 import { useBrain } from "../lib/brain";
 import { useStill } from "../lib/fx";
-import { fadeIn, gsap, moving, scrollWindowTo, ScrollTrigger, useGSAP } from "../lib/gsap";
+import { fadeIn, gsap, scrollWindowTo, useGSAP } from "../lib/gsap";
 import { DEMO_HREF } from "../lib/routes";
 import { day } from "../lib/ui";
 
-/* What the product does, one page per feature. On wide screens the section is a pager: once it fills the screen,
-   one gesture moves exactly one page, however hard the touchpad is swiped (the momentum after a swipe is ignored
-   until the fingers rest). Wheel, touch swipe, arrow keys, the dots and the arrows all step one page. Past the last
-   page (or before the first) the next gesture carries on to the rest of the overview. Narrow screens, reduced motion
-   and ?static get the pages stacked. */
+/* What the product does, one page per feature. On wide screens the section pins and the pages slide past
+   horizontally as you scroll down: the further you scroll, the further along the features you are, smoothed so a hard
+   touchpad swipe glides instead of jumping. Scrolling back slides them back. The dots and arrows glide to a page.
+   Narrow screens, reduced motion and ?static get the pages stacked. */
 
 function useWide() {
   const q = "(min-width: 861px)";
@@ -97,7 +96,7 @@ function ListenVis() {
 }
 
 const TOOLS = ["list_features", "drift_for_feature", "decision_history", "feature_timeline", "who_knows", "decision_impact",
-  "list_decisions", "how_connected", "feature_prs", "plan_fix", "follow_ups", "ticket_owners", "search_knowledge", "list_projects", "impact_of_delay"];
+  "list_decisions", "how_connected", "feature_prs", "plan_fix", "follow_ups", "ticket_owners", "search_knowledge", "list_projects", "impact_of_delay", "why_blocked"];
 
 function AskVis() {
   return (
@@ -226,11 +225,6 @@ const PANELS: { k: string; title: string; body: string; points: string[]; go: [s
     points: ["Bus factor per feature", "PRs with no ticket, tickets with no PR", "Possible decisions by people who don't own the ticket"] },
 ];
 
-/** Wheel events closer together than this belong to the same gesture (a swipe and its momentum tail). */
-const QUIET_MS = 200;
-
-type Pager = { go: (k: number) => void; step: (dir: 1 | -1) => void };
-
 export function Features() {
   const still = useStill();
   const wide = useWide();
@@ -238,136 +232,51 @@ export function Features() {
   const section = useRef<HTMLElement>(null);
   const track = useRef<HTMLDivElement>(null);
   const bar = useRef<HTMLSpanElement>(null);
-  const pager = useRef<Pager | null>(null);
+  const goTo = useRef<((k: number) => void) | null>(null);
   const [idx, setIdx] = useState(0);
-  const [engaged, setEngaged] = useState(false);
+  const idxRef = useRef(0);
 
   useGSAP(() => {
     const el = section.current, tr = track.current;
     if (!el || !tr) return;
     const panels = gsap.utils.toArray<HTMLElement>(".hs__panel", tr);
     if (!on) {
-      pager.current = null;
+      goTo.current = null;
       panels.forEach((pn) => fadeIn(pn.children, pn));
       return;
     }
     const n = panels.length;
-    let i = 0, active = false, animating = false, gestureDone = false, swallow = false, travelling = false, snapping = false;
-    let lastEvt = 0, lockY = 0, touchX = 0, touchY = 0, lastInput = 0;
-    // only the reader's own wheel, swipe or keys engage the pager; a nav link's smooth scroll, Back to top or a jump
-    // to the end passes straight through
-    const byUser = () => performance.now() - lastInput < 600;
-
-    const show = (k: number, instant = false) => {
-      i = Math.max(0, Math.min(n - 1, k));
-      setIdx(i);
-      if (bar.current) bar.current.style.transform = `scaleX(${n > 1 ? i / (n - 1) : 1})`;
-      if (instant || !moving()) { gsap.set(tr, { x: -i * window.innerWidth }); animating = false; return; }
-      animating = true;
-      gsap.to(tr, { x: -i * window.innerWidth, duration: 0.75, ease: "power3.inOut", overwrite: true, onComplete: () => { animating = false; } });
-      gsap.fromTo(panels[i].querySelectorAll(".hs__copy > *"), { opacity: 0, y: 14 },
-        { opacity: 1, y: 0, stagger: 0.04, duration: 0.45, delay: 0.3, overwrite: true, clearProps: "opacity,transform" });
-    };
-    const engage = (st: ScrollTrigger) => {
-      if (active || travelling || !byUser()) return;
-      if (window.scrollY > st.end - 4) return;    // jumped clean over the section
-      active = true; setEngaged(true);
-      gestureDone = true;                 // the gesture that scrolled us here doesn't also turn a page
-      lastEvt = performance.now();
-      lockY = st.start;
-      snapping = true;
-      scrollWindowTo(lockY, 0.45, () => { snapping = false; });
-    };
-    const release = (dir: 1 | -1) => {
-      active = false; setEngaged(false);
-      swallow = true;                     // the rest of this gesture is spent on moving on, not on scrolling further
-      travelling = true;
-      const target = dir > 0 ? lockY + el.offsetHeight + 2 : Math.max(0, lockY - window.innerHeight);
-      scrollWindowTo(target, 0.8, () => { travelling = false; });
-    };
-    const step = (dir: 1 | -1) => {
-      if (animating) return;
-      const k = i + dir;
-      if (k < 0 || k >= n) release(dir);
-      else show(k);
-    };
-    pager.current = { go: (k) => show(k), step };
-
-    const st = ScrollTrigger.create({
-      trigger: el, start: "top top", end: "bottom top",
-      onEnter: (self) => engage(self), onEnterBack: (self) => engage(self),
-      // left without paging through (a nav link, the scrollbar): come back to the near end
-      onLeave: () => { if (!active) show(n - 1, true); },
-      onLeaveBack: () => { if (!active) show(0, true); },
-      // content above changed height while a page is showing: stay aligned with the section
-      onRefresh: (self) => { if (active) { lockY = self.start; window.scrollTo({ top: lockY, behavior: "instant" }); } },
+    const dist = () => tr.scrollWidth - window.innerWidth;
+    // the track follows the scroll position; scrub smooths it, so momentum glides the pages instead of flicking them
+    const slide = gsap.to(tr, {
+      x: () => -dist(), ease: "none",
+      scrollTrigger: {
+        trigger: el, pin: true, start: "top top", end: () => `+=${dist()}`, scrub: 1.1, invalidateOnRefresh: true, anticipatePin: 1,
+        onUpdate: (self) => {
+          if (bar.current) bar.current.style.transform = `scaleX(${self.progress})`;
+          const k = Math.min(n - 1, Math.round(self.progress * (n - 1)));
+          if (k !== idxRef.current) { idxRef.current = k; setIdx(k); }
+        },
+      },
     });
-
-    const onWheel = (e: WheelEvent) => {
-      const now = performance.now();
-      lastInput = now;
-      const fresh = now - lastEvt > QUIET_MS;
-      if (swallow) {
-        if (!fresh) { e.preventDefault(); lastEvt = now; return; }
-        swallow = false;
-      }
-      if (!active) return;
-      e.preventDefault();
-      lastEvt = now;
-      if (fresh) gestureDone = false;
-      const d = Math.abs(e.deltaX) > Math.abs(e.deltaY) ? e.deltaX : e.deltaY;
-      if (gestureDone || animating || snapping || Math.abs(d) < 2) return;
-      gestureDone = true;
-      step(d > 0 ? 1 : -1);
+    // each page's words settle in as the page arrives, and its screen drifts a little slower than the page
+    panels.forEach((pn) => {
+      const copy = pn.querySelector(".hs__copy"), vis = pn.querySelector(".hs__vis");
+      gsap.fromTo(copy, { x: 70, opacity: 0.15 }, { x: 0, opacity: 1, ease: "none", scrollTrigger: { trigger: pn, containerAnimation: slide, start: "left 95%", end: "left 25%", scrub: true } });
+      gsap.fromTo(vis, { x: 120 }, { x: -60, ease: "none", scrollTrigger: { trigger: pn, containerAnimation: slide, start: "left right", end: "right left", scrub: true } });
+    });
+    const st = slide.scrollTrigger!;
+    // the dots and arrows: glide to that page's place in the scroll
+    goTo.current = (k: number) => {
+      if (k >= n) return scrollWindowTo(st.end + 2, 0.9);
+      if (k < 0) return scrollWindowTo(Math.max(0, st.start - window.innerHeight), 0.9);
+      scrollWindowTo(st.start + (st.end - st.start) * (k / (n - 1)), 0.9);
     };
-    const onTouchStart = (e: TouchEvent) => { touchX = e.touches[0].clientX; touchY = e.touches[0].clientY; lastInput = performance.now(); };
-    const onTouchMove = (e: TouchEvent) => { if (active) e.preventDefault(); };
-    const onTouchEnd = (e: TouchEvent) => {
-      if (!active || snapping) return;
-      const dx = touchX - e.changedTouches[0].clientX, dy = touchY - e.changedTouches[0].clientY;
-      const d = Math.abs(dx) > Math.abs(dy) ? dx : dy;
-      if (Math.abs(d) > 45) step(d > 0 ? 1 : -1);
-    };
-    const onKey = (e: KeyboardEvent) => {
-      if (["ArrowDown", "ArrowUp", "PageDown", "PageUp", " "].includes(e.key)) lastInput = performance.now();
-      if (!active || /INPUT|TEXTAREA|SELECT/.test((e.target as HTMLElement).tagName)) return;
-      const next = ["ArrowDown", "ArrowRight", "PageDown", " "], prev = ["ArrowUp", "ArrowLeft", "PageUp"];
-      if (next.includes(e.key)) step(1);
-      else if (prev.includes(e.key)) step(-1);
-      else if (e.key === "Home") show(0);
-      else if (e.key === "End") show(n - 1);
-      else return;
-      e.preventDefault();
-    };
-    // moved away some other way (scrollbar, a nav link): let go
-    const onScroll = () => {
-      if (active && !snapping && Math.abs(window.scrollY - lockY) > 80) { active = false; setEngaged(false); }
-    };
-    const onResize = () => gsap.set(tr, { x: -i * window.innerWidth });
-
-    addEventListener("wheel", onWheel, { passive: false });
-    addEventListener("touchstart", onTouchStart, { passive: true });
-    addEventListener("touchmove", onTouchMove, { passive: false });
-    addEventListener("touchend", onTouchEnd);
-    addEventListener("keydown", onKey);
-    addEventListener("scroll", onScroll, { passive: true });
-    addEventListener("resize", onResize);
-    show(0, true);
-    return () => {
-      st.kill();
-      removeEventListener("wheel", onWheel);
-      removeEventListener("touchstart", onTouchStart);
-      removeEventListener("touchmove", onTouchMove);
-      removeEventListener("touchend", onTouchEnd);
-      removeEventListener("keydown", onKey);
-      removeEventListener("scroll", onScroll);
-      removeEventListener("resize", onResize);
-      pager.current = null;
-    };
+    return () => { goTo.current = null; };
   }, { dependencies: [on], scope: section, revertOnUpdate: true });
 
   return (
-    <section ref={section} id="features" className={`hs ${on ? "hs--on" : ""} ${engaged ? "hs--engaged" : ""}`} aria-label="What it does" data-i={idx}>
+    <section ref={section} id="features" className={`hs ${on ? "hs--on" : ""}`} aria-label="What it does" data-i={idx}>
       <div className="hs__sticky">
         <div className="hs__top mono">
           <span>04 — Features</span>
@@ -375,7 +284,7 @@ export function Features() {
             <span className="hs__dots" role="tablist" aria-label="Feature pages">
               {PANELS.map((p, i) => (
                 <button key={p.k} role="tab" aria-selected={i === idx} aria-label={`${i + 1}: ${p.k}`} title={p.k}
-                  className={i === idx ? "on" : ""} onClick={() => pager.current?.go(i)} />
+                  className={i === idx ? "on" : ""} onClick={() => goTo.current?.(i)} />
               ))}
             </span>
           )}
@@ -383,13 +292,13 @@ export function Features() {
         </div>
         <div ref={track} className="hs__track">
           {PANELS.map((p, i) => (
-            <article key={p.k} className="hs__panel" aria-label={p.k} aria-hidden={on && i !== idx ? true : undefined}>
+            <article key={p.k} className="hs__panel" aria-label={p.k}>
               <div className="hs__copy">
                 <div className="hs__idx"><b>{pad(i + 1)}</b><span>—</span><span>{p.k}</span></div>
                 <h2>{p.title}</h2>
                 <p>{p.body}</p>
                 <ul>{p.points.map((x) => <li key={x}>{x}</li>)}</ul>
-                <a className="btn btn--ghost btn--sm hs__go" href={`${DEMO_HREF}#${p.go[0]}`} tabIndex={on && i !== idx ? -1 : undefined}>{p.go[1]} →</a>
+                <a className="btn btn--ghost btn--sm hs__go" href={`${DEMO_HREF}#${p.go[0]}`}>{p.go[1]} →</a>
               </div>
               <div className="hs__vis">{p.vis()}</div>
             </article>
@@ -399,9 +308,9 @@ export function Features() {
           <div className="hs__foot">
             <div className="hs__bar"><span ref={bar} /></div>
             <div className="hs__nav mono">
-              <span className="hs__hint">One page per swipe · ← → keys</span>
-              <button onClick={() => pager.current?.step(-1)} aria-label="Previous feature" disabled={idx === 0}>←</button>
-              <button onClick={() => pager.current?.step(1)} aria-label="Next feature">{idx === PANELS.length - 1 ? "↓" : "→"}</button>
+              <span className="hs__hint">Keep scrolling · the features slide past</span>
+              <button onClick={() => goTo.current?.(idx - 1)} aria-label="Previous feature" disabled={idx === 0}>←</button>
+              <button onClick={() => goTo.current?.(idx + 1)} aria-label="Next feature">{idx === PANELS.length - 1 ? "↓" : "→"}</button>
             </div>
           </div>
         )}

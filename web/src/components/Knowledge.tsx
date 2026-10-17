@@ -264,7 +264,7 @@ function WhoSees() {
 
 export function DocsSection() {
   return (
-    <Section id="docs-sec" index="06" title="Docs & access"
+    <Section id="docs-sec" index="08" title="Docs & access"
       intro="Docs live in the graph as chunks in a FalkorDB vector index, one hop from their authors and tickets. Edit one: only the chunks that changed are re-embedded, and its ticket links follow the new text. Then ask the same question as three different people.">
       <span className="kicker" style={{ marginTop: 0 }}>When a doc changes</span>
       <DocEditor />

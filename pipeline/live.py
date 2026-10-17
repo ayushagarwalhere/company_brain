@@ -1,7 +1,8 @@
 """Live drift monitor: one new chat message in, maybe one alert out.
 
 Runs the same steps as the batch pipeline, scoped to a single message:
-  write message -> resolve feature (hard / thread / semantic) -> classify ->
+  write message -> (a project status change? apply it and stop: see pipeline/orgchange.py) ->
+  resolve feature (hard / thread / semantic) -> classify ->
   if it changes a requirement: add Requirement + SUPERSEDES + Decision ->
   run the drift query for that ticket -> return an alert with the evidence path.
 
@@ -20,7 +21,7 @@ from agent.tools import drift_path
 from config import MIN_CONFIDENCE, MSG_SIM_THRESHOLD  # noqa: E402 - one threshold for batch and live
 from graph import queries as Q
 from graph.db import get_graph
-from graph.writer import write_messages
+from graph.writer import link_doc_references, write_messages
 from pipeline.events import Event
 from pipeline.extract import CHANGE_KINDS, HeuristicExtractor  # noqa: F401 - re-exported for tests
 from pipeline.resolve import has_decision_rights
@@ -57,6 +58,12 @@ def process_message(event: Event, g=None, extractor=None) -> dict:
     g = g or get_graph()
     ex = extractor or _extractor()
     write_messages(g, [event])
+    link_doc_references(g, [event.id])
+    from pipeline.orgchange import apply_project_status
+
+    org_change = apply_project_status(g, event)
+    if org_change:  # a decision about a whole project, not a ticket's requirement: no drift check
+        return {"status": "project-status", "message": event.id, "change": org_change}
     feats = _features(g)
     if not feats:
         return {"status": "no-features"}

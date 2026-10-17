@@ -3,6 +3,7 @@ import { BrainProvider, useBrain } from "./lib/brain";
 import { scrollToEl } from "./lib/fx";
 import { isAppMode } from "./lib/routes";
 import { Footer, Nav } from "./components/Chrome";
+import { CompanyMapSection } from "./components/CompanyMap";
 import { DriftSection } from "./components/DriftSection";
 import { GraphSection } from "./components/GraphSection";
 import { AppHeader } from "./components/Hero";
@@ -11,6 +12,7 @@ import { DocsSection } from "./components/Knowledge";
 import { Landing } from "./components/Landing";
 import { CommandPalette, PersonDrawer } from "./components/Overlays";
 import { AskSection, CoverageSection, RetroSection, SimulateSection, SpecSection } from "./components/Panels";
+import { StreamSection } from "./components/Stream";
 import { Toasts } from "./components/Toasts";
 import { Tour, tourActive } from "./components/Tour";
 
@@ -34,8 +36,10 @@ function Workspace() {
       <main>
         <DriftSection />
         <GraphSection />
+        <CompanyMapSection />
         <ImpactSection />
         <SimulateSection />
+        <StreamSection />
         <AskSection />
         <DocsSection />
         <RetroSection />

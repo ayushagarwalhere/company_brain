@@ -52,6 +52,7 @@ def documents(directory: Path = DOCS_DIR) -> list[Event]:
                     "tickets": sorted(set(tickets) | set(find_ticket_refs(body))),
                     "declared": tickets,  # from the frontmatter: kept as links even if the text stops naming them
                     "acl": [a.strip() for a in meta.get("access", "").split(",") if a.strip()],
+                    "source": meta.get("source"),  # the system it lives in (notion, gdrive, confluence), shown on answers
                 },
             )
         )

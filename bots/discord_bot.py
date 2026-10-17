@@ -1,6 +1,9 @@
 """Discord bot: drift alerts on every new message, `!brain <command>` for commands.
 
 python -m bots.discord_bot
+
+One bot serves every server it is added to. The home server (DISCORD_GUILD_ID, the demo company) uses the default
+graph; every other server gets its own graph (connectors/installs.py), so teams never see or feed each other's data.
 """
 
 import asyncio
@@ -39,6 +42,15 @@ def record_servers() -> None:
     save_discord_guilds([{"id": g.id, "name": g.name} for g in client.guilds])
 
 
+def welcome_channel(guild):
+    """Where to say hello: the server's system channel, else the first text channel the bot may post in."""
+    me = guild.me
+    for ch in [guild.system_channel, *guild.text_channels]:
+        if ch is not None and ch.permissions_for(me).send_messages:
+            return ch
+    return None
+
+
 @client.event
 async def on_ready():
     log.info("logged in as %s, in %d servers", client.user, len(client.guilds))
@@ -47,8 +59,17 @@ async def on_ready():
 
 @client.event
 async def on_guild_join(guild):
+    import os
+
+    from api.integrations import welcome
+    from connectors.installs import discord_org
+
     log.info("added to %s", guild.name)
+    org = discord_org(guild.id, guild.name)  # its own graph, created now
     record_servers()
+    ch = welcome_channel(guild)
+    if org and ch:
+        await send_long(ch, welcome("discord", org, (os.getenv("PUBLIC_URL") or "").rstrip("/")))
 
 
 @client.event
@@ -58,8 +79,19 @@ async def on_guild_remove(guild):
 
 @client.event
 async def on_message(msg: discord.Message):
-    if msg.author.bot or msg.webhook_id or not msg.content:
-        return
+    if msg.author.bot or msg.webhook_id or not msg.content or msg.guild is None:
+        return  # bots, webhooks, empty messages and DMs
+    from connectors.installs import discord_org
+    from graph.db import _org, set_org
+
+    token = set_org(discord_org(msg.guild.id, msg.guild.name))  # this server's graph, for everything below
+    try:
+        await _on_message(msg)
+    finally:
+        _org.reset(token)
+
+
+async def _on_message(msg: discord.Message):
     if msg.content.startswith(PREFIX):
         text = msg.content[len(PREFIX) :]
         try:

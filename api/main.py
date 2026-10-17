@@ -4,6 +4,7 @@ uvicorn api.main:app --reload --port 8000     -> http://localhost:8000
 """
 
 import logging
+import threading
 import time
 import uuid
 from contextlib import asynccontextmanager
@@ -462,16 +463,39 @@ def connect(a: str, b: str):
 
 
 _PATH_NODE = __import__("re").compile(r"\((\w+) ([^)@]+?)(?:\s@[^)]*)?\)")
+_REPORTS = __import__("re").compile(r"\(Person ([^)]+)\)-\[:REPORTS_TO\]->\(Person ([^)]+)\)")
+DOC_SYSTEMS = {"notion": "Notion", "gdrive": "Google Drive", "confluence": "Confluence"}
+
+
+def _tracker(url: str | None) -> tuple[str, str]:
+    u = (url or "").lower()
+    if "linear" in u:
+        return "linear", "Linear"
+    if "jira" in u or "atlassian" in u:
+        return "jira", "Jira"
+    return "tracker", "Tracker"
 
 
 def answer_sources(g, paths: list[str]) -> list[dict]:
     """Where an answer's evidence lives: the systems behind the nodes on its graph paths (Slack or Discord channel
-    for messages and the decisions/requirements they created, GitHub for PRs, the tracker for tickets, docs)."""
+    for messages and the decisions/requirements they created, GitHub for PRs, Linear/Jira for tickets, Notion/Drive
+    for docs, the HR system for reporting lines)."""
     found: list[tuple[str, str]] = []
+    hr: list[str] = []
     for p in paths:
         for typ, nid in _PATH_NODE.findall(p):
             if (typ, nid.strip()) not in found:
                 found.append((typ, nid.strip()))
+        for a, b in _REPORTS.findall(p):
+            hr += [x for x in (a.strip(), b.strip()) if x not in hr]
+    ids = lambda t: sorted({nid for typ, nid in found if typ == t})  # noqa: E731
+    doc_src = (
+        {r["id"]: r["s"] for r in Q.rows(g, "MATCH (d:Document) WHERE d.id IN $ids RETURN d.id AS id, d.source AS s", ids=ids("Document"))}
+        if ids("Document")
+        else {}
+    )
+    tids = sorted(set(ids("Ticket")) | {nid.split(":")[1] for typ, nid in found if typ == "Requirement" and ":v" in nid})
+    ticket_url = {r["id"]: r["u"] for r in Q.rows(g, "MATCH (t:Ticket) WHERE t.id IN $ids RETURN t.id AS id, t.url AS u", ids=tids)} if tids else {}
     msg_ids = {
         nid.removeprefix("dec:").removeprefix("req:")
         for typ, nid in found
@@ -491,15 +515,18 @@ def answer_sources(g, paths: list[str]) -> list[dict]:
         elif typ == "PullRequest":
             key, label = "github", "GitHub"
         elif typ == "Ticket" or (typ == "Requirement" and ":v" in nid):
-            key, label = "tracker", "Tracker"
+            key, label = _tracker(ticket_url.get(nid if typ == "Ticket" else nid.split(":")[1]))
         elif typ == "Document":
-            key, label = "docs", "Docs"
+            s = doc_src.get(nid)
+            key, label = (s, DOC_SYSTEMS.get(s, s.capitalize())) if s else ("docs", "Docs")
         else:
             continue
         src = out.setdefault(key, {"system": key.split("#")[0], "label": label, "refs": []})
         ref = nid.split(":")[1] if typ == "Requirement" and ":v" in nid else nid
         if ref not in src["refs"]:
             src["refs"].append(ref)
+    if hr:
+        out["hr"] = {"system": "hr", "label": "HR", "refs": hr}
     return list(out.values())
 
 
@@ -549,6 +576,10 @@ def simulate(body: SimulateIn):
     )
     r = process_message(ev)
     r.pop("drift", None)
+    if r.get("status") == "project-status":
+        c = r["change"]
+        bus.publish("project", project=c["project"], name=c["name"], to=c["to"], change=c["status"], author=body.author, text=body.text[:160])
+        return r
     bus.publish(
         "drift" if r.get("status") == "drift" else "message",
         status=r.get("status"),
@@ -664,11 +695,15 @@ def task_done(num: int, body: TaskDoneIn):
 @app.post("/api/demo/reset", dependencies=[Depends(require_ingest_token)])
 def demo_reset():
     """Rebuilds the graph from the source data: undoes simulated messages, ticket writes and dismissals."""
+    from connectors.installs import is_team_org
+    from graph.db import current_org
     from pipeline import live
     from pipeline.build import mark_build
     from pipeline.ingest import ingest
     from pipeline.resolve import resolve
 
+    if is_team_org(current_org()):
+        raise HTTPException(403, "a connected team's graph is never replaced with demo data")
     g = get_graph()
     prev = Q.rows(g, "MATCH (b:Build {id: 'latest'}) RETURN b.extractor AS e")
     from pipeline import llm
@@ -706,17 +741,29 @@ def orgs():
     return {"current": current_org(), "orgs": list_orgs()}
 
 
+_build_locks: dict[str, threading.Lock] = {}
+_build_locks_guard = threading.Lock()
+
+
+def _build_lock(org: str) -> threading.Lock:
+    with _build_locks_guard:
+        return _build_locks.setdefault(org, threading.Lock())
+
+
 @app.post("/api/orgs/{org}/bootstrap", dependencies=[Depends(require_ingest_token)])
 def bootstrap_org(org: str, extractor: str | None = None):
     """Creates (or rebuilds) an org's isolated graph from the demo data, so a new tenant can be tried at once.
     `extractor=heuristic` builds in seconds without LLM calls (the product tour uses it); default: the LLM if one answers.
     Also clears this org's alert cooldowns, so a restarted tour can raise its live alert again."""
+    from connectors.installs import is_team_org
     from graph.db import org_graph_name
     from pipeline import live, llm
     from pipeline.build import mark_build
     from pipeline.ingest import ingest
     from pipeline.resolve import resolve
 
+    if is_team_org(org):
+        raise HTTPException(403, "a connected team's graph is never replaced with demo data")
     try:
         name = org_graph_name(org)
     except ValueError as e:
@@ -726,10 +773,12 @@ def bootstrap_org(org: str, extractor: str | None = None):
     extractor = extractor or ("llm" if llm.available() else "heuristic")
     for key in [k for k in live._last_alert if k[0] == org]:
         del live._last_alert[key]
-    counts = ingest(reset=True, graph_name=name)
-    g = get_graph(name)
-    resolve(g, extractor, log=lambda *_: None)
-    mark_build(g, extractor)
+    # one build per org at a time: a second build's reset would wipe the graph under the first one mid-index
+    with _build_lock(org):
+        counts = ingest(reset=True, graph_name=name)
+        g = get_graph(name)
+        resolve(g, extractor, log=lambda *_: None)
+        mark_build(g, extractor)
     from api.cache import clear as clear_cache
 
     clear_cache()  # a read cached just before the build (e.g. "is this sandbox empty?") must not outlive it
@@ -780,6 +829,113 @@ class TicketUpdateIn(BaseModel):
     ticket: str
     description: str
     actor: str = "maya"
+
+
+class NewTicketIn(BaseModel):
+    title: str
+    description: str = ""
+    creator: str = "maya"
+    assignee: str | None = None
+    project: str | None = None
+    labels: list[str] = []
+
+
+@app.post("/api/ingest/ticket/new", dependencies=[Depends(require_ingest_token)])
+def ingest_new_ticket(body: NewTicketIn):
+    """Ticket-tracker webhook (Jira "issue created" / Linear "Issue create"): a new ticket, in its project."""
+    from pipeline.orgchange import create_ticket
+
+    now = datetime.now(UTC).strftime("%Y-%m-%dT%H:%M:%SZ")
+    out = create_ticket(get_graph(), body.title, body.description, body.creator, body.assignee, body.project, now, body.labels)
+    bus.publish("ticket", ticket=out["ticket"], title=body.title, by=body.creator, created=True, project=out["project_name"])
+    return out
+
+
+@app.get("/api/stream")
+def stream(limit: int = 14):
+    """The latest things that reached the graph, newest first: chat messages, tickets, doc edits, and what each one
+    changed (a project's status, a ticket it names, a doc it points to)."""
+    from pipeline.access import current_viewer, hidden
+
+    g, n = get_graph(), max(1, min(int(limit), 50))
+    msgs = Q.rows(
+        g,
+        """MATCH (p:Person)-[:POSTED]->(m:Message) WITH p, m ORDER BY m.ts_ms DESC LIMIT $n
+           OPTIONAL MATCH (m)-[c:CHANGES_STATUS]->(pr:Project)
+           OPTIONAL MATCH (m)-[:MENTIONS]->(t:Ticket)
+           OPTIONAL MATCH (m)-[:REFERS_TO]->(d:Document)
+           OPTIONAL MATCH (m)-[:CHANGES]->(r:Requirement)
+           RETURN 'message' AS kind, m.id AS id, m.ts AS ts, m.ts_ms AS ms, p.id AS who, m.source AS source, m.channel AS channel,
+                  m.text AS text, pr.name AS project, c.to AS project_to, collect(DISTINCT t.id) AS tickets, collect(DISTINCT d.id) AS docs,
+                  count(DISTINCT r) > 0 AS changes""",
+        n=n,
+    )
+    tix = Q.rows(
+        g,
+        """MATCH (t:Ticket) WITH t ORDER BY t.created_ms DESC LIMIT $n
+           OPTIONAL MATCH (a:Person)-[:AUTHORED]->(t) OPTIONAL MATCH (pr:Project)-[:INCLUDES]->(t)
+           OPTIONAL MATCH (t)-[:ASSIGNED_TO]->(x:Person)
+           RETURN 'ticket' AS kind, t.id AS id, t.created AS ts, t.created_ms AS ms, a.id AS who, t.url AS url, t.title AS text,
+                  t.state AS state, pr.name AS project, x.id AS assignee""",
+        n=n,
+    )
+    gone = set(hidden(g, current_viewer())["ids"])
+    docs = [
+        r
+        for r in Q.rows(
+            g,
+            """MATCH (d:Document) WITH d ORDER BY d.updated_ms DESC LIMIT $n OPTIONAL MATCH (a:Person)-[:AUTHORED]->(d)
+               RETURN 'doc' AS kind, d.id AS id, d.updated AS ts, d.updated_ms AS ms, a.id AS who, d.title AS text, d.source AS source""",
+            n=n,
+        )
+        if r["id"] not in gone
+    ]
+    for t in tix:
+        t["source"] = _tracker(t.pop("url"))[0]
+    return sorted(msgs + tix + docs, key=lambda r: r["ms"] or 0, reverse=True)[:n]
+
+
+COMPANY_LABELS = ["Person", "Team", "Project", "Client", "Deliverable", "Document", "Ticket", "Feature"]
+COMPANY_RELS = ["MEMBER_OF", "REPORTS_TO", "OWNS", "INCLUDES", "NEEDS", "FOR", "BLOCKS", "AUTHORED", "ASSIGNED_TO", "MENTIONS", "ABOUT"]
+
+
+@app.get("/api/company-graph")
+def company_graph():
+    """The company at a glance: people, teams, projects, clients, deliverables, docs, tickets and features, with who
+    reports to whom, who's on which team, who owns what, what depends on what and which doc names which ticket.
+    Messages, requirements and PRs are left out (they're in the feature graph). Restricted docs only for those allowed."""
+    from pipeline.access import current_viewer, hidden
+
+    g = get_graph()
+    gone = set(hidden(g, current_viewer())["ids"])
+    nodes = [
+        n
+        for n in Q.rows(
+            g,
+            """MATCH (n) WHERE labels(n)[0] IN $labels
+               RETURN n.id AS id, labels(n)[0] AS type, coalesce(n.name, n.title, n.id) AS label,
+                      coalesce(n.about, n.role, n.description, n.text, n.title) AS text,
+                      coalesce(n.status, n.state) AS status, n.launch AS launch, n.due AS due, n.ooo_until AS ooo_until, n.source AS source""",
+            labels=COMPANY_LABELS,
+        )
+        if n["id"] not in gone
+    ]
+    keep = {n["id"] for n in nodes}
+    for n in nodes:
+        if n["type"] == "Document" and n["text"]:
+            n["text"] = n["text"][:220]
+    edges = [
+        e
+        for e in Q.rows(
+            g,
+            """MATCH (a)-[r]->(b) WHERE type(r) IN $rels AND labels(a)[0] IN $labels AND labels(b)[0] IN $labels
+               RETURN DISTINCT a.id AS source, type(r) AS rel, b.id AS target""",
+            rels=COMPANY_RELS,
+            labels=COMPANY_LABELS,
+        )
+        if e["source"] in keep and e["target"] in keep
+    ]
+    return {"nodes": nodes, "edges": edges}
 
 
 @app.post("/api/ingest/ticket", dependencies=[Depends(require_ingest_token)])

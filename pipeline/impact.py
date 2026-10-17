@@ -34,6 +34,7 @@ def projects(g) -> list[dict]:
            WITH p, o, collect(DISTINCT t.id) AS tickets, collect(DISTINCT f.id) AS features
            OPTIONAL MATCH (d:Deliverable)-[:NEEDS]->(p) OPTIONAL MATCH (d)-[:FOR]->(c:Client)
            RETURN p.id AS id, p.name AS name, p.about AS about, p.launch AS launch, o.id AS owner, tickets, features,
+                  coalesce(p.status, 'active') AS status, p.status_by AS status_by, p.status_at AS status_at, p.status_msg AS status_msg,
                   collect(DISTINCT [d.id, d.title, d.due, c.name]) AS deliverables
            ORDER BY launch""",
     )

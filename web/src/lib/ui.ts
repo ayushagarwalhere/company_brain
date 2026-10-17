@@ -17,6 +17,11 @@ export const plural = (n: number, one: string, many: string) => (n === 1 ? one :
 
 export const day = (iso?: string | null) => (iso || "").slice(0, 10);
 
+/** An agent answer as plain text: without its evidence block (shown separately), Markdown emphasis and code ticks
+    (an LLM adds them), and with the non-breaking hyphens some models put in ids (BD\u2011116 -> BD-116). */
+export const cleanAnswer = (s: string) =>
+  s.split(/\n\s*\**Evidence:?\**/)[0].replace(/\*\*|`/g, "").replace(/[\u2010\u2011]/g, "-").replace(/\n{3,}/g, "\n\n").trim();
+
 /** Graph path string "(Type id)-[:REL]->(Type id) ; …" -> tokens for rendering as chips. */
 export type PathToken =
   | { kind: "node"; type: string; label: string }

@@ -3,6 +3,8 @@
 `paths` are human-readable graph paths: the evidence shown next to every answer.
 """
 
+import re
+
 from graph import queries as Q
 from graph.db import get_graph
 from pipeline.events import from_ms
@@ -169,11 +171,104 @@ def ticket_owners(ticket: str) -> dict:
 
 
 def list_projects() -> dict:
-    """Projects with launch dates, owners, tickets, features and the client deliverables that need them."""
+    """Projects with their status (active, on hold, cancelled: and the chat message that changed it), launch dates,
+    owners, tickets, features and the client deliverables that need them."""
     from pipeline.impact import projects
 
-    rows = projects(_g())
-    return {"rows": rows, "paths": [f"(Person {r['owner']})-[:OWNS]->(Project {r['id']})" for r in rows if r["owner"]]}
+    g = _g()
+    rows = projects(g)
+    msgs = {
+        r["id"]: r
+        for r in Q.rows(
+            g,
+            "MATCH (m:Message)-[:CHANGES_STATUS]->(:Project) RETURN m.id AS id, m.text AS text, m.source AS source, m.channel AS channel",
+        )
+    }
+    paths = []
+    for r in rows:
+        m = msgs.get(r["status_msg"] or "")
+        r["status_text"], r["status_where"] = (m["text"], f"{(m['source'] or 'chat').capitalize()} #{m['channel']}") if m else (None, None)
+        if m:
+            paths.append(
+                f"(Person {r['status_by']})-[:POSTED]->(Message {m['id']} @ {m['source']}#{m['channel']}, {(r['status_at'] or '')[:10]})"
+                f"-[:CHANGES_STATUS]->(Project {r['id']})"
+            )
+        elif r["owner"]:
+            paths.append(f"(Person {r['owner']})-[:OWNS]->(Project {r['id']})" + (f"-[:INCLUDES]->(Ticket {r['tickets'][0]})" if r["tickets"] else ""))
+    return {"rows": rows, "paths": paths}
+
+
+STUCK = re.compile(r"\b(delay(ed|s)?|blocked|on hold|waiting (on|for)|ooo|out of (the )?office|stuck)\b", re.I)
+
+
+def why_blocked(topic: str) -> dict:
+    """Why a piece of work is stuck and who can approve an override, across four systems: the chat message that points
+    at a doc (Slack/Discord), the doc that names the ticket (Notion/Drive), the ticket and its assignee (tracker), and the
+    assignee's HR record (time off, manager)."""
+    from pipeline.textsim import TfIdf
+
+    g = _g()
+    tickets = Q.rows(g, "MATCH (t:Ticket) RETURN t.id AS id, t.title AS title, t.description AS description, t.state AS state")
+    named = {m.upper() for m in re.findall(r"\b[A-Z]{2,6}-\d+\b", topic or "", re.I)}
+    stuck = [t["id"] for t in tickets if t["state"] == "Blocked" or STUCK.search(t["description"] or "")]
+    if named:
+        pick = [t for t in sorted(named) if any(x["id"] == t for x in tickets)]
+    elif stuck:
+        # match on what is stuck, not on the words that say it's stuck ("delayed" alone would match any delayed ticket)
+        what = re.sub(r"\b(override|approve|unblock|sign off|who|why)\b", " ", STUCK.sub(" ", topic or ""), flags=re.I)
+        best, score = TfIdf({t["id"]: f"{t['title']} {t['description']}" for t in tickets}).best(what, among=stuck)
+        pick = [best] if best and score >= 0.08 else []
+    else:
+        pick = []
+    rows, paths = [], []
+    for tid in pick:
+        t = Q.rows(
+            g,
+            """MATCH (t:Ticket {id: $t})
+               OPTIONAL MATCH (t)-[:ASSIGNED_TO]->(a:Person) OPTIONAL MATCH (a)-[:REPORTS_TO]->(mgr:Person)
+               OPTIONAL MATCH (c:Person)-[:AUTHORED]->(t)
+               RETURN t.id AS ticket, t.title AS title, t.state AS state, t.description AS description,
+                      a.id AS assignee, a.name AS assignee_name, a.ooo_from AS ooo_from, a.ooo_until AS ooo_until, a.ooo_kind AS ooo_kind,
+                      mgr.id AS manager, mgr.name AS manager_name, coalesce(mgr.title, mgr.role) AS manager_title, c.id AS creator""",
+            t=tid,
+        )[0]
+        docs = Q.rows(
+            g,
+            """MATCH (d:Document)-[:MENTIONS]->(:Ticket {id: $t}) OPTIONAL MATCH (au:Person)-[:AUTHORED]->(d)
+               RETURN d.id AS id, d.title AS title, d.source AS source, au.id AS author ORDER BY id""",
+            t=tid,
+        )
+        msgs = Q.rows(
+            g,
+            """MATCH (p:Person)-[:POSTED]->(m:Message)-[:REFERS_TO]->(d:Document)-[:MENTIONS]->(:Ticket {id: $t})
+               RETURN m.id AS id, m.text AS text, m.source AS source, m.channel AS channel, m.ts AS ts, p.id AS author, d.id AS doc
+               ORDER BY m.ts_ms DESC LIMIT 3""",
+            t=tid,
+        )
+        reason = next((s.rstrip(" .;") for s in re.split(r"(?<=[.;])\s+", t["description"] or "") if STUCK.search(s)), None)
+        ooo = {"from": t["ooo_from"], "until": t["ooo_until"], "kind": t["ooo_kind"]} if t["ooo_until"] else None
+        rows.append(
+            {
+                **{k: t[k] for k in ("ticket", "title", "state", "assignee", "assignee_name", "manager", "manager_name", "manager_title", "creator")},
+                "reason": reason,
+                "out_of_office": ooo,
+                "can_override": [p for p in dict.fromkeys([t["manager"], t["creator"]]) if p],
+                "docs": docs,
+                "messages": msgs,
+            }
+        )
+        tail = f"(Ticket {tid})" + (f"-[:ASSIGNED_TO]->(Person {t['assignee']})" if t["assignee"] else "")
+        tail += f"-[:REPORTS_TO]->(Person {t['manager']})" if t["manager"] else ""
+        if msgs:
+            m = msgs[0]
+            paths.append(
+                f"(Person {m['author']})-[:POSTED]->(Message {m['id']} @ {m['source']}#{m['channel']}, {(m['ts'] or '')[:10]})-[:REFERS_TO]->(Document {m['doc']})-[:MENTIONS]->{tail}"
+            )
+        elif docs:
+            paths.append(f"(Document {docs[0]['id']})-[:MENTIONS]->{tail}")
+        else:
+            paths.append(tail)
+    return {"rows": rows, "paths": paths}
 
 
 def impact_of_delay(target: str, days: int = 14) -> dict:
@@ -259,8 +354,13 @@ TOOLS = {
     ),
     "list_projects": (
         list_projects,
-        "Projects (e.g. Project Alpha) with launch dates, owners, tickets, features and the client deliverables that need them.",
+        "Projects (e.g. Project Alpha) with their status (active, on hold, cancelled, and the chat message that changed it), launch dates, owners, tickets, features and the client deliverables that need them. Use it for 'which projects are active?'.",
         {},
+    ),
+    "why_blocked": (
+        why_blocked,
+        "Why a piece of work is delayed or blocked and who can approve an override: follows chat -> the doc it points to -> the ticket that doc names -> its assignee's HR record (out of office) -> their manager.",
+        {"topic": {"type": "string", "description": "what is stuck, e.g. 'database migration', or a ticket id"}},
     ),
     "impact_of_delay": (
         impact_of_delay,

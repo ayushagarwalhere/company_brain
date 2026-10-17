@@ -58,11 +58,15 @@ def ingest(live: bool = False, reset: bool = False, graph_name: str | None = Non
     messages, ticket_events, prs = collect(live)
 
     writer.write_people(g, scenario.people())
+    hr = scenario.hr()
+    if hr:  # managers, access groups, time off
+        writer.write_hr(g, hr)
     writer.write_sprints(g, scenario.sprints())
     writer.write_tickets(g, ticket_events)  # tickets before messages, so MENTIONS can link
     writer.write_messages(g, messages)
     writer.write_pull_requests(g, prs)
     writer.write_documents(g, docs.documents())  # docs come from files in both modes
+    writer.link_doc_references(g)  # chat that names a doc by its title
     org = scenario.org()
     if org:  # teams, projects with launch dates, ticket dependencies, clients and deliverables (impact analysis)
         writer.write_org(g, org)

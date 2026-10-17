@@ -3,7 +3,7 @@ import { useBrain } from "../lib/brain";
 import { LiveDot } from "./Toasts";
 import { DEMO_HREF, isAppMode } from "../lib/routes";
 
-export const SECTIONS = [["drift", "Drift"], ["graph-sec", "Graph"], ["impact", "Impact"], ["simulate", "Monitor"], ["ask", "Ask"], ["docs-sec", "Docs"], ["retro-sec", "Retro"], ["coverage", "Risk"]];
+export const SECTIONS = [["drift", "Drift"], ["graph-sec", "Graph"], ["map-sec", "Map"], ["impact", "Impact"], ["simulate", "Monitor"], ["stream", "Stream"], ["ask", "Ask"], ["docs-sec", "Docs"], ["retro-sec", "Retro"], ["coverage", "Risk"]];
 
 export function Nav() {
   const { setPaletteOpen, newDrift, clearNew } = useBrain();
@@ -46,8 +46,8 @@ const REPO = "https://github.com/ayushagarwalhere/company_brain";
 /** Every feature and its colour, the same hue as its section; in the app a chip jumps there, elsewhere it opens the
     demo tour at that feature's step. */
 const FEATURE_MAP: [string, string, string][] = [
-  ["drift", "Drift", "--c-coral"], ["graph-sec", "Graph", "--c-blue"], ["impact", "Impact", "--c-amber"], ["simulate", "Live monitor", "--c-green"],
-  ["ask", "Ask", "--c-violet"], ["docs-sec", "Docs & access", "--c-cyan"], ["retro-sec", "Retro", "--c-pink"], ["coverage", "Risk", "--c-yellow"],
+  ["drift", "Drift", "--c-coral"], ["graph-sec", "Graph", "--c-blue"], ["map-sec", "Company map", "--c-cyan"], ["impact", "Impact", "--c-amber"],
+  ["simulate", "Live monitor", "--c-green"], ["stream", "Live stream", "--c-pink"], ["ask", "Ask", "--c-violet"], ["docs-sec", "Docs & access", "--c-cyan"], ["retro-sec", "Retro", "--c-pink"], ["coverage", "Risk", "--c-yellow"],
 ];
 const CHAPTERS: [string, string][] = [["pain", "The pain"], ["vision", "The graph"], ["demo", "Live demo"], ["features", "Features"], ["value", "Business value"], ["stack", "Tech stack"]];
 
@@ -60,7 +60,7 @@ export function Footer() {
       <div className="foot__cta">
         <div>
           <span className="eyebrow">Company Brain · a context graph on FalkorDB</span>
-          <h3>Where was that decided? <span>Ask the graph.</span></h3>
+          <h3>Stop asking around. <span>Ask the graph.</span></h3>
         </div>
         <a className="btn" href={DEMO_HREF}>{inApp ? "Restart the guided tour →" : "Open the demo →"}</a>
       </div>

@@ -1,0 +1,33 @@
+{
+  "id": "BD-116",
+  "identifier": "BD-116",
+  "title": "Database migration to AWS RDS",
+  "description": "Move the primary Postgres to Amazon RDS and cut writes over. Database migration delayed because Dev is OOO until Friday; the cutover needs the platform owner.",
+  "state": "Blocked",
+  "priority": "High",
+  "labels": [
+    "infra",
+    "database"
+  ],
+  "creator": "arjun",
+  "assignee": "dev",
+  "cycle": "s2",
+  "createdAt": "2026-10-05T07:30:00Z",
+  "updatedAt": "2026-10-08T16:10:00Z",
+  "completedAt": null,
+  "url": "https://linear.example/brightdesk/issue/BD-116",
+  "history": [
+    {
+      "at": "2026-10-05T07:30:00Z",
+      "actor": "arjun",
+      "field": "description",
+      "to": "Move the primary Postgres to Amazon RDS and cut writes over."
+    },
+    {
+      "at": "2026-10-08T16:10:00Z",
+      "actor": "arjun",
+      "field": "description",
+      "to": "Move the primary Postgres to Amazon RDS and cut writes over. Database migration delayed because Dev is OOO until Friday; the cutover needs the platform owner."
+    }
+  ]
+}

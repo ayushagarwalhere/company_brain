@@ -19,22 +19,22 @@ function errorText(service: string, error: string) {
   return `${service === "slack" ? "Slack" : "Discord"} said: ${error}`;
 }
 
-function ChannelPicker({ team, onSaved }: { team: string; onSaved: () => void }) {
+function ChannelPicker({ team, setupKey, onSaved }: { team: string; setupKey: string; onSaved: () => void }) {
   const [data, setData] = useState<SlackChannels | null>(null);
   const [pick, setPick] = useState<Set<string>>(new Set());
   const [busy, setBusy] = useState(false);
   const [msg, setMsg] = useState<string | null>(null);
   const [err, setErr] = useState<string | null>(null);
   useEffect(() => {
-    api.slackChannels(team).then((d) => { setData(d); setPick(new Set(d.channels.filter((c) => c.watched).map((c) => c.id))); })
+    api.slackChannels(team, setupKey).then((d) => { setData(d); setPick(new Set(d.channels.filter((c) => c.watched).map((c) => c.id))); })
       .catch((e) => setErr((e as Error).message));
-  }, [team]);
+  }, [team, setupKey]);
   const toggle = (id: string) => setPick((s) => { const n = new Set(s); if (n.has(id)) n.delete(id); else n.add(id); return n; });
   const save = async () => {
     setBusy(true); setErr(null);
     try {
-      const r = await api.watchSlack(team, [...pick]);
-      setMsg(`Watching ${r.joined.map((c) => `#${c.name}`).join(", ") || "no channels"}.${r.failed.length ? ` Couldn't join ${r.failed.length}.` : ""}`);
+      const r = await api.watchSlack(team, setupKey, [...pick]);
+      setMsg(`Watching ${r.joined.map((c) => `#${c.name}`).join(", ") || "no channels"}.${r.failed.length ? ` Couldn't join ${r.failed.length}.` : ""}${r.private_graph && r.joined.length ? " The bot posted a welcome there, with your private dashboard link." : ""}`);
       onSaved();
     } catch (e) { setErr((e as Error).message); } finally { setBusy(false); }
   };
@@ -59,9 +59,8 @@ function ChannelPicker({ team, onSaved }: { team: string; onSaved: () => void })
   );
 }
 
-function SlackCard({ st, fresh, reload }: { st: Integrations["slack"] | null; fresh: string | null; reload: () => void }) {
-  const [open, setOpen] = useState<string | null>(fresh);
-  const n = st?.workspaces.length || 0;
+function SlackCard({ st, fresh, setupKey, reload }: { st: Integrations["slack"] | null; fresh: string | null; setupKey: string | null; reload: () => void }) {
+  const n = st?.workspaces || 0;
   return (
     <div className="connect__card">
       <div className="connect__top">
@@ -74,27 +73,14 @@ function SlackCard({ st, fresh, reload }: { st: Integrations["slack"] | null; fr
         ? <a className="btn" href="/api/connect/slack">Add to Slack →</a>
         : <><button className="btn" disabled>Add to Slack →</button>
           <p className="connect__note mono">Server setup needed: SLACK_CLIENT_ID and SLACK_CLIENT_SECRET (Slack app → Basic Information), and <b>{location.origin}/api/connect/slack/callback</b> under OAuth &amp; Permissions → Redirect URLs (Slack wants HTTPS).</p></>}
-      {n > 0 && (
-        <ul className="connect__list">
-          {st!.workspaces.map((w) => (
-            <li key={w.team_id}>
-              <div className="connect__row">
-                <b>{w.team}</b>
-                <span className="mono muted">{w.channels.length ? w.channels.map((c) => `#${c.name}`).join(" ") : "no channels picked yet"}</span>
-                <button className="link" onClick={() => setOpen(open === w.team_id ? null : w.team_id)}>{open === w.team_id ? "Close" : "Pick channels"}</button>
-              </div>
-              {open === w.team_id && <ChannelPicker team={w.team_id} onSaved={reload} />}
-            </li>
-          ))}
-        </ul>
-      )}
+      {fresh && setupKey && <ChannelPicker team={fresh} setupKey={setupKey} onSaved={reload} />}
       {st && <p className="connect__note mono">Asks for: {st.scopes.join(", ")}</p>}
     </div>
   );
 }
 
 function DiscordCard({ st }: { st: Integrations["discord"] | null }) {
-  const n = st?.servers.length || 0;
+  const n = st?.servers || 0;
   return (
     <div className="connect__card">
       <div className="connect__top">
@@ -107,8 +93,7 @@ function DiscordCard({ st }: { st: Integrations["discord"] | null }) {
         ? <a className="btn" href="/api/connect/discord">Add to Discord →</a>
         : <><button className="btn" disabled>Add to Discord →</button>
           <p className="connect__note mono">Server setup needed: a Discord application with a bot (Developer Portal → Bot): DISCORD_BOT_TOKEN, and the Message Content intent switched on.</p></>}
-      {n > 0 && <ul className="connect__list">{st!.servers.map((s) => <li key={s.id}><div className="connect__row"><b>{s.name}</b><span className="mono muted">bot is in this server</span></div></li>)}</ul>}
-      {st?.ready && !n && <p className="connect__note mono">Servers show up here once the bot is running (python -m bots.discord_bot) and has been added.</p>}
+      {st?.ready && <p className="connect__note mono">After you add it, the bot says hello in your server with a link to your own dashboard.{st.bot_token_set ? "" : " (The bot itself isn't running on this server yet.)"}</p>}
     </div>
   );
 }
@@ -116,30 +101,30 @@ function DiscordCard({ st }: { st: Integrations["discord"] | null }) {
 export function Connect() {
   const [st, setSt] = useState<Integrations | null>(null);
   const q = query();
-  const connected = q.get("connected"), team = q.get("team"), failedFor = q.get("connect"), error = q.get("error");
+  const connected = q.get("connected"), team = q.get("team"), key = q.get("key"), failedFor = q.get("connect"), error = q.get("error");
   const load = () => void api.integrations().then(setSt).catch(() => setSt(null));
   useEffect(load, []);
   // back from Slack's or Discord's page: land on this section
   useEffect(() => { if (connected || failedFor) setTimeout(() => document.getElementById("connect")?.scrollIntoView({ behavior: "smooth" }), 500); }, [connected, failedFor]);
-  const fresh = connected === "slack" ? st?.slack.workspaces.find((w) => w.team_id === team) : null;
+  const fresh = connected === "slack" && team && key;
   return (
     <section className="ch" id="connect">
       <Reveal className="ch__head">
         <div className="hs__idx"><b>07</b><span>—</span><span>Connect</span></div>
         <h2>Bring your own team. <span className="muted">Two clicks.</span></h2>
-        <p>Add the bot to your Slack workspace or Discord server. It reads the channels you pick, links each message into your company graph, and speaks up in the thread when a decision never made it into the work.</p>
+        <p>Add the bot to your Slack workspace or Discord server. It reads the channels you pick, links each message into your team's own private graph, and speaks up in the thread when a decision never made it into the work.</p>
       </Reveal>
-      {fresh && <p className="connect__ok">Connected to <b>{fresh.team}</b>. Pick the channels the bot should watch below.</p>}
+      {fresh && <p className="connect__ok">Slack is connected. Pick the channels the bot should watch below.</p>}
       {failedFor && error && <p className="connect__err">{errorText(failedFor, error)}</p>}
       <Reveal delay={0.08}>
         <div className="connect">
-          <SlackCard st={st?.slack || null} fresh={connected === "slack" ? team : null} reload={load} />
+          <SlackCard st={st?.slack || null} fresh={fresh ? team : null} setupKey={key} reload={load} />
           <DiscordCard st={st?.discord || null} />
         </div>
         <div className="connect__steps">
           <div><b>1 · Add the bot</b><p>Slack's or Discord's own consent page: you see exactly what it may read and post.</p></div>
-          <div><b>2 · Pick channels</b><p>The bot joins only those. New messages flow into the graph as they're posted.</p></div>
-          <div><b>3 · Link the work</b><p>Tickets and pull requests come in through webhooks (<span className="mono">/api/ingest/ticket</span>, <span className="mono">/api/ingest/github</span>), docs through Google Drive.</p></div>
+          <div><b>2 · Your own graph</b><p>Each workspace and server gets a private graph: nothing mixes with the demo or with another team. The public site only counts connections.</p></div>
+          <div><b>3 · Link the work</b><p>Drift needs your tickets and pull requests too. That part isn't self-serve yet: GitHub and tracker webhooks are set up per team by the site's admin. Until then the bot tracks what's said.</p></div>
         </div>
       </Reveal>
     </section>

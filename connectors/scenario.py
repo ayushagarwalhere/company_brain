@@ -31,6 +31,11 @@ def org() -> dict | None:
     return _load("org.json") if (SCENARIO / "org.json").exists() else None
 
 
+def hr() -> dict | None:
+    """The HR system: managers, access groups and time off per person (data/scenario/hr.json), if present."""
+    return _load("hr.json") if (SCENARIO / "hr.json").exists() else None
+
+
 def sprints() -> list[dict]:
     return _load("sprints.json")
 

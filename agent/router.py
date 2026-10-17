@@ -5,7 +5,7 @@ LLM. Routing is explicit and testable:
 
   entities  feature (TF-IDF over feature names + ticket titles, or a BD-id), person, PR-n / #n, BD-n
   intent    every intent is scored by weighted keyword matches; the best score wins, ties go to PRIORITY.
-            connect · who · impact · drift · decided · history · prs · overview
+            blocked · projects · connect · who · impact · drift · decided · history · prs · overview
   failure   a question that needs an entity it can't resolve gets an explicit "couldn't match" answer with
             examples that work, instead of falling through to an unrelated overview.
 """
@@ -57,8 +57,35 @@ INTENT_RULES: dict[str, list[tuple[str, int]]] = {
         (r"\bplan\b", 2),
     ],
     "tasks": [(r"\bfollow-?ups?\b", 4), (r"\b(open )?tasks?\b", 3), (r"\bto-?dos?\b", 3)],
+    # "why is the database migration delayed and who can approve an override?": chat -> doc -> ticket -> HR
+    "blocked": [
+        (r"\bwhy\b[^?]*\b(delayed|late|blocked|stuck|on hold|held up|waiting)\b", 8),
+        (r"\boverride\b", 4),
+        (r"\bwho can (approve|unblock|sign off)\b", 4),
+        (r"\bunblock", 4),
+        (r"\bblocker", 3),
+    ],
+    "projects": [
+        (r"\b(active|current|ongoing|running|live|open)\b[^?]*\bprojects\b", 6),
+        (r"\bprojects?\b[^?]*\b(active|running|on hold|paused|cancell?ed)\b", 6),
+        (r"\b(which|what|list)\b[^?]*\bprojects\b", 3),
+    ],
 }
-PRIORITY = ["delay", "plan", "tasks", "drift", "decided", "impact", "connect", "who", "history", "prs", "overview"]  # tie-break, first wins
+PRIORITY = [
+    "blocked",
+    "delay",
+    "plan",
+    "tasks",
+    "projects",
+    "drift",
+    "decided",
+    "impact",
+    "connect",
+    "who",
+    "history",
+    "prs",
+    "overview",
+]  # tie-break, first wins
 # Tickets: any PROJECT-123 id (BD-101, SC-30). PRs: "PR-6", "PR 6", "PR6", "pull request 6", "#6".
 TICKET_ID = re.compile(r"\b(?!PR-)([A-Z]{2,6}-\d+)\b", re.I)
 PR_ID = re.compile(r"\b(?:PR|pull request)\s*[-#]?\s*(\d+)\b|#(\d+)\b", re.I)
@@ -440,7 +467,65 @@ def answer_tasks(ctx: Ctx) -> list[str]:
     return [f"T-{r['num']}: {r['title']} → {r['assignee']} ({r['why']}; approved by {r['approved_by']})." for r in rows]
 
 
+def _day(iso: str | None) -> str:
+    """'2026-10-16' -> 'Fri 16 Oct'."""
+    from datetime import date
+
+    try:
+        return date.fromisoformat((iso or "")[:10]).strftime("%a %d %b").replace(" 0", " ")
+    except ValueError:
+        return iso or "?"
+
+
+def answer_blocked(ctx: Ctx) -> list[str]:
+    rows = ctx.run("why_blocked", topic=ctx.question)
+    if not rows:
+        return ["I couldn't find delayed or blocked work matching that in the graph."]
+    r = rows[0]
+    first = (r["assignee_name"] or r["assignee"] or "").split(" ")[0]
+    reason = r["reason"] or "no reason is written on the ticket"
+    lines = [f"{r['ticket']} ({r['title']}) is {(r['state'] or 'open').lower()}: {reason[0].lower() + reason[1:]}."]
+    o = r["out_of_office"]
+    if o:
+        lines.append(f"HR: {r['assignee_name']}, its assignee, is out of office ({o['kind'] or 'time off'}) from {_day(o['from'])} until {_day(o['until'])}.")
+    if r["manager"]:
+        also = ", who also opened the ticket" if r["creator"] == r["manager"] else ""
+        lines.append(f"Who can approve an override: {r['manager_name']} ({r['manager_title']}), {first}'s manager{also}.")
+    elif r["creator"]:
+        lines.append(f"Who can approve an override: {r['creator']}, who opened the ticket.")
+    hops = []
+    if r["messages"]:
+        m = r["messages"][0]
+        hops.append(f"{m['author']}'s message in {(m['source'] or 'chat').capitalize()} #{m['channel']} ({_day(m['ts'])})")
+    for d in r["docs"][:1]:
+        hops.append(f"{(d['source'] or 'the').capitalize()} doc {d['id']} “{d['title']}”" if d["source"] else f"doc {d['id']} “{d['title']}”")
+    hops.append(f"ticket {r['ticket']}")
+    if r["assignee"]:
+        hops.append(f"its assignee {r['assignee']}")
+    if r["manager"]:
+        hops.append(f"HR: {r['assignee']} reports to {r['manager']}")
+    lines.append("Found by following: " + " → ".join(hops) + ".")
+    return lines
+
+
+def answer_projects(ctx: Ctx) -> list[str]:
+    rows = ctx.run("list_projects")
+    if not rows:
+        return ["There are no projects in the graph."]
+    active = [r for r in rows if r["status"] == "active"]
+    lines = [f"{len(active)} active project{'' if len(active) == 1 else 's'}:"]
+    for r in active:
+        lines.append(f"- {r['name']} ({r['about']}): launch {r['launch']}, owner {r['owner']}, tickets {', '.join(r['tickets']) or 'none'}.")
+    for r in rows:
+        if r["status"] != "active":
+            said = f" in {r['status_where']}: “{(r['status_text'] or '')[:140]}”" if r["status_text"] else ""
+            lines.append(f"Not active: {r['name']} is {r['status']} ({r['status_by']}, {_day(r['status_at'])}{said}).")
+    return lines
+
+
 HANDLERS = {
+    "blocked": answer_blocked,
+    "projects": answer_projects,
     "plan": answer_plan,
     "tasks": answer_tasks,
     "connect": answer_connect,
@@ -494,7 +579,7 @@ def ask(question: str) -> dict:
             lines = ["I don't have information on that you can access."] if ctx.ents == [] and _sensitive(question) else unmatched(ctx)
     else:
         lines = HANDLERS[intent](ctx)
-    if feature and sim < ROUTER_FEATURE_WEAK_SIM and intent not in ("unmatched", "delay"):  # a delay answer names its target
+    if feature and sim < ROUTER_FEATURE_WEAK_SIM and intent not in ("unmatched", "delay", "blocked", "projects"):  # these name their target
         lines = [f"(Low-confidence match: I read this as being about {feature['name']}.)"] + lines
     answer = "\n".join(lines)
     if ctx.paths:

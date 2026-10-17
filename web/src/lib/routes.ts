@@ -10,7 +10,7 @@ export const EXPLORE_HREF = `/?app&org=${DEMO_ORG}`;
 
 const APP_PARAMS = ["app", "org", "tour", "q", "person", "view"];
 /** Section ids that exist only in the app; overview chapter anchors (#pain, #vision, …) stay on the overview. */
-const APP_SECTIONS = ["drift", "graph-sec", "impact", "simulate", "ask", "docs-sec", "who-sees", "retro-sec", "coverage", "spec-sec"];
+const APP_SECTIONS = ["drift", "graph-sec", "map-sec", "impact", "simulate", "stream", "ask", "docs-sec", "who-sees", "retro-sec", "coverage", "spec-sec"];
 
 /** The app view: any app deep link (?app, ?org=, ?tour, ?q=, ?person=, ?view=) or an app section anchor. */
 export function isAppMode() {

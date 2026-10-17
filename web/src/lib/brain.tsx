@@ -1,10 +1,16 @@
 import { createContext, useCallback, useContext, useEffect, useMemo, useRef, useState, type ReactNode } from "react";
 import { scrollToEl } from "./fx";
 import { DEMO_ORG, tourOn } from "./routes";
+import { api, holdRequests, ORG, type Coverage, type Drift, type Feature, type LiveEvent, type SpecResult, type Sprint, type Stats } from "./api";
 
 /** Sandboxes are built from the demo data: ?org=demo (the demo) and ?org=tour (older tour links). */
 const SANDBOX = ORG === DEMO_ORG || ORG === "tour";
-import { api, ORG, type Coverage, type Drift, type Feature, type LiveEvent, type SpecResult, type Sprint, type Stats } from "./api";
+/** One sandbox build per page load, however often the mount effect runs (StrictMode runs it twice in dev). */
+let sandboxBuild: Promise<unknown> | null = null;
+/** The tour always starts on a fresh sandbox: hold every section's first requests from the very start (before any
+    component mounts), and let them through once it's built. */
+let releaseRequests: (() => void) | null = null;
+if (SANDBOX && tourOn()) holdRequests(new Promise<void>((ok) => { releaseRequests = ok; }));
 
 /** App-wide graph state + cross-section actions (open a person, focus a feature, generate a spec). */
 type Brain = {
@@ -88,7 +94,8 @@ export function BrainProvider({ children }: { children: ReactNode }) {
         // chunks existed is rebuilt too, so every section has its data
         const empty = tourOn() || await api.stats().then((s) => s.nodes.reduce((a, x) => a + x.n, 0) === 0 || !["Project", "Chunk"].every((l) => s.nodes.some((x) => x.label === l))).catch(() => true);
         if (empty) {
-          try { await api.bootstrap(ORG); } catch (e) { setWorkspaceError((e as Error).message); setWorkspace("failed"); return; }
+          if (!sandboxBuild) { sandboxBuild = api.bootstrap(ORG); holdRequests(sandboxBuild); }
+          try { await sandboxBuild; } catch (e) { setWorkspaceError((e as Error).message); setWorkspace("failed"); return; } finally { releaseRequests?.(); }
         }
         setWorkspace("ready");
       }
@@ -113,7 +120,7 @@ export function BrainProvider({ children }: { children: ReactNode }) {
       clearTimeout(timer);
       timer = setTimeout(() => void refresh(), 250);  // coalesce bursts
     };
-    for (const type of ["drift", "message", "resolved", "ticket", "pr", "doc", "rebuild"]) es.addEventListener(type, onEvent as EventListener);
+    for (const type of ["drift", "message", "resolved", "ticket", "pr", "doc", "rebuild", "project"]) es.addEventListener(type, onEvent as EventListener);
     es.onopen = () => setLive(true);
     es.onerror = () => setLive(false);
     return () => { es.close(); clearTimeout(timer); };

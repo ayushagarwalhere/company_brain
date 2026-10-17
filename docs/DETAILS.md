@@ -155,6 +155,9 @@ The overview page has **Add to Slack** and **Add to Discord** buttons ([`api/int
 1. Discord Developer Portal → New Application → Bot → token into `DISCORD_BOT_TOKEN`; switch on the Message Content intent.
 2. Run `python -m bots.discord_bot`. The "Add to Discord" button opens Discord's page for adding the bot to a server (the application id is read from the token, or `DISCORD_CLIENT_ID`). The running bot records the servers it's in, and the site shows them as connected.
 
+**Every team gets its own graph** ([`connectors/installs.py`](../connectors/installs.py)). Only the home workspace (the one in `SLACK_BOT_TOKEN`) and the home server (`DISCORD_GUILD_ID`) feed the demo company's graph. Any other workspace or server gets a private org with a random id (`slack-3f9a1c7e2b`), so its messages go into its own graph: it never sees or feeds the demo or another team. The bot posts one welcome there with that team's dashboard link. The public site only shows how many teams are connected; channel picking needs a two-hour setup key that only the installer's redirect carries; and a team's graph can't be reset to demo data (`403`).
+What isn't self-serve yet: a new team's tickets and pull requests (the GitHub and tracker webhooks use one server-wide secret, so the admin sets them up per team), and mapping their chat users to ticket owners. Until then the bot stores and answers about what's said, but can't flag drift. With no sign-in, the org id in the dashboard link is the only key to a team's graph.
+
 ## Deploy (Docker / Render)
 
 One image runs FalkorDB v4.22.1, the API and the built dashboard ([`Dockerfile`](../Dockerfile)); the graph is rebuilt from the synthetic company on every start.
@@ -200,7 +203,7 @@ The rules agent routes "delay / slip / push back / postpone" questions here and 
 
 ## Tests and CI
 
-`python -m pytest -q` runs 146 tests, none of which need an LLM or API keys. They include:
+`python -m pytest -q` runs 155 tests, none of which need an LLM or API keys. They include:
 - the published numbers in [`docs/RESULTS.md`](RESULTS.md) against the committed result files ([`tests/test_readme_numbers.py`](../tests/test_readme_numbers.py));
 - the fix-it agent: the plan's assignees, owners-only approval, follow-ups that survive a rebuild, the chat-thread commands, read-only tools and the post-generation id check ([`tests/test_work.py`](../tests/test_work.py));
 - human actions surviving rebuilds, and live updates (a write-back survives a live recompute; an unverified candidate never supersedes the owner's decision);

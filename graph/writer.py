@@ -189,6 +189,49 @@ def write_tickets(g, events: list[Event]) -> None:
         )
 
 
+def write_hr(g, hr: dict) -> None:
+    """The HR system (data/scenario/hr.json; in a real company Workday, BambooHR or the Google directory):
+    Person -REPORTS_TO-> Person       (who can approve on someone's behalf)
+    Person.groups                     (access groups, merged with any from people.json)
+    Person.ooo_from / ooo_until       (time off: why work assigned to them is waiting)"""
+    rows = [
+        {
+            "id": p["id"],
+            "title": p.get("title"),
+            "manager": p.get("manager"),
+            "groups": p.get("groups") or [],
+            "location": p.get("location"),
+            "ooo_from": (p.get("time_off") or {}).get("from"),
+            "ooo_until": (p.get("time_off") or {}).get("until"),
+            "ooo_kind": (p.get("time_off") or {}).get("kind"),
+        }
+        for p in hr.get("people", [])
+    ]
+    g.query(
+        """UNWIND $rows AS r MATCH (p:Person {id: r.id})
+           SET p.title = coalesce(r.title, p.title), p.location = r.location,
+               p.groups = coalesce(p.groups, []) + [x IN r.groups WHERE NOT x IN coalesce(p.groups, [])],
+               p.ooo_from = r.ooo_from, p.ooo_until = r.ooo_until, p.ooo_kind = r.ooo_kind""",
+        {"rows": rows},
+    )
+    g.query(
+        """UNWIND $rows AS r WITH r WHERE r.manager IS NOT NULL
+           MATCH (p:Person {id: r.id}), (m:Person {id: r.manager}) MERGE (p)-[:REPORTS_TO]->(m)""",
+        {"rows": rows},
+    )
+
+
+def link_doc_references(g, message_ids: list[str] | None = None) -> None:
+    """A chat message that names a document by its title ("the new config is in Database Config v2") points at it:
+    Message -REFERS_TO-> Document. Titles shorter than 8 characters are too generic to match on."""
+    g.query(
+        """MATCH (d:Document) WHERE size(d.title) >= 8
+           MATCH (m:Message) WHERE ($ids IS NULL OR m.id IN $ids) AND toLower(m.text) CONTAINS toLower(d.title)
+           MERGE (m)-[:REFERS_TO]->(d)""",
+        {"ids": message_ids},
+    )
+
+
 def write_org(g, org: dict) -> None:
     """Org structure (data/scenario/org.json; in a real company: the tracker's projects, target dates and 'blocks'
     links, the HR system or GitHub teams, the CRM):
@@ -295,6 +338,7 @@ def write_documents(g, events: list[Event]) -> None:
             "declared": e.extra.get("declared") or [],
             # restricted docs always include their author (see pipeline/access.py)
             "acl": sorted(set(e.extra.get("acl") or []) | {f"person:{e.author}"}) if e.extra.get("acl") else None,
+            "source": e.extra.get("source"),
         }
         for e in events
     ]
@@ -304,7 +348,8 @@ def write_documents(g, events: list[Event]) -> None:
             """UNWIND $rows AS r
                MERGE (d:Document {id: r.id})
                SET d.title = r.title, d.text = r.text, d.url = r.url, d.created = r.created, d.created_ms = r.created_ms,
-                   d.updated = r.updated, d.updated_ms = r.updated_ms, d.acl = r.acl, d.declared = r.declared
+                   d.updated = r.updated, d.updated_ms = r.updated_ms, d.acl = r.acl, d.declared = r.declared,
+                   d.source = r.source
                WITH d, r
                MATCH (a:Person {id: r.author})
                MERGE (a)-[:AUTHORED]->(d)""",

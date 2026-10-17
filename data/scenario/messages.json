@@ -2519,7 +2519,7 @@
   "channel": "engineering",
   "author": "dev",
   "ts": "2026-10-08T09:38:00Z",
-  "text": "Working on reviewing PRs today. Might need a second pair of eyes this afternoon.",
+  "text": "Hey @kenji, the database credentials changed with the AWS move. The new config is in the internal Notion doc, Database Config v2.",
   "kind": "noise"
  },
  {

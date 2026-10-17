@@ -52,7 +52,17 @@ export type AskResult = {
 export type SimResult = {
   status: string; message?: string; feature?: string | null; via?: string | null; ticket?: string;
   classification?: { kind: string }; path?: string; alert?: string;
+  /** a message about a whole project ("we're cancelling Project Gamma"): what it did to the project */
+  change?: { project: string; name: string; from: string; to: string; by: string; status: "changed" | "no-rights" | "unchanged" };
 };
+export type StreamItem = {
+  kind: "message" | "ticket" | "doc"; id: string; ts: string; ms: number; who: string | null; source: string | null; text: string;
+  channel?: string; project?: string | null; project_to?: string | null; tickets?: string[]; docs?: string[]; changes?: boolean;
+  state?: string; assignee?: string | null;
+};
+export type NewTicket = { ticket: string; title: string; creator: string; assignee: string | null; project: string | null; project_name: string | null };
+export type CompanyNode = { id: string; type: string; label: string; text: string | null; status: string | null; launch?: string | null; due?: string | null; ooo_until?: string | null; source?: string | null };
+export type CompanyGraph = { nodes: CompanyNode[]; edges: { source: string; rel: string; target: string }[] };
 export type SearchHit = { id: string; type: string; label: string | null; score: number; feature: string | null };
 export type Person = {
   id: string; name: string; role: string; messages: number;
@@ -89,6 +99,7 @@ export type CGraph = { nodes: CNode[]; edges: GEdge[] };
 export type Project = {
   id: string; name: string; about: string; launch: string; owner: string | null; tickets: string[]; features: string[];
   deliverables: { id: string; title: string; due: string; client: string }[];
+  status?: string; status_by?: string | null; status_at?: string | null;
 };
 export type Impact = {
   target: { kind: string; id: string; name: string }; days: number;
@@ -100,12 +111,13 @@ export type Impact = {
   paths: string[]; graph: CGraph;
 };
 export type Integrations = {
-  slack: { ready: boolean; bot_from_env: boolean; scopes: string[]; workspaces: { team_id: string; team: string; org: string | null; channels: { id: string; name: string }[]; installed_at: number }[] };
-  discord: { ready: boolean; bot_token_set: boolean; servers: { id: string; name: string; seen_at: number }[] };
+  /** counts only: which teams are connected is nobody else's business */
+  slack: { ready: boolean; bot_from_env: boolean; scopes: string[]; workspaces: number };
+  discord: { ready: boolean; bot_token_set: boolean; servers: number };
 };
 export type SlackChannels = { team: string; channels: { id: string; name: string; members: number | null; watched: boolean }[] };
 export type WhoAmI = { viewer: string | null; grants: string[] };
-export type LiveEvent = { type: "drift" | "message" | "resolved" | "ticket" | "pr" | "doc" | "rebuild"; at: number; [k: string]: unknown };
+export type LiveEvent = { type: "drift" | "message" | "resolved" | "ticket" | "pr" | "doc" | "rebuild" | "project"; at: number; [k: string]: unknown };
 
 /** Multi-tenancy: ?org=acme in the page URL scopes every request to that org's graph. */
 export const ORG = typeof window !== "undefined" ? new URLSearchParams(window.location.search).get("org") : null;
@@ -122,9 +134,15 @@ const TOKEN = (() => {
   }
 })();
 
+/** While the demo sandbox is being rebuilt, every request but the rebuild itself waits for it: a half-built graph
+    gives half answers, or errors. */
+let gate: Promise<unknown> = Promise.resolve();
+export function holdRequests(until: Promise<unknown>) { gate = until.catch(() => undefined); }
+
 /** `as`: the person this request acts for (X-User). The server answers with only what that person may see; without
     one the request is anonymous. In production this comes from the sign-in, not from the page. */
 async function req<T>(path: string, body?: unknown, as?: string | null): Promise<T> {
+  if (!path.includes("/bootstrap")) await gate;
   const headers: Record<string, string> = { ...(ORG ? { "X-Org": ORG } : {}), ...(as ? { "X-User": as } : {}) };
   const res = await fetch(path, body === undefined ? { headers } : {
     method: "POST", headers: { ...headers, ...(TOKEN ? { "X-Ingest-Token": TOKEN } : {}), "Content-Type": "application/json" }, body: JSON.stringify(body),
@@ -155,8 +173,10 @@ export const api = {
   whoami: (as?: string | null) => req<WhoAmI>("/api/whoami", undefined, as),
   projects: () => req<Project[]>("/api/projects"),
   integrations: () => req<Integrations>("/api/integrations"),
-  slackChannels: (team: string) => req<SlackChannels>(`/api/connect/slack/channels?team=${enc(team)}`),
-  watchSlack: (team: string, channels: string[]) => req<{ joined: { id: string; name: string }[]; failed: { id: string; error: string }[] }>("/api/connect/slack/channels", { team, channels }),
+  /** `key`: the setup key Slack's redirect handed to the person who just installed */
+  slackChannels: (team: string, key: string) => req<SlackChannels>(`/api/connect/slack/channels?team=${enc(team)}&key=${enc(key)}`),
+  watchSlack: (team: string, key: string, channels: string[]) =>
+    req<{ joined: { id: string; name: string }[]; failed: { id: string; error: string }[]; private_graph: boolean }>("/api/connect/slack/channels", { team, key, channels }),
   impact: (target: string, days: number) => req<Impact>(`/api/impact?target=${enc(target)}&days=${days}`),
   featureMap: (feature: string) => req<CGraph>(`/api/features/${enc(feature)}/map`),
   spec: (feature: string) => req<SpecResult>("/api/spec", { feature }),
@@ -172,5 +192,8 @@ export const api = {
   bootstrap: (org: string) => req<{ org: string; nodes: number }>(`/api/orgs/${enc(org)}/bootstrap?extractor=heuristic`, {}),
   resetDemo: () => req<{ rebuilt_with: string }>("/api/demo/reset", {}),
   tickets: () => req<TicketRow[]>("/api/tickets"),
+  newTicket: (b: { title: string; description?: string; creator: string; assignee?: string; project?: string }) => req<NewTicket>("/api/ingest/ticket/new", b),
+  stream: (limit = 14) => req<StreamItem[]>(`/api/stream?limit=${limit}`),
+  companyGraph: (as?: string | null) => req<CompanyGraph>("/api/company-graph", undefined, as),
   updateTicket: (ticket: string, description: string, actor: string) => req<TicketUpdate>("/api/ingest/ticket", { ticket, description, actor }),
 };

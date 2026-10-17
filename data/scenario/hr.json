@@ -1,0 +1,14 @@
+{
+  "_comment": "The HR system of the synthetic company (in a real company: Workday, BambooHR, Rippling or the Google Workspace directory). Who reports to whom, access groups, and time off. Synthetic, like everything in data/scenario. Dates are relative to the scenario's 'today', 2026-10-10 (a Saturday): Dev is out from Friday 9 Oct to Friday 16 Oct.",
+  "people": [
+    {"id": "maya",  "title": "Product Manager",              "manager": null,    "groups": ["leads"], "location": "London"},
+    {"id": "arjun", "title": "Engineering Lead",             "manager": null,    "groups": ["leads"], "location": "Bengaluru"},
+    {"id": "sofia", "title": "Backend Engineer",             "manager": "arjun", "location": "Madrid"},
+    {"id": "dev",   "title": "Backend Engineer (platform)",  "manager": "arjun", "location": "Bengaluru",
+     "time_off": {"from": "2026-10-09", "until": "2026-10-16", "kind": "vacation"}},
+    {"id": "kenji", "title": "Frontend Engineer",            "manager": "arjun", "location": "Tokyo"},
+    {"id": "priya", "title": "Product Designer",             "manager": "maya",  "location": "London"},
+    {"id": "liam",  "title": "Customer Success",             "manager": "maya",  "location": "Dublin"},
+    {"id": "zara",  "title": "QA Engineer",                  "manager": "arjun", "location": "Bengaluru"}
+  ]
+}

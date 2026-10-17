@@ -1,5 +1,5 @@
 import { AnimatePresence, motion, useInView } from "framer-motion";
-import { useEffect, useRef, useState, type ReactNode } from "react";
+import { useEffect, useLayoutEffect, useRef, useState, type ReactNode, type RefObject } from "react";
 import { api, type AskResult } from "../lib/api";
 import { useBrain } from "../lib/brain";
 import { useStill } from "../lib/fx";
@@ -9,7 +9,7 @@ import { AnswerGraph } from "./AnswerGraph";
 import { Footer } from "./Chrome";
 import { Connect } from "./Connect";
 import { Features } from "./Features";
-import { fadeIn, gsap, moving, revealHeading, scrambleIn, SplitText, useGSAP } from "../lib/gsap";
+import { fadeIn, gsap, moving, revealHeading, scrambleIn, SplitText, useGSAP, WIDE } from "../lib/gsap";
 import { CountUp, EASE } from "./Motion";
 import { Sources } from "./Panels";
 
@@ -65,6 +65,23 @@ function Chapter({ id, n, k, title, intro, children }: { id: string; n: string; 
   );
 }
 
+/** The headline spans the whole screen: one font size, set so its longest line runs edge to edge. */
+function useFullWidthTitle(ref: RefObject<HTMLElement>) {
+  useLayoutEffect(() => {
+    const h1 = ref.current?.querySelector<HTMLElement>(".hero__title");
+    if (!h1) return;
+    const fit = () => {
+      h1.style.fontSize = "100px";
+      const widest = Math.max(0, ...[...h1.querySelectorAll<HTMLElement>(".line")].map((l) => l.scrollWidth));
+      if (widest) h1.style.fontSize = `${Math.floor((h1.clientWidth / widest) * 100 * 0.99)}px`;
+    };
+    fit();
+    void document.fonts?.ready.then(fit);  // re-measure once Geist has loaded
+    addEventListener("resize", fit);
+    return () => removeEventListener("resize", fit);
+  }, [ref]);
+}
+
 function LandingHero() {
   const { stats, drift } = useBrain();
   const sum = (xs?: { n: number }[]) => (xs || []).reduce((a, x) => a + x.n, 0);
@@ -73,13 +90,14 @@ function LandingHero() {
     ["Graph nodes", sum(stats?.nodes)], ["Relationships", sum(stats?.relationships)], ["Messages read", n("Message")], ["Open drift right now", drift.length, true],
   ];
   const ref = useRef<HTMLElement>(null);
+  useFullWidthTitle(ref);
   useGSAP(() => {
     const el = ref.current;
     if (!el || !moving()) return;
     const h1 = el.querySelector("h1")!, lines = h1.querySelectorAll(".line");
     const split = SplitText.create(lines, { type: "words,chars", mask: "words" });
     gsap.from(split.chars, { yPercent: 110, opacity: 0, stagger: 0.022, duration: 1, ease: "power3.out", delay: 0.1 });
-    gsap.from(el.querySelectorAll(".eyebrow, .lede, .hero__cta, .hero__stats"), { opacity: 0, y: 26, stagger: 0.08, delay: 0.65 });
+    gsap.from(el.querySelectorAll(".eyebrow, .hero__sub, .lede, .hero__cta, .hero__stats"), { opacity: 0, y: 26, stagger: 0.08, delay: 0.65 });
     if (matchMedia("(pointer: fine)").matches) {
       const rx = gsap.quickTo(h1, "rotationX", { duration: 0.8, ease: "power3" }), ry = gsap.quickTo(h1, "rotationY", { duration: 0.8, ease: "power3" });
       gsap.set(h1, { transformPerspective: 900 });
@@ -92,10 +110,11 @@ function LandingHero() {
     <header className="hero" id="top" ref={ref}>
      <div className="hero__3d">
       <div className="eyebrow">Company Brain · a context graph on FalkorDB</div>
-      <h1 aria-label="Where was that decided?">
-        <span className="line" aria-hidden>Where was that</span>
-        <span className="line dim" aria-hidden>decided?</span>
+      <h1 className="hero__title" aria-label="The graph that runs enterprise.">
+        <span className="line" aria-hidden>The graph that</span>
+        <span className="line dim" aria-hidden>runs enterprise.</span>
       </h1>
+      <p className="hero__sub">“Where was that decided?” <span>One question, answered from a single graph of your chat, tickets, code and docs.</span></p>
       <div>
         <p className="lede">
           Your company's knowledge is spread across chat, tickets, code and docs, and none of them talk to each other.
@@ -118,6 +137,26 @@ function LandingHero() {
   );
 }
 
+/** A band of what it does, on an endless loop under the nav. Hovering pauses it; reduced motion keeps it still. */
+const TICKER: [string, string][] = [
+  ["Drift detection", "--c-coral"], ["Slack → Notion → Jira → HR in one answer", "--c-violet"], ["Live corporate stream", "--c-pink"], ["Company map", "--c-cyan"], ["Every alert with its graph path", "--c-blue"],
+  ["Slack · Discord · GitHub · Jira · Docs", "--c-green"], ["What-if impact analysis", "--c-amber"], ["Only owners approve changes", "--c-coral"],
+  ["Docs re-embedded chunk by chunk", "--c-cyan"], ["Answers only what you may see", "--c-cyan"], ["Sprint retro: decided vs shipped", "--c-pink"],
+  ["Bus-factor risk", "--c-yellow"], ["39 ms drift query on FalkorDB", "--c-amber"],
+];
+
+function Marquee() {
+  const row = TICKER.map(([t, c]) => <span key={t} style={{ ["--acc" as string]: `var(${c})` }}><i aria-hidden />{t}</span>);
+  return (
+    <div className="marquee mono" aria-label={TICKER.map(([t]) => t).join(", ")}>
+      <div className="marquee__track" aria-hidden>
+        <div className="marquee__row">{row}</div>
+        <div className="marquee__row">{row}</div>
+      </div>
+    </div>
+  );
+}
+
 /* ---------------------------------------------------------------- 01 the pain */
 
 const SILOS = [
@@ -132,7 +171,20 @@ function Pain() {
   useGSAP(() => {
     const el = ref.current;
     if (!el || !moving()) return;
-    fadeIn(el.querySelectorAll(".silo"), el.querySelector(".silos"), { stagger: 0.1 });
+    const wrap = el.querySelector<HTMLElement>(".silos")!, cards = gsap.utils.toArray<HTMLElement>(".silo", wrap);
+    const mm = gsap.matchMedia();
+    // the four tools start stacked in the middle, one behind the other, and spread out to their own places as you
+    // scroll: one piece of the truth each
+    mm.add(WIDE, () => {
+      // offsets come from layout (offsetLeft), not from the moving boxes, so a refresh mid-scroll stays right
+      const toCentre = (i: number, c: HTMLElement) => wrap.offsetWidth / 2 - (c.offsetLeft + c.offsetWidth / 2) + (i - 1.5) * 22;
+      gsap.from(cards, {
+        x: (i, c) => toCentre(i, c as HTMLElement), y: (i) => 70 - i * 10, z: (i) => -i * 110, rotationY: (i) => -28 + i * 5, rotationZ: (i) => (1.5 - i) * 3,
+        scale: 0.94, ease: "none", stagger: 0,
+        scrollTrigger: { trigger: wrap, start: "top 92%", end: "top 28%", scrub: 1, invalidateOnRefresh: true },
+      });
+    });
+    mm.add("(max-width: 860px)", () => { fadeIn(cards, wrap, { stagger: 0.1 }); });
     fadeIn(el.querySelectorAll(".costs > div"), el.querySelector(".costs"));
   }, { scope: ref });
   return (
@@ -264,9 +316,9 @@ function Vision() {
 /* ---------------------------------------------------------------- 03 live demo */
 
 const CASES = [
+  { k: "Four tools", q: "Why is the database migration delayed and who can approve an override?", why: "Slack points to a Notion doc, the doc names the ticket, HR knows the assignee is away and who their manager is." },
   { k: "Root cause", q: "How is Liam connected to PR #6?", why: "A customer-success message, a reply, a ticket and a PR. Four hops nobody would find by searching." },
   { k: "Alignment", q: "Did we ship what we decided about SLA notifications?", why: "Chat decided one thing, the PR shipped another. Needs the decision, its version chain and what implements it." },
-  { k: "Onboarding", q: "Who knows the most about ticket export?", why: "The first question every new hire has. Ranked by decisions, PRs, tickets and messages." },
   { k: "Impact", q: "If we delay the launch of Project Alpha by two weeks, which other teams and downstream client deliverables will be impacted?", why: "Project → tickets → the tickets they block → waiting projects, client deliverables and the teams doing the work." },
 ];
 
@@ -381,7 +433,7 @@ function Value() {
 const STACK: [string, string, string[]][] = [
   ["Graph", "FalkorDB", ["Cypher anti-patterns find drift with its evidence", "algo.SPpaths for multi-hop questions", "GRAPH.RO_QUERY: the agent can only read", "Vector index on doc chunks, filtered by who's asking", "Full-text + range indexes, one graph per tenant"]],
   ["Ingest", "Python pipeline", ["Connectors: Slack, Discord, GitHub, ticket tracker, docs, Google Drive", "Doc edits re-embed only the changed chunks", "Rules or LLM extraction (gpt-oss-120b, local qwen3)", "Idempotent UNWIND … MERGE writes"]],
-  ["Agent", "15 graph tools", ["Fixed, read-only tools, no free-form queries", "Sees only what the asker may see", "Answers checked against tool output", "Says “not in the graph” instead of guessing"]],
+  ["Agent", "16 graph tools", ["Fixed, read-only tools, no free-form queries", "Sees only what the asker may see", "Answers checked against tool output", "Says “not in the graph” instead of guessing"]],
   ["Delivery", "API, bots, dashboard", ["FastAPI with live events over SSE", "Slack and Discord bots reply in thread", "React + TypeScript + Cytoscape dashboard", "One Docker image runs it all"]],
 ];
 
@@ -433,6 +485,7 @@ export function Landing() {
   return (
     <>
       <LandingNav />
+      <Marquee />
       <LandingHero />
       <Pain />
       <Vision />

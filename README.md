@@ -17,6 +17,7 @@ Drift Monitor builds the missing context. A message can change a requirement; a 
 - **Detects requirement drift.** A chat change is open drift when it is still the newest requirement, no PR implements it, and nobody explicitly kept the old scope.
 - **Shows the evidence.** Each alert includes the author, source channel, previous requirement, affected ticket, stale PRs, and stale documents.
 - **Answers graph questions.** Ask who decided something, what replaced it, who knows the most, how two entities are connected, or which work and client deliverables depend on a delayed project.
+- **Answers across systems.** *"Why is the database migration delayed, and who can approve an override?"* follows a Slack message to a Notion doc, the doc to its ticket (BD-116), the ticket to its assignee, and the HR record to their manager, with a source badge per system. Project status also changes live: a lead's *"We are cancelling Project Gamma"* updates the graph, with that message as evidence.
 - **Creates an auditable fix.** Ticket owners can write the decision into the ticket or keep the old scope. Approval creates follow-up tasks assigned to the people who own the stale PRs and docs.
 - **Keeps knowledge current.** Documents are chunked, embedded, access-filtered, and linked to the surrounding graph. Changed chunks are re-embedded by content hash, while removed ticket mentions are removed too.
 - **Supports live operations.** Slack and Discord bots monitor threads, the API accepts ticket, document, GitHub, and Google Drive updates, and open dashboards receive Server-Sent Events.
@@ -58,9 +59,10 @@ The React and TypeScript dashboard provides:
 - Graph exploration, search, feature maps, person profiles, and evidence panels.
 - Ask, Retro, Simulate, and Risk views for cross-source questions and coverage gaps.
 - Impact analysis for project delays, blocked tickets, teams, and client deliverables.
+- A live stream of everything reaching the graph, and a company map of people, teams, projects, clients, deliverables, docs and tickets.
 - Live refresh through SSE, per-organisation graphs, scoped caches, rate limiting, metrics, and OpenAPI docs.
 
-The Slack bot uses Socket Mode and posts alerts in the originating thread. Discord is supported through a gateway bot. GitHub pull-request webhooks, ticket-style webhooks, document webhooks, and Google Drive change notifications can all trigger incremental updates. Tokens stay server-side; installation records are kept in the ignored `data/installs.json` file.
+The Slack bot uses Socket Mode and posts alerts in the originating thread. Discord is supported through a gateway bot. GitHub pull-request webhooks, ticket-style webhooks, document webhooks, and Google Drive change notifications can all trigger incremental updates. Tokens stay server-side; installation records are kept in the ignored `data/installs.json` file. Every workspace or server that connects through those buttons gets its own private graph, so it never mixes with the demo company or another team; connecting a new team's tickets and pull requests is not self-serve yet.
 
 ![A real Slack thread receiving a drift alert](docs/real-slack-thread.png)
 
@@ -101,7 +103,7 @@ For real Slack or Discord data, add the relevant bot credentials to `.env` and f
 
 The repository includes unit, API, connector, graph, access-control, paging, integration, and benchmark tests. CI runs Ruff, mypy, the suite, an ablation gate, and query-plan checks. On the synthetic benchmark, the full graph reaches 1.00 precision and recall for drift; removing version reasoning drops precision to 0.50. A 22,940-node stress test finds 100 of 100 planted drifts with zero false positives.
 
-Those results are an upper bound: rules and thresholds were tuned on the synthetic scenario, which contains two real drifts. Real-text extraction is conservative; Google Drive is tested against a fake API; and impact-analysis organisation data is hand-written demo data. The project makes uncertainty and evidence visible rather than pretending a benchmark replaces production calibration.
+Those results are an upper bound: rules and thresholds were tuned on the synthetic scenario, which contains two real drifts. Real-text extraction is conservative; Google Drive is tested against a fake API; impact-analysis organisation data and the HR records are hand-written demo data; and project status changes are read from chat with a keyword rule, not a model. The project makes uncertainty and evidence visible rather than pretending a benchmark replaces production calibration.
 
 ## Project map
 
@@ -115,3 +117,7 @@ Those results are an upper bound: rules and thresholds were tuned on the synthet
 - `benchmark/`, `tests/`, `docs/` — measurements, regression coverage, and technical notes
 
 For architecture, setup details, query explanations, and complete results, see [`docs/DETAILS.md`](docs/DETAILS.md), [`docs/EXPLAIN.md`](docs/EXPLAIN.md), [`docs/QUERIES.md`](docs/QUERIES.md), and [`docs/RESULTS.md`](docs/RESULTS.md).
+
+## AI assistant disclosure
+
+Built with help from an AI coding assistant (Claude Code), as the hackathon rules allow. The idea, the scenario and the graph model come from our project plan, and we can explain every part ([`docs/EXPLAIN.md`](docs/EXPLAIN.md)). The real-data labels were made by the assistant and are marked as such.

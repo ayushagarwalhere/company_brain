@@ -31,7 +31,7 @@ function Slack({ d }: { d: Impact["deliverables"][number] }) {
 }
 
 export function ImpactSection() {
-  const { version } = useBrain();
+  const { version, workspace } = useBrain();
   const [projects, setProjects] = useState<Project[]>([]);
   const [target, setTarget] = useState("alpha");
   const [weeks, setWeeks] = useState(2);
@@ -40,11 +40,12 @@ export function ImpactSection() {
   const [agent, setAgent] = useState<AskResult | null>(null);
   const [asking, setAsking] = useState(false);
 
-  useEffect(() => { void api.projects().then(setProjects).catch((e) => setErr((e as Error).message)); }, [version]);
+  useEffect(() => { if (workspace === "ready") void api.projects().then(setProjects).catch((e) => setErr((e as Error).message)); }, [version, workspace]);
   useEffect(() => {
+    if (workspace !== "ready") return;
     setAgent(null);
     void api.impact(target, weeks * 7).then((r) => { setRes(r); setErr(null); }).catch((e) => setErr((e as Error).message));
-  }, [target, weeks, version]);
+  }, [target, weeks, version, workspace]);
 
   const project = projects.find((p) => p.id === target);
   const question = `If we delay the launch of ${project?.name || "Project Alpha"} by ${words[weeks] || weeks} ${plural(weeks, "week", "weeks")}, which other teams and downstream client deliverables will be impacted?`;
@@ -58,7 +59,7 @@ export function ImpactSection() {
   const misses = hit.filter((d) => d.status === "misses").length, tight = hit.filter((d) => d.status === "tight").length;
 
   return (
-    <Section id="impact" index="03" title="Impact analysis"
+    <Section id="impact" index="04" title="Impact analysis"
       intro="What happens if a launch slips? The graph walks from the project to its tickets, through every ticket they block, to the projects waiting on them, the client deliverables that need them, and the teams doing the work."
       aside={<div className="tabs">{projects.map((p) => <button key={p.id} className={target === p.id ? "active" : ""} onClick={() => setTarget(p.id)}>{p.name}</button>)}</div>}>
       <div className="whatif">

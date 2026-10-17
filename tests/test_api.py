@@ -303,3 +303,16 @@ def test_demo_sandbox_stats_are_fresh_right_after_bootstrap(client):
     client.post("/api/orgs/demotest/bootstrap?extractor=heuristic")
     assert sum(n["n"] for n in client.get("/api/stats", headers=h).json()["nodes"]) > 300
     get_graph(org_graph_name("demotest")).delete()
+
+
+def test_sandbox_builds_at_once_all_succeed(client):
+    """Several tabs (or a double mount) opening the demo at once: a later build must not wipe an earlier one mid-index."""
+    from concurrent.futures import ThreadPoolExecutor
+
+    from graph.db import get_graph, org_graph_name
+
+    with ThreadPoolExecutor(4) as pool:
+        codes = list(pool.map(lambda _: client.post("/api/orgs/demorace/bootstrap?extractor=heuristic").status_code, range(4)))
+    assert codes == [200] * 4
+    assert sum(n["n"] for n in client.get("/api/stats", headers={"X-Org": "demorace"}).json()["nodes"]) > 300
+    get_graph(org_graph_name("demorace")).delete()
