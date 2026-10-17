@@ -57,6 +57,10 @@ def test_tile_count_edge_label_path_and_answer_agree(demo, ticket, pr, question)
     answer = ask(question)["answer"]
     assert f"PRs that shipped the old version: #{pr} (after the decision)" in answer
     assert "PRs that shipped the old version: none" not in answer
+    # the daily digest and the build output use the same wording (graph.queries.pr_list)
+    from bots.digest import build as digest
+
+    assert f"Shipped old version: #{pr} (after the decision)" in digest()
 
 
 def test_classification_rule_covers_all_three_cases():

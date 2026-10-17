@@ -262,7 +262,11 @@ def classify_messages(ex, msgs: list[dict], threads: Threads, features: list[dic
             {"id": m["id"], "author": m["author"], "ts": m["ts"], "text": m["text"], "thread": [{"author": x["author"], "text": x["text"]} for x in thread]}
         )
     log(f"classifying {len(items)} messages with {ex.name} ...")
-    return ex.classify(items, feat_ctx)
+    cls = ex.classify(items, feat_ctx)
+    errors = sum(1 for c in cls.values() if c.get("kind") == "error")
+    if errors:  # a failed call reads as "no change": say so loudly instead of reporting less drift
+        log(f"WARNING: {errors} of {len(items)} LLM classifications failed and count as no change")
+    return cls
 
 
 def assign_message_features(
@@ -534,6 +538,7 @@ def resolve(
         "msg_feature": msg_feature,
         "pr_links": pr_links,
         "classification": cls,
+        "llm_errors": sum(1 for c in cls.values() if c.get("kind") == "error"),
         "changes": changes,
         "candidates": candidates,
         "implements": impl,

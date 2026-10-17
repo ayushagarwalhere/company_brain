@@ -251,6 +251,14 @@ PR_STATUS_LABEL = {
 }
 
 
+def pr_list(d: dict) -> str:
+    """'#5 (after the decision), #4': a drift's stale PRs in the wording of PR_STATUS_LABEL, plus the unmatched ones.
+    The one place every text surface (router, Slack alert, digest, retro, build output) formats them."""
+    stale = ", ".join(f"#{p['pr']}" + (" (after the decision)" if p["status"] == "old_after" else "") for p in d["stale_prs"]) or "none"
+    loose = ", ".join(f"#{p['pr']}" for p in d.get("unmatched_prs") or [])
+    return stale + (f"; unmatched, may implement the new scope: {loose}" if loose else "")
+
+
 def classify_prs(collected: list[dict]) -> tuple[list[dict], list[dict]]:
     """Groups the DRIFT query's per-(PR, implemented requirement) rows by PR and applies the rule above.
     Returns (stale PRs, unmatched PRs); each PR gets `status`, `label` and the older requirement it implements."""

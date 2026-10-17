@@ -250,8 +250,8 @@ def history_lines(ctx: Ctx) -> list[str]:
 
 
 def stale_pr_list(d: dict) -> str:
-    """'#5 (after the decision), #4': every stale PR, in the wording of graph.queries.PR_STATUS_LABEL."""
-    return ", ".join(f"#{p['pr']}" + (" (after the decision)" if p["status"] == "old_after" else "") for p in d["stale_prs"]) or "none"
+    """'#5 (after the decision), #4': every stale PR (unmatched ones get their own line in drift_lines)."""
+    return Q.pr_list({**d, "unmatched_prs": []})
 
 
 def drift_lines(ctx: Ctx) -> list[str]:

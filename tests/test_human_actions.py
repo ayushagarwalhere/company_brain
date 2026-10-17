@@ -114,3 +114,12 @@ def test_candidate_never_supersedes_owner_change_on_live_recompute(g):
     recompute_supersession(g, "BD-103", ex=AcceptsEverything())
     assert sla in {d["requirement"] for d in drift(g)}
     assert not g.query("MATCH (:Requirement {id: 'cand:test'})-[:SUPERSEDES]->() RETURN 1").result_set
+
+
+def test_dismiss_by_unknown_person_fails_instead_of_reporting_success(g):
+    from pipeline.actions import dismiss
+
+    sla = _req(g, "BD-103")
+    with pytest.raises(ValueError):
+        dismiss(g, sla, "nobody")
+    assert sla in {d["requirement"] for d in drift(g)}

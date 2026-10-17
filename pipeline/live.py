@@ -13,10 +13,11 @@ Guards against spam and false positives:
   * messages from the bot itself are ignored by the bot adapters
 """
 
+import logging
 import time
 
 from agent.tools import drift_path
-from config import MIN_CONFIDENCE  # noqa: E402 - one threshold for batch and live
+from config import MIN_CONFIDENCE, MSG_SIM_THRESHOLD  # noqa: E402 - one threshold for batch and live
 from graph import queries as Q
 from graph.db import get_graph
 from graph.writer import write_messages
@@ -26,6 +27,7 @@ from pipeline.resolve import has_decision_rights
 from pipeline.textsim import TfIdf
 
 TICKET_COOLDOWN_S = 300
+log = logging.getLogger(__name__)
 _last_alert: dict[tuple[str, str], float] = {}  # (org, ticket) -> last alert time
 
 
@@ -90,12 +92,15 @@ def process_message(event: Event, g=None, extractor=None) -> dict:
     if not feature:
         sim = TfIdf({f["id"]: " ".join(f"{t['title']} {t['description']}" for t in f["ticket_objs"]) for f in feats})
         best, score = sim.best(event.text)
-        if best and score >= 0.22:
+        if best and score >= MSG_SIM_THRESHOLD:
             feature, via = best, f"semantic:tfidf:{score:.2f}"
     if feature:
         g.query("MATCH (m:Message {id: $m}), (f:Feature {id: $f}) MERGE (m)-[:ABOUT {via: $via}]->(f)", {"m": event.id, "f": feature, "via": via})
 
     result = {"status": "ok", "message": event.id, "feature": feature, "via": via, "classification": c}
+    if c.get("kind") == "error":  # the LLM call failed: report it, don't pass it off as "not a decision"
+        log.warning("live classification failed for %s: %s", event.id, c.get("error"))
+        return {**result, "status": "llm-error"}
     if c.get("kind") not in CHANGE_KINDS or not c.get("requirement") or not feature:
         return result
     if (c.get("confidence") or 0) < MIN_CONFIDENCE:

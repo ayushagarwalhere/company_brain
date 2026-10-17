@@ -54,7 +54,7 @@ def to_markdown(r: dict) -> str:
     if not r["diverged"]:
         out.append("_No open drift._ ✅")
     for d in r["diverged"]:
-        stale = ", ".join(f"[#{x['pr']}]({x['url']})" for x in d["stale_prs"] if x["pr"] is not None) or "none"
+        stale = ", ".join(f"[#{x['pr']}]({x['url']})" + (" (after the decision)" if x["status"] == "old_after" else "") for x in d["stale_prs"]) or "none"
         out.append(
             f"- ⚠️ **{d['feature_name']}**: on {d['changed_at'][:10]} {d['changed_by']} decided "
             f"\"{d['requirement_text']}\" ([{d['source']}#{d['channel']}]({d['message_url']})), "

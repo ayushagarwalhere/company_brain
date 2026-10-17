@@ -65,6 +65,8 @@ def write_to_ticket(g, requirement: str, actor: str = "maya") -> dict:
 
 def dismiss(g, requirement: str, actor: str = "maya", reason: str = "keep the old scope") -> dict:
     _open_drift(g, requirement)
+    if not g.query("MATCH (p:Person {id: $a}) RETURN 1", {"a": actor}).result_set:
+        raise ValueError(f"unknown person {actor!r}: a dismissal needs someone who made it")  # used to report success and write nothing
     iso, ms = _now()
     did = f"dismiss:{requirement}"
     g.query(

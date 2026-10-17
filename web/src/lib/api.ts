@@ -4,7 +4,7 @@ export type Count = { label?: string; type?: string; n: number };
 export type Stats = {
   nodes: { label: string; n: number }[];
   relationships: { type: string; n: number }[];
-  build: { extractor: string; model?: string | null; at: string; reference_date?: string | null } | null;
+  build: { extractor: string; model?: string | null; at: string; reference_date?: string | null; llm_errors?: number | null; classified?: number | null } | null;
   llm: { model: string; available: boolean; reason: string };
 };
 /** status, from one backend rule (graph/queries.py PR_STATUS_LABEL): "old" = merged before the decision, "old_after" = merged after

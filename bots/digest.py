@@ -25,7 +25,7 @@ def build(g=None) -> str:
     done_no_pr = Q.rows(g, Q.DONE_WITHOUT_PR)
     lines = [f"*Drift digest* · {len(drift)} open drift" + ("" if drift else " ✅")]
     for d in drift:
-        stale = ", ".join(f"#{p['pr']}" for p in d["stale_prs"] if p["pr"] is not None) or "none"
+        stale = Q.pr_list(d)
         lines += [
             f"• *{d['feature_name']}* / {d['ticket']}: {d['changed_by']} decided “{d['requirement_text']}” "
             f"on {d['changed_at'][:10]} ({d['source']} #{d['channel']}). Ticket still says “{d['ticket_text']}”. "

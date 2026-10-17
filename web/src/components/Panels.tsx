@@ -168,7 +168,7 @@ export function RetroSection() {
             </ul>
           </>}
 
-          <h3 className="rt-h mono">Shipped · {r.shipped.length} PRs</h3>
+          <h3 className="rt-h mono">Shipped · {r.shipped.length} {plural(r.shipped.length, "PR", "PRs")}</h3>
           <ul className="rt-prs">
             {r.shipped.map((p) => (
               <li key={p.pr}>

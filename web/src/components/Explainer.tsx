@@ -12,7 +12,7 @@ const STEPS = [
   { k: "Chat", h: "A decision lands in chat.", p: "Maya, in #support-escalations: the export should cover any range up to 12 months, not 30 days. Nobody opens the ticket." },
   { k: "Changes", h: "It changes a requirement.", p: "The message becomes a Requirement node: Message -[:CHANGES]-> Requirement. It is now the newest version of what BD-101 must do." },
   { k: "Amends", h: "The requirement amends the ticket.", p: "Requirement -[:AMENDS]-> Ticket BD-101. But the ticket text still says “last 30 days”. Nothing wrote the change back." },
-  { k: "Still on old", h: "Code and docs follow the old version.", p: "PR #6 shipped the 30-day export and the PRD still describes it. Both point at the version chat already replaced." },
+  { k: "Still on old", h: "Code and docs follow the old version.", p: "PR #6 merged after the decision but still ships the 30-day export, and the PRD still describes it. Both point at the version chat already replaced." },
   { k: "Drift", h: "That gap is drift.", p: "A requirement nothing SUPERSEDES and no PR IMPLEMENTS. One Cypher query finds every one, with the path as evidence." },
 ];
 const N = STEPS.length;
@@ -55,7 +55,7 @@ function Diagram({ s }: { s: (i: number) => number }) {
       <g className="orbit__node" transform="translate(430 140)"><g style={node(2)} className="xnode">
         <rect x="-7" y="-7" width="14" height="14" /><text x="16" y="-8">TICKET BD-101</text><text x="16" y="8" className="sub">still says “last 30 days”</text></g></g>
       <g className="orbit__node orbit__node--stale" transform="translate(620 110)"><g style={node(3)} className="xnode">
-        <path d="M0 -9 L9 0 L0 9 L-9 0 Z" /><text x="16" y="4">PR #6</text><text x="16" y="20" className="sub">shipped the old version</text></g></g>
+        <path d="M0 -9 L9 0 L0 9 L-9 0 Z" /><text x="16" y="4">PR #6</text><text x="16" y="20" className="sub">old version, after the decision</text></g></g>
       <g className="orbit__node orbit__node--stale" transform="translate(560 330)"><g style={node(3)} className="xnode">
         <path d="M-7 -8 h10 l4 4 v12 h-14 z" /><text x="16" y="4">PRD · DOC-1</text><text x="16" y="20" className="sub">still says 30 days</text></g></g>
       <text className="orbit__tag" x="276" y="212" style={{ opacity: pulse }}>DRIFT</text>
@@ -74,7 +74,8 @@ function SpecSheet() {
     <dl className="spec">
       <div><dt>Graph</dt><dd>{stats ? `${total(stats.nodes)} nodes · ${total(stats.relationships)} relationships` : "…"}</dd></div>
       <div><dt>Open drift</dt><dd className={drift.length ? "warn" : ""}>{drift.length ? `${drift.length} · ${[...new Set(drift.map((d) => d.feature_name))].join(", ")}` : "none"}</dd></div>
-      <div><dt>Extraction</dt><dd>{extractor === "heuristic" ? "Rules mode" : extractor === "oracle" ? <span className="warn">answer-key oracle (test mode)</span> : extractor ? `LLM · ${stats?.build?.model || "DeepSeek"}` : "…"}{stats?.build?.at ? <span className="muted"> · built {day(stats.build.at)}</span> : null}</dd></div>
+      <div><dt>Extraction</dt><dd>{extractor === "heuristic" ? "Rules mode" : extractor === "oracle" ? <span className="warn">answer-key oracle (test mode)</span> : extractor ? `LLM · ${stats?.build?.model || extractor}` : "…"}{stats?.build?.at ? <span className="muted"> · built {day(stats.build.at)}</span> : null}
+        {stats?.build?.llm_errors ? <span className="warn"> · {stats.build.llm_errors} of {stats.build.classified} LLM calls failed (read as “no change”)</span> : null}</dd></div>
       <div><dt>LLM</dt><dd>{!stats ? "…" : stats.llm.available ? `online (${stats.llm.model})` : <span className="muted">Rules mode · LLM not configured</span>}</dd></div>
     </dl>
   );
