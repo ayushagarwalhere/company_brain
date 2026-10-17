@@ -7,12 +7,10 @@
 .dc__head { display: flex; justify-content: space-between; align-items: flex-start; gap: 24px; flex-wrap: wrap; }
 .dc__tag { display: inline-flex; align-items: center; gap: 8px; color: var(--accent-ink); }
 .dc__dot { width: 8px; height: 8px; border-radius: 50%; background: var(--accent); box-shadow: 0 0 0 0 var(--accent); animation: ping-warn 2s ease-out infinite; }
-.dc__stats { display: flex; gap: 0; border: 1px solid var(--line); }
-.dc__stats > div { padding: 10px 18px; display: grid; gap: 2px; min-width: 92px; }
-.dc__stats > div + div { border-left: 1px solid var(--line); }
-.dc__stats b { font: 400 30px/1 var(--font); letter-spacing: -.03em; font-variant-numeric: tabular-nums; }
-.dc__stats > div:first-child b { color: var(--accent-ink); }
-.dc__stats .mono { color: var(--muted); font-size: 10.5px; }
+.dc__stats { margin: 10px 0 0; color: var(--muted); font-size: 11.5px; }
+.dc__stats b { color: var(--ink); font-weight: 600; font-variant-numeric: tabular-nums; }
+.dc__stats b.hot { color: var(--accent-ink); }
+.dc__stats i { font-style: normal; margin: 0 10px; opacity: .5; }
 
 .vs { position: relative; display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); gap: 14px; margin-top: 22px; }
 .vs > div { padding: 18px 20px 16px; border: 1px solid var(--line); }
@@ -25,8 +23,8 @@
 .vs__new .vs__k { color: var(--accent-ink); }
 .vs p { margin: 0; font-size: 16px; line-height: 1.55; }
 .vs__new p { color: var(--ink); }
-.vs__neq { position: absolute; left: 50%; top: 50%; transform: translate(-50%, -50%); width: 34px; height: 34px; display: grid; place-items: center; border-radius: 50%;
-  background: var(--bg); border: 1px solid var(--accent); color: var(--accent-ink); font-size: 18px; z-index: 1; }
+.vs__neq { position: absolute; left: 50%; top: 50%; transform: translate(-50%, -50%); width: 26px; height: 26px; display: grid; place-items: center; border-radius: 50%;
+  background: var(--bg); border: 1px solid var(--accent); color: var(--accent-ink); font-size: 14px; z-index: 1; }
 .vs__who { display: flex; align-items: center; gap: 10px; margin-top: 14px; flex-wrap: wrap; }
 .vs__who .person-link { color: var(--ink); font-weight: 500; }
 .vs__who .mono { color: var(--muted); font-size: 11px; }

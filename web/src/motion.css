@@ -108,8 +108,6 @@ html.lenis { scroll-behavior: auto; }
 .dc__check.ok { background: color-mix(in srgb, var(--ok) 18%, transparent); color: var(--ok); box-shadow: 0 0 0 1px var(--ok); }
 .dc__check.grey { background: var(--line-2); color: var(--muted); }
 .dc__conf { margin-left: 10px; padding: 1px 6px; border: 1px solid var(--line); color: var(--muted); }
-.dc__quote { margin: 14px 0 0; padding: 10px 14px; border-left: 2px solid var(--n-msg); color: var(--soft); font-size: 14.5px; font-style: italic; background: var(--line-2); }
-.dc__quote .mono { display: block; font-style: normal; color: var(--muted); font-size: 11px; margin-bottom: 4px; }
 .trail { position: relative; }
 .trail__pulse { position: absolute; left: 0; top: 8px; width: 10px; height: 10px; margin-left: -5px; border-radius: 50%; background: var(--accent);
   box-shadow: 0 0 14px 4px var(--accent); opacity: 0; pointer-events: none; }

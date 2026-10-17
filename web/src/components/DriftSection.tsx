@@ -77,11 +77,11 @@ function DriftCard({ d, i, flash }: { d: Drift; i: number; flash: boolean }) {
                   {typeof confidence === "number" && <span className="dc__conf" title="Extractor confidence">conf {confidence.toFixed(2)}</span>}
                 </span>
                 <h3>{d.feature_name}</h3>
-              </div>
-              <div className="dc__stats">
-                <div><b>{openDays}</b><span className="mono">{plural(openDays, "day", "days")} open</span></div>
-                <div><b>{d.stale_prs.length}</b><span className="mono">stale {plural(d.stale_prs.length, "PR", "PRs")}</span></div>
-                <div><b>{d.stale_docs.length}</b><span className="mono">stale {plural(d.stale_docs.length, "doc", "docs")}</span></div>
+                <p className="mono dc__stats">
+                  <b className="hot">{openDays}</b> {plural(openDays, "day", "days")} open
+                  <i>·</i><b>{d.stale_prs.length}</b> stale {plural(d.stale_prs.length, "PR", "PRs")}
+                  <i>·</i><b>{d.stale_docs.length}</b> stale {plural(d.stale_docs.length, "doc", "docs")}
+                </p>
               </div>
             </header>
 
@@ -93,7 +93,7 @@ function DriftCard({ d, i, flash }: { d: Drift; i: number; flash: boolean }) {
               <span className="vs__neq" aria-hidden>≠</span>
               <div className="vs__new">
                 <span className="mono vs__k">Decided in chat <em>new</em></span>
-                <p>{d.requirement_text}</p>
+                <p title={quote ? `Source message: "${quote}"` : undefined}>{d.requirement_text}</p>
                 <div className="vs__who">
                   <Avatar name={d.changed_by} size={26} />
                   <button className="person-link" onClick={() => openPerson(d.changed_by)}>{d.changed_by}</button>
@@ -102,12 +102,9 @@ function DriftCard({ d, i, flash }: { d: Drift; i: number; flash: boolean }) {
                 </div>
               </div>
             </div>
-            {quote && <blockquote className="dc__quote"><span className="mono">Source message</span>“{quote}”</blockquote>}
 
             <EvidenceChain run={seen && !still}
-              nodes={[{ kind: "msg", title: "MESSAGE", sub: `${d.changed_by} · ${day(d.changed_at).slice(5)}` },
-                      { kind: "req", title: "REQUIREMENT", sub: "newest · unshipped" },
-                      { kind: "ticket", title: d.ticket, sub: "never updated" }]}
+              nodes={[{ kind: "msg", title: "MESSAGE" }, { kind: "req", title: "REQUIREMENT" }, { kind: "ticket", title: d.ticket }]}
               stale={[...d.stale_prs.map((p) => ({ kind: "pr" as const, label: `PR #${p.pr}${p.status === "old_after" ? " · after decision" : ""}` })),
                       ...(d.unmatched_prs || []).map((p) => ({ kind: "pr" as const, unmatched: true, label: `PR #${p.pr} · may implement new` })),
                       ...d.stale_docs.map((x) => ({ kind: "doc" as const, label: x.id }))]} />

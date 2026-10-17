@@ -14,22 +14,22 @@ export function Avatar({ name, size = 28 }: { name: string; size?: number }) {
   );
 }
 
-type Node = { kind: "msg" | "req" | "ticket"; title: string; sub: string };
+type Node = { kind: "msg" | "req" | "ticket"; title: string; sub?: string };
 /** A PR or doc on the drifted ticket. `unmatched`: merged after the decision with no IMPLEMENTS link, so not stale. */
 type Stale = { kind: "pr" | "doc"; label: string; href?: string; unmatched?: boolean };
 
 /** The evidence path drawn as a small diagram: message -> requirement -> ticket, then dashed orange
     edges to the PRs and docs still on the old version. A light pulse flows along the chain when `run`. */
 export function EvidenceChain({ nodes, stale, run }: { nodes: Node[]; stale: Stale[]; run: boolean }) {
-  const W = 760, step = 190, y = 46;
+  const W = 760, step = 190, y = 40;
   const xs = nodes.map((_, i) => 40 + i * step);
   const tx = xs[xs.length - 1];
   const sx = tx + 150;
-  const sy = (i: number) => (stale.length === 1 ? y : 18 + (i * 58) / Math.max(1, stale.length - 1));
+  const sy = (i: number) => (stale.length === 1 ? y : 14 + (i * 52) / Math.max(1, stale.length - 1));
   const rels = ["CHANGES", "AMENDS"];
   const old = stale.filter((s) => !s.unmatched), loose = stale.filter((s) => s.unmatched);
   return (
-    <svg className={`chain ${run ? "chain--run" : ""}`} viewBox={`0 0 ${W} 96`} role="img"
+    <svg className={`chain ${run ? "chain--run" : ""}`} viewBox={`0 0 ${W} 80`} role="img"
       aria-label={`${nodes.map((n) => n.title).join(" → ")}${old.length ? `; still on the old version: ${old.map((s) => s.label).join(", ")}` : ""}${
         loose.length ? `; unmatched, may implement the new scope: ${loose.map((s) => s.label).join(", ")}` : ""}`}>
       {xs.slice(1).map((x, i) => (
@@ -48,13 +48,12 @@ export function EvidenceChain({ nodes, stale, run }: { nodes: Node[]; stale: Sta
           </g>
         </g>
       ))}
-      {old.length > 0 && <text x={sx - 66} y={y + 4} className="chain__rel chain__rel--hot chain__rel--start">STILL ON OLD</text>}
       {nodes.map((n, i) => (
         <g key={i} transform={`translate(${xs[i]} ${y})`} className={`chain__node chain__node--${n.kind}`}>
           <circle r={14} className="chain__halo" />
           {n.kind === "ticket" ? <rect x={-6} y={-6} width={12} height={12} /> : <circle r={6} />}
           <text y={30} className="chain__t">{n.title}</text>
-          <text y={44} className="chain__s">{n.sub}</text>
+          {n.sub && <text y={44} className="chain__s">{n.sub}</text>}
         </g>
       ))}
     </svg>
