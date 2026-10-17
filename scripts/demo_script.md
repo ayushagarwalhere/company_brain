@@ -1,3 +1,28 @@
+# Submission video (about 2½ minutes, real screen recording)
+
+Record with Windows **Win + Alt + R** (Xbox Game Bar) or OBS, 1080p, browser full-screen. Hide bookmarks (Ctrl+Shift+B).
+
+**Before recording**
+- Bot and dashboard running; `python -m scripts.demo_reset --api http://localhost:8000` so only BD-101 and BD-103 are open.
+- Tabs: (1) Slack `#engineering`, (2) the dashboard, (3) the README on GitHub.
+- **Between takes, restart the bot** (`python -m bots.slack_bot`) or wait 5 minutes: it remembers alerts per ticket for 5 minutes, and the dashboard reset doesn't clear that.
+- Have this ready to paste in Slack, as plain text (no code formatting): *Decision: the export button must also offer a JSON download, BD-102.*
+
+| Time | Screen | Do | Say |
+|---|---|---|---|
+| 0:00–0:15 | Dashboard hero | scroll slowly | "Teams decide things in Slack. The ticket keeps the old text, and the PR ships the old version. Nobody notices until a customer does. This is a company brain on FalkorDB that catches it." |
+| 0:15–0:40 | Slack `#engineering` | paste the message, send, wait for the reply | "I own BD-102. I post a decision in Slack… and within seconds the bot answers in the thread: BD-102 still says the old thing, PR #7 shipped the old version, and here's the graph path that proves it." |
+| 0:40–1:00 | Dashboard → Open drift | show the new BD-102 card, open **Graph path** | "The same drift is on the dashboard: what the ticket says, what was decided, who decided it and where, and the PRs and docs still on the old version." |
+| 1:00–1:20 | Feature graph | pick the drift, hover the lit path | "This is the graph behind it: person, message, requirement, ticket, PR. The decision never named a ticket; the thread and the people connect it." |
+| 1:20–1:45 | Ask the graph | ask *Who knows the most about ticket export?*, then *How is liam connected to PR #6?* | "It's not only drift. Who owns this, who knows the most, and how two things are connected: a support agent's message, a thread, a ticket, a PR. Every answer shows the path." |
+| 1:45–2:00 | Open drift → **Write to BD-102** | click it | "Fixing it is one click. The decision becomes the ticket's next version, the drift closes, and that human action survives every rebuild." |
+| 2:00–2:20 | Coverage & risk, then Sprint retro | scroll | "The same graph shows knowledge held by one person, PRs with no ticket, and what a sprint decided, shipped and left behind." |
+| 2:20–2:35 | README on GitHub | scroll Results at a glance → Known weaknesses | "Everything is measured: an ablation in CI, 100 of 100 drifts at 23 thousand nodes, a SQL baseline. And I list where it's weak: extraction on real-world text is the open problem." |
+
+**After recording:** run the reset again. Upload the video (YouTube unlisted or Loom), and put the link at the top of the README.
+
+---
+
 # 90-second demo
 
 **Before recording:**
