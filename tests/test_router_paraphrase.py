@@ -77,3 +77,8 @@ def test_connection_answer_shows_the_path(demo):
     a = ask("How is liam connected to PR #6?")
     assert a.startswith("liam and PR-6 are 4 hops apart:")
     assert "(Person liam)-[:POSTED]->" in a and "(PullRequest PR-6)" in a
+
+
+def test_who_owns_names_creator_and_assignee(demo):
+    """Owner = creator or assignee everywhere (decision rights, fix plan, profile, answers)."""
+    assert "BD-101 is owned by Maya Chen (created it) and Sofia Alvarez (assigned)." in ask("Who owns BD-101?")

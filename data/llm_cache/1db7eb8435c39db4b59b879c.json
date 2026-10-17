@@ -1,0 +1,4 @@
+{
+ "reflects": true,
+ "reason": "The edited ticket text now specifies export for any custom date range up to 12 months and includes all custom fields as extra columns, matching the chat change."
+}

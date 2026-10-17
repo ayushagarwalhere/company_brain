@@ -42,7 +42,7 @@ def write_to_ticket(g, requirement: str, actor: str = "maya") -> dict:
                MERGE (t)-[:STATES {at_ms: $ms}]->(q)
                MERGE (q)-[:SUPERSEDES]->(chat)
                SET t.description = $text, t.desc_updated_ms = $ms, t.updated = $iso, t.updated_ms = $ms,
-                   t.versions = $versions, t.version_times = $times,
+                   t.versions = $versions, t.version_times = $times, t.version_actors = coalesce(t.version_actors, []) + [$actor],
                    t.wb_versions = coalesce(t.wb_versions, []) + [$id], t.wb_targets = coalesce(t.wb_targets, []) + [$chat],
                    t.wb_actors = coalesce(t.wb_actors, []) + [$actor]
                WITH q, f WHERE f IS NOT NULL

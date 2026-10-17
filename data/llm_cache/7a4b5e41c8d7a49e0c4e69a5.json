@@ -1,0 +1,4 @@
+{
+ "reflects": true,
+ "reason": "The edited ticket now lists 'assignee' as a column in the CSV export, matching the chat request to add an assignee column."
+}

@@ -1,39 +1,37 @@
-import { animate, useInView } from "framer-motion";
-import { useEffect, useRef, useState, type ReactNode } from "react";
-import { useStill } from "../lib/fx";
-import { Reveal } from "./Motion";
+import { useRef, type ReactNode } from "react";
+import { gsap, moving, revealHeading, useGSAP } from "../lib/gsap";
 
-/** "004" that ticks up from 000 the first time the section bar scrolls into view. */
-export function TickIndex({ value }: { value: string }) {
-  const ref = useRef<HTMLSpanElement>(null);
-  const inView = useInView(ref, { once: true, margin: "-40px" });
-  const still = useStill();
-  const target = parseInt(value, 10) || 0;
-  const [n, setN] = useState(still ? target : 0);
-  useEffect(() => {
-    if (still || !inView) { if (still) setN(target); return; }
-    const c = animate(0, target, { duration: 0.6, ease: "easeOut", onUpdate: (v) => setN(Math.round(v)) });
-    return () => c.stop();
-  }, [inView, target, still]);
-  return <span ref={ref} className="tick">{String(n).padStart(value.length, "0")}</span>;
-}
-
-/** Numbered section: "● 004  OPEN DRIFT ———" bar, large faded "04" behind the title, sticky label column, body. `wide`: heading row on top, full-width body. */
-export function Section({ id, index, kicker, title, intro, aside, children, wide = false }: {
-  id: string; index: string; kicker: string; title: string; intro: ReactNode; aside?: ReactNode; children: ReactNode; wide?: boolean;
+/** A working section: "01" index, title and one-line intro on the left, controls on the right, body below.
+    On scroll: the title rises word by word, the accent hairline draws, and the body tilts up out of the page. */
+export function Section({ id, index, title, intro, aside, children }: {
+  id: string; index: string; title: string; intro: ReactNode; aside?: ReactNode; children: ReactNode;
 }) {
+  const ref = useRef<HTMLElement>(null);
+  useGSAP(() => {
+    const el = ref.current;
+    if (!el || !moving()) return;
+    const head = el.querySelector(".sec__head"), body = el.querySelector(".sec__body");
+    const when = { trigger: head, start: "top 85%", once: true };
+    revealHeading(el.querySelector(".sec__head h2"));
+    gsap.fromTo(head, { "--bar": 0 }, { "--bar": 1, duration: 1.4, ease: "expo.inOut", scrollTrigger: when });
+    gsap.from(el.querySelectorAll(".sec__num, .sec__head p, .sec__aside"), { opacity: 0, y: 14, stagger: 0.08, delay: 0.15, scrollTrigger: when });
+    // the body tips up from the page in 3D; transforms are cleared after so fullscreen graphs inside stay viewport-fixed
+    gsap.from(body, {
+      rotationX: 16, y: 90, opacity: 0, transformPerspective: 1400, transformOrigin: "50% 0%", duration: 1.3, ease: "expo.out",
+      clearProps: "transform,opacity", scrollTrigger: { trigger: body, start: "top 94%", once: true },
+    });
+  }, { scope: ref });
   return (
-    <section className={`sec ${wide ? "sec--wide" : ""}`} id={id}>
-      <div className="sec__bar mono"><span><i className="sq" /><TickIndex value={index} /></span><span><i className="sq" />{kicker}</span></div>
-      <Reveal className="sec__label">
-        <span className="sec__num" aria-hidden>{index.slice(-2)}</span>
-        <div className="sec__head">
+    <section className="sec" id={id} ref={ref}>
+      <div className="sec__head">
+        <span className="sec__num">{index}</span>
+        <div>
           <h2>{title}</h2>
           <p>{intro}</p>
         </div>
-        {aside}
-      </Reveal>
-      <Reveal className="sec__body" delay={0.08}>{children}</Reveal>
+        {aside && <div className="sec__aside">{aside}</div>}
+      </div>
+      <div className="sec__body">{children}</div>
     </section>
   );
 }

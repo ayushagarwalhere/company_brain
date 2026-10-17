@@ -73,6 +73,13 @@ def test_ask_uses_rules_agent_without_llm(client):
     assert r["engine"] == "rules" and "Sofia" in r["answer"]
 
 
+def test_ask_tags_where_the_evidence_came_from(client):
+    r = client.post("/api/ask", json={"question": "How is liam connected to PR #6?"}).json()
+    systems = {s["system"] for s in r["sources"]}
+    assert "github" in systems and systems & {"slack", "discord"}
+    assert any("PR-6" in s["refs"] for s in r["sources"] if s["system"] == "github")
+
+
 def test_simulate_publishes_event(client):
     from api import bus
 
@@ -271,3 +278,28 @@ def test_plan_apply_and_follow_ups_over_the_api(client):
     num = client.get("/api/tasks", params={"person": "dev"}).json()[0]["num"]
     assert client.post(f"/api/tasks/{num}/done", json={"actor": "zara"}).status_code == 403
     assert client.post(f"/api/tasks/{num}/done", json={"actor": "dev"}).json()["status"] == "done"
+
+
+def test_tour_sandbox_is_a_fresh_isolated_org(client):
+    """The product tour bootstraps its own org graph (rules extractor, seconds) and never touches the main graph."""
+    main = {d["ticket"] for d in client.get("/api/drift").json()}
+    out = client.post("/api/orgs/tourtest/bootstrap?extractor=heuristic").json()
+    assert out["extractor"] == "heuristic" and out["nodes"] > 300
+    h = {"X-Org": "tourtest"}
+    assert {d["ticket"] for d in client.get("/api/drift", headers=h).json()} == {"BD-101", "BD-103"}
+    assert client.post("/api/orgs/tourtest/bootstrap?extractor=nope").status_code == 400
+    assert {d["ticket"] for d in client.get("/api/drift").json()} == main
+    from graph.db import get_graph, org_graph_name
+
+    get_graph(org_graph_name("tourtest")).delete()
+
+
+def test_demo_sandbox_stats_are_fresh_right_after_bootstrap(client):
+    """The demo app asks "is my sandbox empty?" then builds it: the empty answer must not be served from cache after."""
+    from graph.db import get_graph, org_graph_name
+
+    h = {"X-Org": "demotest"}
+    client.get("/api/stats", headers=h)  # may fail or be empty: the graph doesn't exist yet
+    client.post("/api/orgs/demotest/bootstrap?extractor=heuristic")
+    assert sum(n["n"] for n in client.get("/api/stats", headers=h).json()["nodes"]) > 300
+    get_graph(org_graph_name("demotest")).delete()

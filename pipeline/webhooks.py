@@ -82,7 +82,7 @@ def ticket_updated(g, ticket: str, description: str, actor: str = "maya", at: st
                SET q.text = $text, q.at_ms = $ms, q.at = $at, q.origin = 'ticket', q.ticket = $t, q.written_by = $actor
                MERGE (t)-[:STATES {at_ms: $ms}]->(q)
                SET t.description = $text, t.desc_updated_ms = $ms, t.updated = $at, t.updated_ms = $ms,
-                   t.versions = $versions, t.version_times = $times""",
+                   t.versions = $versions, t.version_times = $times, t.version_actors = coalesce(t.version_actors, []) + [$actor]""",
         {"t": ticket, "rid": rid, "text": description, "ms": ms, "at": at, "actor": actor, "versions": versions + [description], "times": times + [ms]},
     )
     if t["f"]:
@@ -158,7 +158,7 @@ def pr_event(g, payload: dict) -> dict:
     }
 
 
-def doc_updated(g, doc_id: str, text: str, actor: str = "maya", title: str | None = None, at: str | None = None) -> dict:
+def doc_updated(g, doc_id: str, text: str, actor: str = "maya", title: str | None = None, at: str | None = None, acl: list[str] | None = None) -> dict:
     """A doc (PRD, design note) was edited: new text + updated time. Docs count as stale for a drift when they
     were last updated before the chat change, so an edit after the decision clears the stale flag."""
     d = Q.rows(g, "MATCH (d:Document {id: $id}) OPTIONAL MATCH (d)-[:MENTIONS]->(t:Ticket) RETURN d.title AS title, collect(t.id) AS tickets", id=doc_id)
@@ -172,15 +172,19 @@ def doc_updated(g, doc_id: str, text: str, actor: str = "maya", title: str | Non
                SET d.text = $text, d.title = coalesce($title, d.title), d.updated = $at, d.updated_ms = $ms""",
         {"id": doc_id, "text": text, "title": title, "at": at, "ms": to_ms(at)},
     )
-    from pipeline.events import find_ticket_refs
+    if acl is not None:  # sharing changed (e.g. Google Drive permissions): restricted docs keep their author
+        owner = Q.rows(g, "MATCH (p:Person)-[:AUTHORED]->(:Document {id: $id}) RETURN p.id AS p", id=doc_id)
+        g.query("MATCH (d:Document {id: $id}) SET d.acl = $acl", {"id": doc_id, "acl": sorted(set(acl) | {f"person:{o['p']}" for o in owner}) if acl else None})
+    from pipeline.knowledge import sync_document
 
-    new_refs = [r for r in find_ticket_refs(text) if r not in tickets]
-    g.query("""UNWIND $refs AS ref MATCH (d:Document {id: $id}), (t:Ticket {id: ref}) MERGE (d)-[:MENTIONS]->(t)""", {"id": doc_id, "refs": new_refs})
+    sync = sync_document(g, doc_id)  # re-embeds changed chunks only; MENTIONS edges follow the new text
+    new_refs = [r for r in sync["mentions"] if r not in tickets]
     stale_after = {x["id"] for t in tickets + new_refs for dr in Q.drift(g, ticket=t) for x in dr["stale_docs"]}
     return {
         "status": "updated",
         "doc": doc_id,
         "by": actor,
         "no_longer_stale": doc_id in stale_before and doc_id not in stale_after,
-        "tickets": tickets + new_refs,
+        "tickets": sync["mentions"],
+        "sync": {k: sync[k] for k in ("chunks", "embedded", "kept", "removed", "mentions", "mentions_dropped", "embedder", "parts")},
     }

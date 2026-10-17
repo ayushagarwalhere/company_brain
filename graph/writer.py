@@ -11,7 +11,24 @@ def apply_schema(g) -> None:
     # every MERGE/lookup is on id; the rest are the hot non-id lookups (verified with GRAPH.EXPLAIN,
     # see scripts/explain_queries.py): requirements of a ticket, messages by time, PRs by number
     for label, prop in [
-        (lab, "id") for lab in ("Person", "Message", "Ticket", "PullRequest", "Document", "Feature", "Requirement", "Decision", "Sprint", "Task")
+        (lab, "id")
+        for lab in (
+            "Person",
+            "Message",
+            "Ticket",
+            "PullRequest",
+            "Document",
+            "Feature",
+            "Requirement",
+            "Decision",
+            "Sprint",
+            "Task",
+            "Chunk",
+            "Team",
+            "Project",
+            "Client",
+            "Deliverable",
+        )
     ] + EXTRA_INDEXES:
         try:
             g.query(f"CREATE INDEX FOR (n:{label}) ON (n.{prop})")
@@ -40,7 +57,7 @@ FULLTEXT = {
 
 def write_people(g, people: list[dict]) -> None:
     g.query(
-        "UNWIND $rows AS r MERGE (p:Person {id: r.id}) SET p.name = r.name, p.role = r.role",
+        "UNWIND $rows AS r MERGE (p:Person {id: r.id}) SET p.name = r.name, p.role = r.role, p.groups = coalesce(r.groups, []), p.email = r.email",
         {"rows": people},
     )
 
@@ -138,6 +155,7 @@ def write_tickets(g, events: list[Event]) -> None:
                 "desc_updated_ms": to_ms(versions[-1]["at"]),
                 "completed_ms": to_ms(x.get("completed_at")),
                 "versions": [v["to"] for v in versions],
+                "version_actors": [v.get("actor") or e.author for v in versions],
                 "version_times": [to_ms(v["at"]) for v in versions],
                 "author": e.author,
                 "assignee": x.get("assignee"),
@@ -152,7 +170,8 @@ def write_tickets(g, events: list[Event]) -> None:
                SET t.title = r.title, t.description = r.description, t.state = r.state, t.priority = r.priority,
                    t.labels = r.labels, t.url = r.url, t.created = r.created, t.created_ms = r.created_ms,
                    t.updated = r.updated, t.updated_ms = r.updated_ms, t.desc_updated_ms = r.desc_updated_ms,
-                   t.completed_ms = r.completed_ms, t.versions = r.versions, t.version_times = r.version_times
+                   t.completed_ms = r.completed_ms, t.versions = r.versions, t.version_times = r.version_times,
+                   t.version_actors = r.version_actors
                WITH t, r
                MATCH (a:Person {id: r.author})
                MERGE (a)-[:AUTHORED]->(t)""",
@@ -168,6 +187,47 @@ def write_tickets(g, events: list[Event]) -> None:
                    MATCH (t:Ticket {id: r.id}), (s:Sprint {id: r.sprint}) MERGE (t)-[:IN_SPRINT]->(s)""",
             {"rows": chunk},
         )
+
+
+def write_org(g, org: dict) -> None:
+    """Org structure (data/scenario/org.json; in a real company: the tracker's projects, target dates and 'blocks'
+    links, the HR system or GitHub teams, the CRM):
+        Person -MEMBER_OF-> Team          Person -OWNS-> Project -INCLUDES-> Ticket -BLOCKS-> Ticket
+        Deliverable -FOR-> Client         Deliverable -NEEDS-> Project       Person -OWNS-> Deliverable
+        Message -CONCERNS-> Client        (a message that names the client)"""
+    day = lambda d: to_ms(f"{d}T00:00:00Z")  # noqa: E731
+    g.query(
+        """UNWIND $rows AS r MERGE (t:Team {id: r.id}) SET t.name = r.name
+           WITH t, r UNWIND r.members AS m MATCH (p:Person {id: m}) MERGE (p)-[:MEMBER_OF]->(t)""",
+        {"rows": org.get("teams", [])},
+    )
+    projects = [{**p, "launch_ms": day(p["launch"])} for p in org.get("projects", [])]
+    g.query(
+        """UNWIND $rows AS r MERGE (p:Project {id: r.id})
+           SET p.name = r.name, p.about = r.about, p.launch = r.launch, p.launch_ms = r.launch_ms
+           WITH p, r UNWIND r.tickets AS tid MATCH (t:Ticket {id: tid}) MERGE (p)-[:INCLUDES]->(t)""",
+        {"rows": projects},
+    )
+    g.query("UNWIND $rows AS r MATCH (p:Project {id: r.id}), (o:Person {id: r.owner}) MERGE (o)-[:OWNS]->(p)", {"rows": projects})
+    g.query(
+        "UNWIND $rows AS r MATCH (a:Ticket {id: r.from}), (b:Ticket {id: r.to}) MERGE (a)-[x:BLOCKS]->(b) SET x.why = r.why",
+        {"rows": org.get("blocks", [])},
+    )
+    g.query("UNWIND $rows AS r MERGE (c:Client {id: r.id}) SET c.name = r.name, c.aliases = coalesce(r.aliases, [])", {"rows": org.get("clients", [])})
+    dels = [{**d, "due_ms": day(d["due"])} for d in org.get("deliverables", [])]
+    g.query(
+        """UNWIND $rows AS r MERGE (d:Deliverable {id: r.id}) SET d.title = r.title, d.due = r.due, d.due_ms = r.due_ms
+           WITH d, r MATCH (c:Client {id: r.client}) MERGE (d)-[:FOR]->(c)
+           WITH d, r UNWIND r.needs AS pid MATCH (p:Project {id: pid}) MERGE (d)-[:NEEDS]->(p)""",
+        {"rows": dels},
+    )
+    g.query("UNWIND $rows AS r MATCH (d:Deliverable {id: r.id}), (o:Person {id: r.owner}) MERGE (o)-[:OWNS]->(d)", {"rows": dels})
+    names = [{"client": c["id"], "alias": a} for c in org.get("clients", []) for a in {c["name"], *c.get("aliases", [])}]
+    g.query(
+        """UNWIND $rows AS r MATCH (c:Client {id: r.client}) MATCH (m:Message) WHERE m.text CONTAINS r.alias
+           MERGE (m)-[:CONCERNS]->(c)""",
+        {"rows": names},
+    )
 
 
 def write_pull_requests(g, events: list[Event]) -> None:
@@ -232,6 +292,9 @@ def write_documents(g, events: list[Event]) -> None:
             "updated_ms": to_ms(e.extra["updated"]),
             "author": e.author,
             "refs": e.extra["tickets"],
+            "declared": e.extra.get("declared") or [],
+            # restricted docs always include their author (see pipeline/access.py)
+            "acl": sorted(set(e.extra.get("acl") or []) | {f"person:{e.author}"}) if e.extra.get("acl") else None,
         }
         for e in events
     ]
@@ -241,7 +304,7 @@ def write_documents(g, events: list[Event]) -> None:
             """UNWIND $rows AS r
                MERGE (d:Document {id: r.id})
                SET d.title = r.title, d.text = r.text, d.url = r.url, d.created = r.created, d.created_ms = r.created_ms,
-                   d.updated = r.updated, d.updated_ms = r.updated_ms
+                   d.updated = r.updated, d.updated_ms = r.updated_ms, d.acl = r.acl, d.declared = r.declared
                WITH d, r
                MATCH (a:Person {id: r.author})
                MERGE (a)-[:AUTHORED]->(d)""",

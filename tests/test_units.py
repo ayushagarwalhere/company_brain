@@ -197,7 +197,11 @@ def test_agent_recovers_when_the_provider_rejects_a_tool_call(monkeypatch):
         if calls["n"] == 1:
             resp = SimpleNamespace(status_code=400, headers={}, request=None)
             raise BadRequestError("Tool call validation failed: /feature expected string, got null", response=resp, body=None)
-        assert "rejected" in kw["messages"][-1]["content"]  # the model is told what went wrong
+        if calls["n"] == 2:
+            assert "rejected" in kw["messages"][-1]["content"]  # the model is told what went wrong
+            call = {"id": "c1", "type": "function", "function": {"name": "list_features", "arguments": "{}"}}
+            tc = SimpleNamespace(id="c1", function=SimpleNamespace(name="list_features", arguments="{}"), model_dump=lambda: call)
+            return SimpleNamespace(choices=[SimpleNamespace(message=SimpleNamespace(tool_calls=[tc], content=""))])
         return SimpleNamespace(choices=[SimpleNamespace(message=SimpleNamespace(tool_calls=None, content="ok"))])
 
     fake = SimpleNamespace(chat=SimpleNamespace(completions=SimpleNamespace(create=create)))

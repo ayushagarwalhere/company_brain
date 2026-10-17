@@ -4,7 +4,8 @@ export const cssVar = (name: string) => getComputedStyle(document.documentElemen
 
 export const TYPE_VAR: Record<string, string> = {
   Feature: "--n-feature", Ticket: "--n-ticket", Requirement: "--n-req", Message: "--n-msg",
-  PullRequest: "--n-pr", Person: "--n-person", Decision: "--accent", Document: "--n-doc",
+  PullRequest: "--n-pr", Person: "--n-person", Decision: "--n-req", Document: "--n-doc", Chunk: "--n-doc",
+  Team: "--n-person", Project: "--n-feature", Deliverable: "--n-ticket", Client: "--n-person", Task: "--n-pr",
 };
 export const typeColor = (t: string) => `var(${TYPE_VAR[t] || "--muted"})`;
 

@@ -91,9 +91,15 @@ def person(g, pid: str) -> dict | None:
     out = p[0]
     out["owns"] = Q.rows(
         g,
-        """MATCH (t:Ticket)-[:ASSIGNED_TO]->(:Person {id: $id})
+        # owner = creator or assignee, the same rule as decision rights (pipeline.resolve.has_decision_rights)
+        """MATCH (p:Person {id: $id}) MATCH (t:Ticket) WHERE (p)-[:AUTHORED]->(t) OR (t)-[:ASSIGNED_TO]->(p)
                                OPTIONAL MATCH (t)-[:ABOUT]->(f:Feature)
-                               RETURN t.id AS ticket, t.title AS title, t.state AS state, f.name AS feature ORDER BY ticket""",
+                               OPTIONAL MATCH (t)-[a:ASSIGNED_TO]->(p)
+                               OPTIONAL MATCH (p)-[c:AUTHORED]->(t)
+                               RETURN t.id AS ticket, t.title AS title, t.state AS state, f.name AS feature,
+                                      CASE WHEN a IS NOT NULL AND c IS NOT NULL THEN 'created, assigned'
+                                           WHEN a IS NOT NULL THEN 'assigned' ELSE 'created' END AS role
+                               ORDER BY ticket""",
         id=pid,
     )
     out["prs"] = Q.rows(

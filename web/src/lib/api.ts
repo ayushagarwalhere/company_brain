@@ -46,6 +46,8 @@ export type Coverage = {
 export type AskResult = {
   answer: string; tool_calls: { tool: string; args: Record<string, string>; rows: number }[]; paths: string[];
   engine?: string; fallback_reason?: string;
+  /** where the evidence lives: Slack/Discord channel, GitHub, the tracker, docs (api/main.py answer_sources) */
+  sources?: { system: string; label: string; refs: string[] }[];
 };
 export type SimResult = {
   status: string; message?: string; feature?: string | null; via?: string | null; ticket?: string;
@@ -54,7 +56,7 @@ export type SimResult = {
 export type SearchHit = { id: string; type: string; label: string | null; score: number; feature: string | null };
 export type Person = {
   id: string; name: string; role: string; messages: number;
-  owns: { ticket: string; title: string; state: string; feature: string | null }[];
+  owns: { ticket: string; title: string; state: string; feature: string | null; role?: string }[];
   prs: { pr: number; title: string; url: string; tickets: string[] }[];
   decisions: { id: string; text: string; at: string; kind: string; ticket: string | null }[];
   features: { id: string; name: string; score: number }[];
@@ -68,6 +70,36 @@ export type PlanItem = { kind: "ticket" | "pr" | "doc"; target: string; assignee
 export type FixPlan = { owners: Record<string, string | null>; decided_by: string; items: PlanItem[]; tell: string[]; can_apply: string[] };
 export type Task = { id: string; num: number; kind: string; title: string; why: string; status: string; assignee: string | null; approved_by: string; target: string; created: string };
 export type Applied = { status: string; ticket: string; version: string; tasks: Task[]; tell: string[]; by: string };
+/** A document as the graph holds it: who may see it (acl: [] = everyone), its chunks in the vector index, the tickets
+    it mentions (MENTIONS edges) and the open drift it is stale for. */
+export type Doc = {
+  id: string; title: string; author: string | null; updated: string; acl: string[]; text: string; tickets: string[];
+  chunks: { id: string; chars: number }[]; embedder: string | null; stale_for: string[];
+};
+export type DocSync = {
+  status: string; doc: string; by: string; no_longer_stale: boolean; tickets: string[];
+  sync: {
+    chunks: number; embedded: number; kept: number; removed: number; mentions: string[]; mentions_dropped: string[]; embedder: string;
+    parts: { id: string; status: "embedded" | "kept" | "removed"; chars: number }[];
+  };
+};
+/** A node in a layered view: `col` is its column (left to right), `status` drives its emphasis. */
+export type CNode = { id: string; type: string; label: string; col: number; text?: string | null; status?: string; drift?: boolean };
+export type CGraph = { nodes: CNode[]; edges: GEdge[] };
+export type Project = {
+  id: string; name: string; about: string; launch: string; owner: string | null; tickets: string[]; features: string[];
+  deliverables: { id: string; title: string; due: string; client: string }[];
+};
+export type Impact = {
+  target: { kind: string; id: string; name: string }; days: number;
+  projects: { id: string; name: string; launch: string; new_launch: string; slip_days: number; root: boolean; via: { from: string; to: string; why: string } | null }[];
+  tickets: { id: string; title: string; state: string; assignee: string | null; root: boolean; blocked_by: string[] }[];
+  deliverables: { id: string; title: string; due: string; ready: string; client: string; client_name: string; owner: string | null; needs: string[]; moved: boolean; slack_days: number; status: "misses" | "tight" | "on track" }[];
+  teams: { id: string | null; name: string; people: { id: string; name: string; roles: string[]; tickets: string[] }[] }[];
+  drift: { ticket: string; text: string; by: string }[];
+  paths: string[]; graph: CGraph;
+};
+export type WhoAmI = { viewer: string | null; grants: string[] };
 export type LiveEvent = { type: "drift" | "message" | "resolved" | "ticket" | "pr" | "doc" | "rebuild"; at: number; [k: string]: unknown };
 
 /** Multi-tenancy: ?org=acme in the page URL scopes every request to that org's graph. */
@@ -85,8 +117,10 @@ const TOKEN = (() => {
   }
 })();
 
-async function req<T>(path: string, body?: unknown): Promise<T> {
-  const headers: Record<string, string> = ORG ? { "X-Org": ORG } : {};
+/** `as`: the person this request acts for (X-User). The server answers with only what that person may see; without
+    one the request is anonymous. In production this comes from the sign-in, not from the page. */
+async function req<T>(path: string, body?: unknown, as?: string | null): Promise<T> {
+  const headers: Record<string, string> = { ...(ORG ? { "X-Org": ORG } : {}), ...(as ? { "X-User": as } : {}) };
   const res = await fetch(path, body === undefined ? { headers } : {
     method: "POST", headers: { ...headers, ...(TOKEN ? { "X-Ingest-Token": TOKEN } : {}), "Content-Type": "application/json" }, body: JSON.stringify(body),
   });
@@ -110,7 +144,13 @@ export const api = {
   timeline: (feature: string) => req<TimelineEvent[]>(`/api/features/${enc(feature)}/timeline`),
   neighbors: (id: string) => req<GraphData>(`/api/nodes/${enc(id)}/neighbors`),
   coverage: () => req<Coverage>("/api/coverage"),
-  ask: (question: string) => req<AskResult>("/api/ask", { question }),
+  ask: (question: string, as?: string | null) => req<AskResult>("/api/ask", { question }, as),
+  docs: (as?: string | null) => req<Doc[]>("/api/docs", undefined, as),
+  updateDoc: (doc: string, text: string, actor: string, acl?: string[]) => req<DocSync>("/api/ingest/doc", { doc, text, actor, acl }, actor),
+  whoami: (as?: string | null) => req<WhoAmI>("/api/whoami", undefined, as),
+  projects: () => req<Project[]>("/api/projects"),
+  impact: (target: string, days: number) => req<Impact>(`/api/impact?target=${enc(target)}&days=${days}`),
+  featureMap: (feature: string) => req<CGraph>(`/api/features/${enc(feature)}/map`),
   spec: (feature: string) => req<SpecResult>("/api/spec", { feature }),
   simulate: (b: { text: string; author: string; platform: string; channel: string }) => req<SimResult>("/api/simulate", b),
   search: (q: string) => req<SearchHit[]>(`/api/search?q=${enc(q)}`),
@@ -121,6 +161,7 @@ export const api = {
   applyPlan: (requirement: string, actor: string) => req<Applied>("/api/drift/apply", { requirement, actor }),
   keepScope: (requirement: string, actor: string) => req<{ status: string; by: string }>("/api/drift/keep", { requirement, actor }),
   tasks: (person?: string) => req<Task[]>(`/api/tasks${person ? `?person=${enc(person)}` : ""}`),
+  bootstrap: (org: string) => req<{ org: string; nodes: number }>(`/api/orgs/${enc(org)}/bootstrap?extractor=heuristic`, {}),
   resetDemo: () => req<{ rebuilt_with: string }>("/api/demo/reset", {}),
   tickets: () => req<TicketRow[]>("/api/tickets"),
   updateTicket: (ticket: string, description: string, actor: string) => req<TicketUpdate>("/api/ingest/ticket", { ticket, description, actor }),

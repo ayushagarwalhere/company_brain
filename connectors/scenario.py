@@ -26,6 +26,11 @@ def people() -> list[dict]:
     return _load("people.json")
 
 
+def org() -> dict | None:
+    """Teams, projects, ticket dependencies, clients and deliverables (data/scenario/org.json), if present."""
+    return _load("org.json") if (SCENARIO / "org.json").exists() else None
+
+
 def sprints() -> list[dict]:
     return _load("sprints.json")
 

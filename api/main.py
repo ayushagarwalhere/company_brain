@@ -63,6 +63,34 @@ SLOW_MS = 250.0
 
 
 @app.middleware("http")
+async def access_scope(request: Request, call_next):
+    """Entity-level access control (pipeline/access.py). The viewer is the X-User header (person id; behind SSO this
+    is the signed-in user), else anonymous. Every JSON response is redacted for that viewer: anything that mentions a
+    document they may not see is removed, so no endpoint can leak it, including ones added later."""
+    import json as _json
+
+    from fastapi.responses import Response
+
+    from pipeline.access import hidden, redact, reset_viewer, set_viewer
+
+    token = set_viewer(request.headers.get("x-user") or request.query_params.get("as"))
+    try:
+        response = await call_next(request)
+        if not request.url.path.startswith("/api/") or request.url.path == "/api/events" or "json" not in response.headers.get("content-type", ""):
+            return response
+        body = b"".join([chunk async for chunk in response.body_iterator])
+        from pipeline.access import current_viewer
+
+        h = hidden(get_graph(), current_viewer())
+        if h["ids"]:
+            body = _json.dumps(redact(_json.loads(body), h), ensure_ascii=False).encode()
+        headers = {k: v for k, v in response.headers.items() if k.lower() != "content-length"}
+        return Response(body, status_code=response.status_code, headers=headers, media_type="application/json")
+    finally:
+        reset_viewer(token)
+
+
+@app.middleware("http")
 async def org_scope(request: Request, call_next):
     """Multi-tenancy: X-Org header (or ?org=, for EventSource) selects the org's isolated graph."""
     from fastapi.responses import JSONResponse
@@ -150,13 +178,26 @@ def health():
 
 @app.get("/api/stats")
 def stats():
-    return cached("stats", _stats)
+    from pipeline.access import current_viewer
+
+    return cached("stats", _stats, current_viewer())  # per viewer: what they may not see isn't counted either
 
 
-def _stats():
+def _stats(viewer: str | None = None):
+    from pipeline.access import hidden
+
     g = get_graph()
     nodes = Q.rows(g, "MATCH (n) RETURN labels(n)[0] AS label, count(*) AS n ORDER BY n DESC")
     rels = Q.rows(g, "MATCH ()-[r]->() RETURN type(r) AS type, count(*) AS n ORDER BY n DESC")
+    gone = hidden(g, viewer)["ids"]
+    if gone:  # leave out the documents this viewer may not see, their chunks, and every edge touching them
+        nd = Q.rows(
+            g, "MATCH (d:Document) WHERE d.id IN $ids OPTIONAL MATCH (d)-[:HAS_CHUNK]->(c:Chunk) RETURN count(DISTINCT d) AS d, count(c) AS c", ids=gone
+        )[0]
+        less = {"Document": nd["d"], "Chunk": nd["c"]}
+        less_rels = {r["type"]: r["n"] for r in Q.rows(g, "MATCH (d:Document)-[r]-() WHERE d.id IN $ids RETURN type(r) AS type, count(r) AS n", ids=gone)}
+        nodes = [{**n, "n": n["n"] - less.get(n["label"], 0)} for n in nodes if n["n"] > less.get(n["label"], 0)]
+        rels = [{**r, "n": r["n"] - less_rels.get(r["type"], 0)} for r in rels if r["n"] > less_rels.get(r["type"], 0)]
     build = Q.rows(
         g,
         "MATCH (b:Build {id: 'latest'}) RETURN b.extractor AS extractor, b.model AS model, b.at AS at, b.reference_date AS reference_date, "
@@ -249,6 +290,34 @@ def history(feature: str):
 @app.get("/api/features/{feature}/experts")
 def experts(feature: str):
     return tools.who_knows(feature)["rows"]
+
+
+@app.get("/api/projects")
+def projects_list():
+    from pipeline.impact import projects
+
+    return projects(get_graph())
+
+
+@app.get("/api/impact")
+def impact(target: str, days: int = 14):
+    """If `target` (project, feature or ticket) slips `days` days: downstream projects, client deliverables, teams,
+    with the evidence paths and a layered graph for the view (pipeline/impact.py)."""
+    from pipeline.impact import impact_of_delay
+
+    out = impact_of_delay(get_graph(), target, max(0, min(days, 365)))
+    if not out.get("target"):
+        raise HTTPException(404, out.get("error") or "unknown target")
+    return out
+
+
+@app.get("/api/features/{feature}/map")
+def feature_map(feature: str):
+    """Everything around a feature, in columns: teams, people, specs (who introduced each version), tickets and docs,
+    the work on them, projects, deliverables, clients."""
+    from pipeline.impact import feature_map as fmap
+
+    return fmap(get_graph(), feature)
 
 
 @app.get("/api/features/{feature}/graph")
@@ -388,14 +457,62 @@ def connect(a: str, b: str):
     return tools.how_connected(a, b)
 
 
+_PATH_NODE = __import__("re").compile(r"\((\w+) ([^)@]+?)(?:\s@[^)]*)?\)")
+
+
+def answer_sources(g, paths: list[str]) -> list[dict]:
+    """Where an answer's evidence lives: the systems behind the nodes on its graph paths (Slack or Discord channel
+    for messages and the decisions/requirements they created, GitHub for PRs, the tracker for tickets, docs)."""
+    found: list[tuple[str, str]] = []
+    for p in paths:
+        for typ, nid in _PATH_NODE.findall(p):
+            if (typ, nid.strip()) not in found:
+                found.append((typ, nid.strip()))
+    msg_ids = {
+        nid.removeprefix("dec:").removeprefix("req:")
+        for typ, nid in found
+        if typ == "Message" or (typ == "Decision" and nid.startswith("dec:")) or (typ == "Requirement" and nid.startswith("req:m_"))
+    }
+    where = (
+        {r["id"]: r for r in Q.rows(g, "MATCH (m:Message) WHERE m.id IN $ids RETURN m.id AS id, m.source AS source, m.channel AS channel", ids=sorted(msg_ids))}
+        if msg_ids
+        else {}
+    )
+    out: dict[str, dict] = {}
+    for typ, nid in found:
+        mid = nid.removeprefix("dec:").removeprefix("req:")
+        if mid in where:
+            m = where[mid]
+            key, label = f"{m['source']}#{m['channel']}", f"{(m['source'] or 'chat').capitalize()} #{m['channel']}"
+        elif typ == "PullRequest":
+            key, label = "github", "GitHub"
+        elif typ == "Ticket" or (typ == "Requirement" and ":v" in nid):
+            key, label = "tracker", "Tracker"
+        elif typ == "Document":
+            key, label = "docs", "Docs"
+        else:
+            continue
+        src = out.setdefault(key, {"system": key.split("#")[0], "label": label, "refs": []})
+        ref = nid.split(":")[1] if typ == "Requirement" and ":v" in nid else nid
+        if ref not in src["refs"]:
+            src["refs"].append(ref)
+    return list(out.values())
+
+
 @app.post("/api/ask")
 def ask(body: AskIn):
     from agent.agent import ask as agent_ask
 
     try:
-        return agent_ask(body.question)
+        out = agent_ask(body.question)
     except RuntimeError as e:
         raise HTTPException(503, str(e)) from e
+    try:
+        out["sources"] = answer_sources(get_graph(), out.get("paths") or [])
+    except Exception:  # noqa: BLE001 - badges are a nicety; never fail the answer over them
+        log.warning("could not resolve answer sources", exc_info=True)
+        out["sources"] = []
+    return out
 
 
 @app.post("/api/spec")
@@ -586,10 +703,12 @@ def orgs():
 
 
 @app.post("/api/orgs/{org}/bootstrap", dependencies=[Depends(require_ingest_token)])
-def bootstrap_org(org: str):
-    """Creates (or rebuilds) an org's isolated graph from the demo data, so a new tenant can be tried at once."""
+def bootstrap_org(org: str, extractor: str | None = None):
+    """Creates (or rebuilds) an org's isolated graph from the demo data, so a new tenant can be tried at once.
+    `extractor=heuristic` builds in seconds without LLM calls (the product tour uses it); default: the LLM if one answers.
+    Also clears this org's alert cooldowns, so a restarted tour can raise its live alert again."""
     from graph.db import org_graph_name
-    from pipeline import llm
+    from pipeline import live, llm
     from pipeline.build import mark_build
     from pipeline.ingest import ingest
     from pipeline.resolve import resolve
@@ -598,11 +717,18 @@ def bootstrap_org(org: str):
         name = org_graph_name(org)
     except ValueError as e:
         raise HTTPException(400, str(e)) from e
-    extractor = "llm" if llm.available() else "heuristic"
+    if extractor not in (None, "heuristic", "llm"):
+        raise HTTPException(400, "extractor must be heuristic or llm")
+    extractor = extractor or ("llm" if llm.available() else "heuristic")
+    for key in [k for k in live._last_alert if k[0] == org]:
+        del live._last_alert[key]
     counts = ingest(reset=True, graph_name=name)
     g = get_graph(name)
     resolve(g, extractor, log=lambda *_: None)
     mark_build(g, extractor)
+    from api.cache import clear as clear_cache
+
+    clear_cache()  # a read cached just before the build (e.g. "is this sandbox empty?") must not outlive it
     return {"org": org, "graph": name, "extractor": extractor, "nodes": sum(counts["nodes"].values())}
 
 
@@ -671,18 +797,78 @@ class DocUpdateIn(BaseModel):
     text: str
     title: str | None = None
     actor: str = "maya"
+    acl: list[str] | None = None  # who may see it: groups or person:<id>; [] = everyone; omitted = unchanged
+
+
+@app.get("/api/docs")
+def docs():
+    """Documents with who may see them, their chunks (entries in the vector index), the tickets they mention and the
+    open drift they are stale for. The response middleware leaves out every document the viewer may not see."""
+    g = get_graph()
+    stale: dict[str, set[str]] = {}
+    for d in Q.drift(g):
+        for s in d["stale_docs"]:
+            stale.setdefault(s["id"], set()).add(d["ticket"])
+    rows = Q.rows(
+        g,
+        """MATCH (d:Document) OPTIONAL MATCH (a:Person)-[:AUTHORED]->(d) OPTIONAL MATCH (d)-[:MENTIONS]->(t:Ticket)
+           WITH d, a, collect(DISTINCT t.id) AS tickets
+           OPTIONAL MATCH (d)-[:HAS_CHUNK]->(c:Chunk)
+           RETURN d.id AS id, d.title AS title, a.id AS author, d.updated AS updated, coalesce(d.acl, []) AS acl, d.text AS text,
+                  tickets, collect([c.id, size(c.text), c.embedder]) AS chunks
+           ORDER BY id""",
+    )
+    for r in rows:
+        parts = sorted((c for c in r.pop("chunks") if c[0]), key=lambda c: int(c[0].rsplit("#", 1)[1]))
+        r["chunks"] = [{"id": c[0], "chars": c[1]} for c in parts]
+        r["embedder"] = parts[0][2] if parts else None
+        r["tickets"] = sorted(r["tickets"])
+        r["stale_for"] = sorted(stale.get(r["id"], ()))
+    return rows
+
+
+@app.get("/api/whoami")
+def whoami():
+    """The viewer this request acts for and the grants that decide what they may see."""
+    from pipeline.access import current_viewer, grants
+
+    return {"viewer": current_viewer(), "grants": grants(get_graph(), current_viewer())}
 
 
 @app.post("/api/ingest/doc", dependencies=[Depends(require_ingest_token)])
 def ingest_doc(body: DocUpdateIn):
-    """Docs webhook (Notion/Confluence-style): a page's content changed."""
+    """Docs webhook (Notion/Confluence-style): a page's content changed. When the request acts for a person (X-User),
+    that person must be able to see the doc: otherwise it answers exactly as for a doc that doesn't exist."""
+    from pipeline.access import current_viewer, hidden
     from pipeline.webhooks import doc_updated
 
+    if current_viewer() and body.doc in hidden(get_graph(), current_viewer())["ids"]:
+        raise HTTPException(404, f"unknown doc {body.doc}")
     try:
-        out = doc_updated(get_graph(), body.doc, body.text, body.actor, body.title)
+        out = doc_updated(get_graph(), body.doc, body.text, body.actor, body.title, acl=body.acl)
     except ValueError as e:
         raise HTTPException(404, str(e)) from e
     bus.publish("doc", doc=body.doc, by=body.actor, no_longer_stale=out["no_longer_stale"])
+    return out
+
+
+@app.post("/api/ingest/gdrive")
+def ingest_gdrive(x_goog_channel_token: str | None = Header(default=None), x_goog_resource_state: str | None = Header(default=None)):
+    """Google Drive push notification (changes.watch). It carries no content, so this runs one pass over the change
+    feed (connectors/gdrive.py). Authenticated by the channel token set when the watch was created (GDRIVE_CHANNEL_TOKEN)."""
+    import hmac
+    import os
+
+    expected = os.getenv("GDRIVE_CHANNEL_TOKEN", "")
+    if not expected or not hmac.compare_digest(x_goog_channel_token or "", expected):
+        raise HTTPException(401, "bad channel token")
+    if x_goog_resource_state == "sync":  # the handshake Drive sends when a channel is created
+        return {"status": "ok"}
+    from connectors.gdrive import sync
+
+    out = sync(get_graph())
+    for d in out["updated"]:
+        bus.publish("doc", doc=d, by="gdrive")
     return out
 
 

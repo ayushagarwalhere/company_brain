@@ -1,14 +1,7 @@
-import type { ReactNode } from "react";
-
-const HUES = [262, 18, 190, 140, 330, 45, 210, 100];
-const hue = (s: string) => HUES[[...s].reduce((a, c) => a + c.charCodeAt(0), 0) % HUES.length];
-
-/** Initials in a tinted circle; the same person always gets the same colour. */
+/** Initials in an outlined circle. */
 export function Avatar({ name, size = 28 }: { name: string; size?: number }) {
-  const h = hue(name);
   return (
-    <span className="avatar" aria-hidden style={{ width: size, height: size, fontSize: size * 0.42,
-      background: `hsl(${h} 70% 62% / .18)`, color: `hsl(${h} 85% 78%)`, boxShadow: `inset 0 0 0 1px hsl(${h} 70% 62% / .5)` }}>
+    <span className="avatar" aria-hidden style={{ width: size, height: size, fontSize: size * 0.4 }}>
       {name.slice(0, 1).toUpperCase()}
     </span>
   );
@@ -18,8 +11,8 @@ type Node = { kind: "msg" | "req" | "ticket"; title: string; sub?: string };
 /** A PR or doc on the drifted ticket. `unmatched`: merged after the decision with no IMPLEMENTS link, so not stale. */
 type Stale = { kind: "pr" | "doc"; label: string; href?: string; unmatched?: boolean };
 
-/** The evidence path drawn as a small diagram: message -> requirement -> ticket, then dashed orange
-    edges to the PRs and docs still on the old version. A light pulse flows along the chain when `run`. */
+/** The evidence path as a small diagram: message -> requirement -> ticket, then dashed edges to the PRs and docs
+    still on the old version. A pulse flows along the chain when `run`. */
 export function EvidenceChain({ nodes, stale, run }: { nodes: Node[]; stale: Stale[]; run: boolean }) {
   const W = 760, step = 190, y = 40;
   const xs = nodes.map((_, i) => 40 + i * step);
@@ -53,14 +46,8 @@ export function EvidenceChain({ nodes, stale, run }: { nodes: Node[]; stale: Sta
           <circle r={14} className="chain__halo" />
           {n.kind === "ticket" ? <rect x={-6} y={-6} width={12} height={12} /> : <circle r={6} />}
           <text y={30} className="chain__t">{n.title}</text>
-          {n.sub && <text y={44} className="chain__s">{n.sub}</text>}
         </g>
       ))}
     </svg>
   );
-}
-
-/** Small labelled metric used in card headers. */
-export function Pill({ tone = "", children }: { tone?: "" | "hot" | "ok"; children: ReactNode }) {
-  return <span className={`pill2 ${tone ? `pill2--${tone}` : ""}`}>{children}</span>;
 }

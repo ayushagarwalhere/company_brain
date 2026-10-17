@@ -1,0 +1,10 @@
+{
+ "is_change": true,
+ "kind": "decision",
+ "old": "Export button only offered CSV download.",
+ "new": "The export button must also offer an XML download.",
+ "evidence_quote": "Decision: the export button must also offer an XML download, BD-102.",
+ "feature": "feat_ticket_export_to_csv",
+ "ticket": "BD-102",
+ "confidence": 0.99
+}

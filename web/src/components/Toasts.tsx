@@ -28,7 +28,7 @@ export function Toasts() {
           return (
             <motion.button key={t.id} layout className={`toast toast--${tone}`} onClick={() => { if (t.type === "drift") scrollToEl("drift"); dismissToast(t.id); }}
               initial={{ opacity: 0, x: 60, scale: 0.96 }} animate={{ opacity: 1, x: 0, scale: 1 }} exit={{ opacity: 0, x: 60 }} transition={{ type: "spring", stiffness: 380, damping: 32 }}>
-              <span className="mono toast__title"><i className={`sq ${tone === "warn" ? "sq--accent" : "sq--violet"}`} />{title}{t.type === "drift" && <span className="toast__go">View →</span>}</span>
+              <span className="mono toast__title">{title}{t.type === "drift" && <span className="toast__go">View →</span>}</span>
               <span className="toast__body">{body}</span>
             </motion.button>
           );
@@ -40,5 +40,5 @@ export function Toasts() {
 
 export function LiveDot() {
   const { live } = useBrain();
-  return <span className={`live-dot mono ${live ? "on" : ""}`} title={live ? "Connected to live updates (SSE)" : "Live updates disconnected"}>{live ? "Live" : "Offline"}</span>;
+  return <span className={`live mono ${live ? "on" : ""}`} title={live ? "Connected to live updates (SSE)" : "Live updates disconnected"}><i />{live ? "Live" : "Offline"}</span>;
 }

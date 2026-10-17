@@ -24,6 +24,7 @@ INTENT_RULES: dict[str, list[tuple[str, int]]] = {
     "connect": [(r"\bconnect(ed|ion)?\b", 3), (r"\blink(ed)? between\b", 3), (r"\bpath (from|between)\b", 3), (r"→", 3)],
     "who": [(r"^\s*who\b", 2), (r"\bwho\b", 2), (r"\bknows?\b", 1), (r"\bowns?\b", 1), (r"\bexpert", 2), (r"\bworked\b", 1), (r"\bask\b", 1)],
     "impact": [(r"\bimpact", 3), (r"\baffect(ed|s)?\b", 3)],
+    "delay": [(r"\bdelay", 5), (r"\bslip(s|ped|ping)?\b", 5), (r"\bpush(ed)? (it |this )?(back|out)\b", 5), (r"\bpostpone", 5)],
     "drift": [
         (r"\bdrift", 3),
         (r"\bdiverg", 2),
@@ -57,7 +58,7 @@ INTENT_RULES: dict[str, list[tuple[str, int]]] = {
     ],
     "tasks": [(r"\bfollow-?ups?\b", 4), (r"\b(open )?tasks?\b", 3), (r"\bto-?dos?\b", 3)],
 }
-PRIORITY = ["plan", "tasks", "drift", "decided", "impact", "connect", "who", "history", "prs", "overview"]  # tie-break, first wins
+PRIORITY = ["delay", "plan", "tasks", "drift", "decided", "impact", "connect", "who", "history", "prs", "overview"]  # tie-break, first wins
 # Tickets: any PROJECT-123 id (BD-101, SC-30). PRs: "PR-6", "PR 6", "PR6", "pull request 6", "#6".
 TICKET_ID = re.compile(r"\b(?!PR-)([A-Z]{2,6}-\d+)\b", re.I)
 PR_ID = re.compile(r"\b(?:PR|pull request)\s*[-#]?\s*(\d+)\b|#(\d+)\b", re.I)
@@ -201,9 +202,10 @@ def answer_who(ctx: Ctx) -> list[str]:
 
 def answer_who_ticket(ctx: Ctx, tid: str) -> list[str]:
     lines = []
-    owner = Q.rows(ctx.g, "MATCH (t:Ticket {id: $t})-[:ASSIGNED_TO]->(p:Person) RETURN p.name AS name, p.role AS role", t=tid)
-    if owner:
-        lines.append(f"{tid} is owned by {owner[0]['name']} ({owner[0]['role']}).")
+    o = ctx.run("ticket_owners", ticket=tid)
+    if o and (o[0]["creator"] or o[0]["assignee"]):
+        who = [f"{o[0]['creator_name']} (created it)" if o[0]["creator"] else None, f"{o[0]['assignee_name']} (assigned)" if o[0]["assignee"] else None]
+        lines.append(f"{tid} is owned by " + " and ".join(w for w in who if w) + ".")
     for d in ctx.run("drift_for_feature", **({"feature": ctx.feature["id"]} if ctx.feature else {})):
         if d["ticket"] == tid:
             stale = stale_pr_list(d)
@@ -239,6 +241,65 @@ def answer_impact(ctx: Ctx) -> list[str]:
         f"related tickets: {', '.join(r['related_tickets']) or 'none'}."
         for r in ctx.run("decision_impact", decision=d["id"])
     ]
+
+
+NUM = {"a": 1, "an": 1, "one": 1, "two": 2, "three": 3, "four": 4, "five": 5, "six": 6, "seven": 7, "eight": 8, "ten": 10}
+DELAY = re.compile(r"\b(\d+|an?|one|two|three|four|five|six|seven|eight|ten)\s*(day|week|month)s?\b", re.I)
+
+
+def delay_days(q: str) -> int:
+    """'two weeks' -> 14, '3 days' -> 3, 'a month' -> 30; 14 when the question gives no amount."""
+    m = DELAY.search(q)
+    if not m:
+        return 14
+    n = int(m.group(1)) if m.group(1).isdigit() else NUM[m.group(1).lower()]
+    return n * {"day": 1, "week": 7, "month": 30}[m.group(2).lower()]
+
+
+def answer_delay(ctx: Ctx) -> list[str]:
+    from pipeline.impact import projects
+
+    low = ctx.question.lower()
+    target = (
+        next((p["id"] for p in projects(ctx.g) if (p["name"] or "").lower() in low or re.search(rf"\b{re.escape(p['id'].lower())}\b", low)), None)
+        or (ctx.feature["id"] if ctx.feature else None)
+        or next((e for e in ctx.ents if not e.startswith("PR-")), None)
+    )
+    if not target:
+        return unmatched(ctx, "a project, feature or ticket")
+    rows = ctx.run("impact_of_delay", target=target, days=delay_days(ctx.question))
+    if not rows:
+        return unmatched(ctx, "a project, feature or ticket")
+    r = rows[0]
+    root = next(p for p in r["projects"] if p["root"]) if any(p["root"] for p in r["projects"]) else None
+    lines = [
+        f"If {r['target']['name']} slips {r['days']} days, its launch moves from {root['launch']} to {root['new_launch']}."
+        if root
+        else f"If {r['target']['name']} slips {r['days']} days:"
+    ]
+    for p in r["projects"]:
+        if not p["root"] and p["via"]:
+            effect = (
+                f"slips {p['slip_days']} days (launch {p['launch']} → {p['new_launch']})"
+                if p["slip_days"]
+                else f"keeps its launch ({p['launch']}) but waits on it"
+            )
+            lines.append(f"Downstream: {p['name']} {effect}: {p['via']['from']} blocks {p['via']['to']} ({p['via']['why']}).")
+    hit = [d for d in r["deliverables"] if d["moved"]]
+    if hit:
+        lines.append("Client deliverables:")
+        for d in hit:
+            state = f"misses its due date by {-d['slack_days']} days" if d["status"] == "misses" else f"{d['status']}, {d['slack_days']} days left"
+            lines.append(f"- {d['client_name']}: {d['title']}, due {d['due']}, ready {d['ready']}: {state} (owner {d['owner']}).")
+    else:
+        lines.append("No client deliverable depends on it.")
+    teams = [f"{t['name']} ({'; '.join(p['name'] + ': ' + ', '.join(p['roles'][:3]) for p in t['people'])})" for t in r["teams"]]
+    lines.append(f"Teams affected ({len(teams)}): " + " · ".join(teams) + ".")
+    for d in r["drift"]:
+        lines.append(
+            f"Also open: {d['ticket']} has a chat decision by {d['by']} that the ticket doesn't carry yet (“{d['text'][:90]}”). Worth folding into the new plan."
+        )
+    return lines
 
 
 def history_lines(ctx: Ctx) -> list[str]:
@@ -386,6 +447,7 @@ HANDLERS = {
     "prs": answer_prs,
     "who": answer_who,
     "impact": answer_impact,
+    "delay": answer_delay,
     "drift": answer_drift,
     "decided": answer_decided,
     "history": answer_history,
@@ -401,6 +463,14 @@ def route(question: str, feature: dict | None, ents: list[str]) -> str:
     return intent
 
 
+KNOWLEDGE_MIN_SIM = 0.05  # cosine similarity for a passage to count (plus knowledge.search's shared-word check); set on 12 hand-written questions
+SENSITIVE = re.compile(r"\b(salar(y|ies)|compensation|pay(roll)?|bonus(es)?|wages?|ssn|home address|medical|performance review)\b", re.I)
+
+
+def _sensitive(q: str) -> bool:
+    return bool(SENSITIVE.search(q))
+
+
 def ask(question: str) -> dict:
     g = get_graph()
     feats, people = _features(g), _people(g)
@@ -410,8 +480,21 @@ def ask(question: str) -> dict:
     if gone:  # an id the graph doesn't have: say so instead of answering about something else
         return {"answer": f"I couldn't find {', '.join(gone)} in the graph.", "tool_calls": [], "paths": [], "engine": "rules", "intent": "unmatched"}
     intent = route(question, ctx.feature, ctx.ents)
-    lines = unmatched(ctx) if intent == "unmatched" else HANDLERS[intent](ctx)
-    if feature and sim < ROUTER_FEATURE_WEAK_SIM and intent != "unmatched":
+    if intent == "unmatched":
+        before = len(ctx.paths)
+        hits = [h for h in ctx.run("search_knowledge", query=question) if h["similarity"] >= KNOWLEDGE_MIN_SIM]
+        used = {h["chunk"] for h in hits[:3]}
+        ctx.paths[before:] = [p for p in ctx.paths[before:] if any(f"Chunk {c})" in p for c in used)]  # evidence = passages used
+        if hits:
+            intent = "knowledge"
+            lines = [f"From {hits[0]['title']} ({hits[0]['doc']}, by {hits[0]['author']}):", hits[0]["text"][:600]] + [
+                f"Also: {h['title']} ({h['doc']})" for h in hits[1:3] if h["doc"] != hits[0]["doc"]
+            ]
+        else:
+            lines = ["I don't have information on that you can access."] if ctx.ents == [] and _sensitive(question) else unmatched(ctx)
+    else:
+        lines = HANDLERS[intent](ctx)
+    if feature and sim < ROUTER_FEATURE_WEAK_SIM and intent not in ("unmatched", "delay"):  # a delay answer names its target
         lines = [f"(Low-confidence match: I read this as being about {feature['name']}.)"] + lines
     answer = "\n".join(lines)
     if ctx.paths:

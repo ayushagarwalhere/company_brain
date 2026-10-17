@@ -63,6 +63,12 @@ def ingest(live: bool = False, reset: bool = False, graph_name: str | None = Non
     writer.write_messages(g, messages)
     writer.write_pull_requests(g, prs)
     writer.write_documents(g, docs.documents())  # docs come from files in both modes
+    org = scenario.org()
+    if org:  # teams, projects with launch dates, ticket dependencies, clients and deliverables (impact analysis)
+        writer.write_org(g, org)
+    from pipeline.knowledge import index_all
+
+    index_all(g)  # chunks + embeddings in the vector index, MENTIONS edges and ACLs from the text
     return counts(g)
 
 

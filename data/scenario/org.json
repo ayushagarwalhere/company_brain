@@ -1,0 +1,32 @@
+{
+  "_comment": "Org structure of the synthetic company: teams, projects with launch dates, ticket dependencies, clients and what was promised to them. Synthetic, like everything in data/scenario. In a real company this comes from the tracker (Linear projects and their target dates, 'blocks' relations; Jira versions and issue links), the HR system or GitHub teams, and the CRM. Dates are relative to the scenario's 'today', 2026-10-10.",
+  "teams": [
+    {"id": "product", "name": "Product & Design", "members": ["maya", "priya"]},
+    {"id": "backend", "name": "Backend", "members": ["arjun", "sofia", "dev"]},
+    {"id": "web", "name": "Web", "members": ["kenji"]},
+    {"id": "cs", "name": "Customer Success", "members": ["liam"]},
+    {"id": "qa", "name": "QA", "members": ["zara"]}
+  ],
+  "projects": [
+    {"id": "alpha", "name": "Project Alpha", "about": "Reporting: ticket export for admins", "owner": "maya", "launch": "2026-10-23", "tickets": ["BD-101", "BD-102", "BD-108"]},
+    {"id": "beta", "name": "Project Beta", "about": "SLA alerts and SLA metrics", "owner": "maya", "launch": "2026-11-03", "tickets": ["BD-103", "BD-104", "BD-109", "BD-115"]},
+    {"id": "gamma", "name": "Project Gamma", "about": "Theming and dark mode", "owner": "priya", "launch": "2026-10-16", "tickets": ["BD-105", "BD-106"]}
+  ],
+  "blocks": [
+    {"from": "BD-101", "to": "BD-102", "why": "the Export button downloads from the export endpoint"},
+    {"from": "BD-108", "to": "BD-109", "why": "the dashboard's SLA metrics reuse the export pipeline's aggregation for large accounts"},
+    {"from": "BD-106", "to": "BD-105", "why": "dark mode is built on the theme tokens"}
+  ],
+  "clients": [
+    {"id": "acme", "name": "Acme Corp", "aliases": ["Acme"]},
+    {"id": "globex", "name": "Globex", "aliases": ["Globex"]},
+    {"id": "umbrella", "name": "Umbrella Inc", "aliases": ["Umbrella"]},
+    {"id": "initech", "name": "Initech", "aliases": ["Initech"]}
+  ],
+  "deliverables": [
+    {"id": "acme-audit", "title": "Custom-range ticket export for Acme's Q4 audit", "client": "acme", "owner": "liam", "due": "2026-10-30", "needs": ["alpha"]},
+    {"id": "umbrella-migration", "title": "Bulk ticket export for Umbrella's helpdesk migration", "client": "umbrella", "owner": "liam", "due": "2026-11-13", "needs": ["alpha"]},
+    {"id": "globex-sla-report", "title": "Weekly SLA report for Globex", "client": "globex", "owner": "liam", "due": "2026-11-10", "needs": ["beta"]},
+    {"id": "initech-dark", "title": "Dark mode for Initech's night-shift agents", "client": "initech", "owner": "liam", "due": "2026-10-28", "needs": ["gamma"]}
+  ]
+}

@@ -1,23 +1,15 @@
 import cytoscape, { type Core } from "cytoscape";
 import { AnimatePresence, motion } from "framer-motion";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
-import { api, type GEdge, type GNode, type GraphData, type TimelineEvent } from "../lib/api";
+import { api, type CGraph, type GEdge, type GNode, type GraphData, type TimelineEvent } from "../lib/api";
 import { useBrain } from "../lib/brain";
 import { useStill } from "../lib/fx";
-import { cssVar, day, TYPE_VAR, typeColor } from "../lib/ui";
+import { cssVar, day, TYPE_VAR } from "../lib/ui";
+import { ColumnGraph } from "./ColumnGraph";
+import { GraphBar, GraphOverlay, KeysHint, styleFor, TypeFilters, TypeGlyph, useGraphKit } from "./GraphKit";
 import { Section } from "./Section";
 
 const LEGEND = ["Person", "Message", "Requirement", "Ticket", "PullRequest", "Document"];
-
-function useThemeVersion() {
-  const [v, setV] = useState(0);
-  useEffect(() => {
-    const on = () => setTimeout(() => setV((x) => x + 1), 30);
-    addEventListener("themechange", on);
-    return () => removeEventListener("themechange", on);
-  }, []);
-  return v;
-}
 
 /* ---------------------------------------------------------------- layout
 
@@ -104,31 +96,8 @@ function shortLabel(n: GNode, g: GraphData, when: Map<string, string>): string {
   return n.label || n.id;
 }
 
-function styleFor(): cytoscape.StylesheetStyle[] {
-  const c = (v: string) => cssVar(v);
-  return [
-    { selector: "node", style: { "background-color": "data(color)", label: "data(short)", "font-family": "Geist Mono, monospace", "font-size": 10.5,
-        color: c("--soft"), "text-wrap": "ellipsis", "text-max-width": "120px", "text-valign": "bottom", "text-margin-y": 6, width: 14, height: 14,
-        "transition-property": "opacity, background-color, width, height", "transition-duration": 0.35 } as cytoscape.Css.Node },
-    { selector: "node[type='Feature']", style: { width: 22, height: 22, "font-size": 12, color: c("--ink"), "font-family": "Geist, sans-serif", "text-valign": "top", "text-margin-y": -8, shape: "round-rectangle" } },
-    { selector: "node[type='Ticket']", style: { shape: "rectangle", width: 18, height: 12 } },
-    { selector: "node[type='PullRequest']", style: { shape: "diamond", width: 16, height: 16 } },
-    { selector: "node[type='Document']", style: { shape: "tag", width: 16, height: 16 } },
-    { selector: "node[type='Person']", style: { width: 12, height: 12 } },
-    { selector: "node[?drift]", style: { width: 20, height: 20, "border-width": 6, "border-color": c("--accent"), "border-opacity": 0.3, color: c("--accent-ink") } },
-    { selector: "node[?stale]", style: { "border-width": 2, "border-color": c("--accent"), "border-style": "dashed" } },
-    { selector: "edge", style: { width: 1, "line-color": c("--line"), "target-arrow-color": c("--line"), "target-arrow-shape": "triangle", "arrow-scale": 0.7,
-        "curve-style": "bezier", "font-family": "Geist Mono, monospace", "font-size": 9, color: c("--soft"), "text-rotation": "autorotate",
-        "text-background-color": c("--card"), "text-background-opacity": 1, "text-background-padding": "2px",
-        "transition-property": "opacity, line-color", "transition-duration": 0.35 } as cytoscape.Css.Edge },
-    { selector: "edge[bend]", style: { "curve-style": "unbundled-bezier", "control-point-distances": "data(bend)", "control-point-weights": 0.5 } as cytoscape.Css.Edge },
-    { selector: "edge.path", style: { width: 2, "line-color": c("--accent"), "target-arrow-color": c("--accent"), "line-style": "dashed", "line-dash-pattern": [7, 5] } },
-    { selector: "edge.hover, edge:selected", style: { label: "data(label)", "line-color": c("--violet-2"), "target-arrow-color": c("--violet-2"), width: 1.6 } },
-    { selector: "edge.path.hover", style: { "line-color": c("--accent-ink"), "target-arrow-color": c("--accent-ink") } },
-    { selector: ".dim", style: { opacity: 0.3 } },
-    { selector: "node:selected", style: { "border-width": 3, "border-color": c("--violet-2"), "border-opacity": 1 } },
-  ];
-}
+// the stylesheet and glyphs are shared by every graph view; they live with the interaction kit
+export { styleFor, TypeGlyph } from "./GraphKit";
 
 type Sel = GNode & { links: { id: string; label: string; rel: string; out: boolean; type: string }[] };
 
@@ -140,9 +109,15 @@ function GraphCanvas({ feature, focusNode, focusNonce }: { feature: string; focu
   const [selected, setSelected] = useState<Sel | null>(null);
   const [meta, setMeta] = useState("");
   const [showAll, setShowAll] = useState(false);
-  const themeV = useThemeVersion();
   const still = useStill();
   const when = useMemo(() => new Map(drift.map((d) => [d.message, d.changed_at])), [drift]);
+
+  const clearSel = useCallback(() => {
+    const c = cy.current;
+    if (c && !c.destroyed()) { c.$(":selected").unselect(); c.elements().removeClass("faded"); }
+    setSelected(null);
+  }, []);
+  const kit = useGraphKit(cy, { pad: 40, onEscape: clearSel, describe: (n) => (n.data("drift") ? "drift: decided, never shipped" : n.data("stale") ? "stale: still on the old version" : undefined) });
 
   const select = useCallback((id: string) => {
     const c = cy.current, g = data.current;
@@ -151,6 +126,7 @@ function GraphCanvas({ feature, focusNode, focusNonce }: { feature: string; focu
     if (!n.length) return;
     c.$(":selected").unselect();
     n.select();
+    c.batch(() => { c.elements().removeClass("ghost").addClass("faded"); n.closedNeighborhood().removeClass("faded"); });
     c.animate({ center: { eles: n }, zoom: Math.max(c.zoom(), 1.15) }, { duration: still ? 0 : 550, easing: "ease-in-out-cubic" });
     const links = n.connectedEdges().map((e) => {
       const out = e.source().id() === id, o = out ? e.target() : e.source();
@@ -212,10 +188,11 @@ function GraphCanvas({ feature, focusNode, focusNonce }: { feature: string; focu
       ];
       let c = cy.current;
       if (!c || c.destroyed()) {
-        c = cytoscape({ container: host.current, wheelSensitivity: 0.2, minZoom: 0.35, maxZoom: 2.6, style: styleFor(), elements: els, layout: { name: "preset" } });
+        c = cytoscape({ container: host.current, minZoom: 0.35, maxZoom: 2.6, style: styleFor(), elements: els, layout: { name: "preset" } });
         cy.current = c;
+        kit.attach(c);
         c.on("tap", "node", (e) => select(e.target.id()));
-        c.on("tap", (e) => { if (e.target === c) { c!.$(":selected").unselect(); setSelected(null); } });
+        c.on("tap", (e) => { if (e.target === c) clearSel(); });
         c.on("dbltap", "node", (e) => { const d = e.target.data() as GNode; if (d.type === "Person") openPerson(d.id); else void expandRef.current(d.id); });
         c.on("mouseover", "node", (e) => e.target.connectedEdges().addClass("hover"));
         c.on("mouseout", "node", (e) => e.target.connectedEdges().removeClass("hover"));
@@ -246,7 +223,7 @@ function GraphCanvas({ feature, focusNode, focusNonce }: { feature: string; focu
     });
     return () => { alive = false; };
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [feature, themeV]);
+  }, [feature]);
 
   useEffect(() => { applyFocus(showAll); }, [showAll, applyFocus]);
   const expandRef = useRef(expand);
@@ -280,21 +257,29 @@ function GraphCanvas({ feature, focusNode, focusNonce }: { feature: string; focu
   const drifts = drift.filter((d) => d.feature === feature);
   return (
     <div className="gview">
-      <div className="canvas brackets">
-        <div className="canvas__graph" ref={host} />
-        <div className="canvas__meta canvas__meta--tl mono">{meta}</div>
-        <div className="canvas__tools mono">
-          <button className={!showAll ? "on" : ""} onClick={() => setShowAll(false)}>Drift path</button>
-          <button className={showAll ? "on" : ""} onClick={() => setShowAll(true)}>Show all</button>
-          <button onClick={() => cy.current?.animate({ fit: { eles: cy.current.elements(), padding: 40 } }, { duration: 500 })}>Fit</button>
+      <div>
+        <div ref={kit.wrap} className={`canvas gk ${kit.full ? "gk--full" : ""}`}>
+          <div className="canvas__graph" ref={host} tabIndex={0} aria-label="Feature graph. Plus and minus zoom, F fits, arrows pan." />
+          <GraphBar kit={kit} left={
+            <div className="gk__group" role="group" aria-label="What to show">
+              <button className={!showAll ? "on" : ""} onClick={() => setShowAll(false)} title="Light the drift path, dim the rest">Drift path</button>
+              <button className={showAll ? "on" : ""} onClick={() => setShowAll(true)}>Show all</button>
+            </div>
+          } />
+          <GraphOverlay kit={kit} />
+          <div className="canvas__cols mono" aria-hidden><span>Who</span><span>Message</span><span>Requirement</span><span>Ticket</span><span>PR · Doc</span></div>
         </div>
-        <div className="canvas__cols mono" aria-hidden><span>Who</span><span>Message</span><span>Requirement</span><span>Ticket</span><span>PR · Doc</span></div>
+        <div className="gk__under">
+          <TypeFilters kit={kit} types={LEGEND} extra={<span className="gk__chip gk__chip--drift" aria-hidden><TypeGlyph type="Drift" />Drift</span>} />
+          <span className="mono muted">{meta}</span>
+        </div>
+        <KeysHint />
       </div>
       <aside className="gpanel">
         <AnimatePresence mode="wait">
           {selected ? (
             <motion.div key={selected.id} initial={{ opacity: 0, x: 12 }} animate={{ opacity: 1, x: 0 }} exit={{ opacity: 0, x: -8 }} transition={{ duration: 0.25 }}>
-              <span className="mono gpanel__type" style={{ color: typeColor(selected.type) }}>{selected.type}{selected.drift && <span className="badge badge--warn">drift</span>}{selected.stale && <span className="badge badge--warn">stale</span>}</span>
+              <span className="mono gpanel__type"><TypeGlyph type={selected.type} />{selected.type}{selected.drift && <span className="tag tag--drift">drift</span>}{selected.stale && <span className="tag tag--dash">stale</span>}</span>
               <h4>{selected.label}</h4>
               <span className="mono muted gpanel__id">{selected.id}{when.get(selected.id) ? ` · ${day(when.get(selected.id))}` : ""}</span>
               {selected.text && <p className="gpanel__text">{selected.text}</p>}
@@ -302,7 +287,7 @@ function GraphCanvas({ feature, focusNode, focusNonce }: { feature: string; focu
               <ul className="gpanel__links">
                 {selected.links.map((l, i) => (
                   <li key={i}><button onClick={() => select(l.id)}>
-                    <span className="mono">{l.out ? `-[:${l.rel}]->` : `<-[:${l.rel}]-`}</span><i style={{ background: typeColor(l.type) }} />{l.label}
+                    <span className="mono">{l.out ? `-[:${l.rel}]->` : `<-[:${l.rel}]-`}</span><TypeGlyph type={l.type} />{l.label}
                   </button></li>
                 ))}
               </ul>
@@ -312,11 +297,7 @@ function GraphCanvas({ feature, focusNode, focusNonce }: { feature: string; focu
               <span className="mono gpanel__type">{drifts.length ? "Drift path" : "No drift"}</span>
               <h4>{drifts.length ? `${drifts.length} unshipped decision${drifts.length > 1 ? "s" : ""}` : "Tickets and PRs match the latest decision"}</h4>
               {drifts.map((d) => <p key={d.requirement} className="gpanel__text">“{d.requirement_text}” <span className="muted">· {d.changed_by}, {day(d.changed_at)} · {d.ticket} still says the old thing.</span></p>)}
-              <p className="muted gpanel__hint">Click a node for its full text and links. Double-click to expand its neighbours, or a person for their profile.</p>
-              <div className="legend mono">
-                {LEGEND.map((t) => <span key={t}><i style={{ background: typeColor(t) }} />{t}</span>)}
-                <span><i style={{ background: "var(--accent)" }} />Drift</span>
-              </div>
+              <p className="muted gpanel__hint">Hover a node to trace its links. Click it for its full text. Double-click to pull in its neighbours, or a person for their profile. Type <b>find</b> above to jump to any node.</p>
             </motion.div>
           )}
         </AnimatePresence>
@@ -341,7 +322,7 @@ function Timeline({ feature }: { feature: string }) {
   const lanes: [TimelineEvent["lane"], string][] = [["chat", "Chat"], ["ticket", "Tickets"], ["doc", "Docs"], ["pr", "PRs"]];
   const e = evs[sel];
   return (
-    <div className="timeline brackets">
+    <div className="timeline">
       <div className="tl__axis">{ticks.map((t) => <span key={t} className="tl__tick" style={{ left: x(t) }}>{new Date(t).toISOString().slice(5, 10)}</span>)}</div>
       {lanes.map(([lane, label]) => (
         <div key={lane} className="tl__lane">
@@ -370,28 +351,38 @@ function Timeline({ feature }: { feature: string }) {
   );
 }
 
+const MAP_HEADERS: Record<number, string> = { 0: "Teams", 1: "People", 2: "Specs", 3: "Tickets · docs", 4: "Work", 5: "Feature · projects", 6: "Deliverables", 7: "Clients" };
+
+/** Everything around a feature: every spec version and who introduced it, the work on it, and what depends on it. */
+function FeatureMap({ feature }: { feature: string }) {
+  const { version } = useBrain();
+  const [data, setData] = useState<CGraph | null>(null);
+  useEffect(() => { setData(null); void api.featureMap(feature).then(setData); }, [feature, version]);
+  return <ColumnGraph data={data} headers={MAP_HEADERS} note="INTRODUCED = who wrote that version, or said it in chat" />;
+}
+
 export function GraphSection() {
   const { features, feature, setFeature, view, setView, focus } = useBrain();
   useEffect(() => {
     const v = new URLSearchParams(location.search).get("view");
-    if (v === "timeline") setView("timeline");
+    if (v === "timeline" || v === "map") setView(v);
   }, [setView]);
   return (
-    <Section id="graph-sec" index="005" kicker="Feature graph" title="Feature graph" wide
-      intro="Who decided, the message, the requirement it created, the ticket it amends, and the PRs and docs on that ticket. The drift path is lit; everything else waits in the dark."
+    <Section id="graph-sec" index="02" title="Feature graph"
+      intro="Graph: who decided, the message, the requirement it created, the ticket it amends, and the PRs and docs on it, with the drift path lit. Map: every spec and who introduced it, the work on it, and the projects, deliverables and clients that depend on it."
       aside={
         <div className="controls">
-          <select className="field" value={feature || ""} onChange={(e) => setFeature(e.target.value)} aria-label="Feature">
+          <select className="field" style={{ height: 34 }} value={feature || ""} onChange={(e) => setFeature(e.target.value)} aria-label="Feature">
             {features.map((f) => <option key={f.id} value={f.id}>{f.name}{f.drift ? "  · drift" : ""}</option>)}
           </select>
           <div className="tabs" role="tablist">
-            {(["graph", "timeline"] as const).map((v) => <button key={v} role="tab" className={view === v ? "active" : ""} onClick={() => setView(v)}>{v}</button>)}
+            {(["graph", "map", "timeline"] as const).map((v) => <button key={v} role="tab" className={view === v ? "active" : ""} onClick={() => setView(v)}>{v}</button>)}
           </div>
         </div>
       }>
       {feature && (view === "graph"
         ? <GraphCanvas feature={feature} focusNode={focus?.node} focusNonce={focus?.nonce} />
-        : <Timeline feature={feature} />)}
+        : view === "map" ? <FeatureMap feature={feature} /> : <Timeline feature={feature} />)}
     </Section>
   );
 }

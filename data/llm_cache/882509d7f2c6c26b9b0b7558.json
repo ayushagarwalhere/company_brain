@@ -1,0 +1,4 @@
+{
+ "reflects": false,
+ "reason": "The chat change required adding a JSON download option, but the edited ticket specifies an XLSX download, which does not implement the requested JSON functionality."
+}

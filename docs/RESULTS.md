@@ -101,7 +101,7 @@ Lines of query code: Cypher `DRIFT` has 24, against 6 for `sql_chain` and 8 for 
 
 | System | Mean score | Fully correct | Mean answer length |
 |---|---|---|---|
-| graph, rules agent (no LLM) | **0.86** | 10/15 | 921 chars |
+| graph, rules agent (no LLM) | **0.86** | 10/15 | 928 chars |
 | retrieval top-3, extractive (no LLM) | 0.52 | 4/15 | 700 chars |
 | retrieval top-25, extractive (no LLM) | **0.98** | 14/15 | 4,515 chars |
 | graph, **LLM agent (qwen3:8b)** | **0.33** | 4/15 | 308 chars |

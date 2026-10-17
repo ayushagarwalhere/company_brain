@@ -145,6 +145,46 @@ def feature_prs(feature: str) -> dict:
     }
 
 
+def search_knowledge(query: str) -> dict:
+    """Semantic search over document chunks (FalkorDB vector index), limited to what the viewer may see."""
+    from pipeline.access import current_viewer
+    from pipeline.knowledge import search
+
+    rows = search(get_graph(), query, current_viewer())
+    return {
+        "rows": rows,
+        "paths": [f"(Person {r['author']})-[:AUTHORED]->(Document {r['doc']})-[:HAS_CHUNK]->(Chunk {r['chunk']})" for r in rows],
+    }
+
+
+def ticket_owners(ticket: str) -> dict:
+    """Who owns a ticket: its creator and its assignee (both may change its requirement)."""
+    rows = Q.rows(
+        _g(),
+        """MATCH (t:Ticket {id: $t}) OPTIONAL MATCH (c:Person)-[:AUTHORED]->(t) OPTIONAL MATCH (t)-[:ASSIGNED_TO]->(a:Person)
+           RETURN t.id AS ticket, t.title AS title, c.id AS creator, c.name AS creator_name, a.id AS assignee, a.name AS assignee_name""",
+        t=ticket,
+    )
+    return {"rows": rows, "paths": [f"(Person {r['creator']})-[:AUTHORED]->(Ticket {r['ticket']})-[:ASSIGNED_TO]->(Person {r['assignee']})" for r in rows]}
+
+
+def list_projects() -> dict:
+    """Projects with launch dates, owners, tickets, features and the client deliverables that need them."""
+    from pipeline.impact import projects
+
+    rows = projects(_g())
+    return {"rows": rows, "paths": [f"(Person {r['owner']})-[:OWNS]->(Project {r['id']})" for r in rows if r["owner"]]}
+
+
+def impact_of_delay(target: str, days: int = 14) -> dict:
+    """What a delay ripples into: downstream projects (through BLOCKS chains), client deliverables and the teams doing the work."""
+    from pipeline.impact import impact_of_delay as run
+
+    out = run(_g(), target, int(days or 14))
+    out.pop("graph", None)
+    return {"rows": [out] if out.get("target") else [], "paths": out.get("paths", [])}
+
+
 def plan_fix(ticket: str) -> dict:
     """What has to change to close the open drift on a ticket, and who owns each part (read-only)."""
     from pipeline.work import plan
@@ -207,6 +247,29 @@ TOOLS = {
         "Downstream impact of a decision: ticket, owner, PRs, related tickets.",
         {"decision": {"type": "string", "description": "decision id like dec:m_exp_12"}},
     ),
+    "search_knowledge": (
+        search_knowledge,
+        "Search the company's documents (PRDs, design notes, policies) by meaning. Returns passages with their document and author. Only returns what the person asking may see.",
+        {"query": {"type": "string"}},
+    ),
+    "ticket_owners": (
+        ticket_owners,
+        "Who owns a ticket: the person who created it and the person assigned to it. Both count as owners.",
+        {"ticket": {"type": "string", "description": "ticket id like BD-101"}},
+    ),
+    "list_projects": (
+        list_projects,
+        "Projects (e.g. Project Alpha) with launch dates, owners, tickets, features and the client deliverables that need them.",
+        {},
+    ),
+    "impact_of_delay": (
+        impact_of_delay,
+        "Impact of delaying a project, feature or ticket by N days: which projects slip downstream (through ticket BLOCKS chains), which client deliverables miss or get tight, and which teams and people are affected.",
+        {
+            "target": {"type": "string", "description": "project id or name (e.g. 'alpha' or 'Project Alpha'), feature id, or ticket id"},
+            "days": {"type": "integer", "description": "delay in days, e.g. 14 for two weeks"},
+        },
+    ),
     "plan_fix": (
         plan_fix,
         "What has to change to close the drift on a ticket and who owns each part: the ticket, each PR that shipped the old version (its author), each stale doc (its author), who else to tell, and who can approve.",
@@ -231,5 +294,10 @@ def openai_schema() -> list[dict]:
 
 
 def call(name: str, args: dict) -> dict:
+    """Runs a tool, then drops every row and path that mentions a node the current viewer may not see
+    (pipeline.access), so neither the LLM nor the rules agent ever receives restricted content."""
+    from pipeline.access import current_viewer, hidden, redact
+
     fn = TOOLS[name][0]
-    return fn(**{k: v for k, v in (args or {}).items() if k in TOOLS[name][2]})
+    out = fn(**{k: v for k, v in (args or {}).items() if k in TOOLS[name][2]})
+    return redact(out, hidden(get_graph(), current_viewer()))

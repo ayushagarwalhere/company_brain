@@ -7,6 +7,7 @@
     created: 2026-09-12T06:00:00Z
     updated: 2026-09-15T10:40:00Z
     tickets: BD-101, BD-102
+    access: hr, leads          (optional: groups or person:<id>; absent = the whole company)
     ---
     body…
 
@@ -45,7 +46,13 @@ def documents(directory: Path = DOCS_DIR) -> list[Event]:
                 ts=meta["created"],
                 text=body,
                 url=f"scenario://docs/{path.name}",
-                extra={"title": meta["title"], "updated": meta.get("updated", meta["created"]), "tickets": sorted(set(tickets) | set(find_ticket_refs(body)))},
+                extra={
+                    "title": meta["title"],
+                    "updated": meta.get("updated", meta["created"]),
+                    "tickets": sorted(set(tickets) | set(find_ticket_refs(body))),
+                    "declared": tickets,  # from the frontmatter: kept as links even if the text stops naming them
+                    "acl": [a.strip() for a in meta.get("access", "").split(",") if a.strip()],
+                },
             )
         )
     return events

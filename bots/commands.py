@@ -95,6 +95,16 @@ def handle_work(text: str, actor: str | None = None, requirement: str | None = N
 def handle(text: str, actor: str | None = None, requirement: str | None = None) -> str | None:
     """Returns a reply for a command, or None if the text isn't a command. `actor` is the person speaking (mapped
     from the chat user); `requirement` is the drift whose alert thread the message is in."""
+    from pipeline.access import reset_viewer, set_viewer
+
+    token = set_viewer(actor)  # answers are limited to what this person may see
+    try:
+        return _handle(text, actor, requirement)
+    finally:
+        reset_viewer(token)
+
+
+def _handle(text: str, actor: str | None, requirement: str | None) -> str | None:
     cmd, _, arg = text.strip().partition(" ")
     cmd, arg = cmd.lower(), arg.strip()
     if cmd == "ask" and arg:

@@ -1,5 +1,6 @@
 import { createContext, useCallback, useContext, useEffect, useMemo, useRef, useState, type ReactNode } from "react";
-import { edgeGlow, scrollToEl } from "./fx";
+import { scrollToEl } from "./fx";
+import { DEMO_ORG } from "./routes";
 import { api, ORG, type Coverage, type Drift, type Feature, type LiveEvent, type SpecResult, type Sprint, type Stats } from "./api";
 
 /** App-wide graph state + cross-section actions (open a person, focus a feature, generate a spec). */
@@ -9,7 +10,7 @@ type Brain = {
   refresh: () => Promise<void>;
   feature: string | null; setFeature: (f: string) => void;
   focus: { feature: string; node?: string; nonce: number } | null; focusOn: (feature: string | null, node?: string) => void;
-  view: "graph" | "timeline"; setView: (v: "graph" | "timeline") => void;
+  view: "graph" | "map" | "timeline"; setView: (v: "graph" | "map" | "timeline") => void;
   person: string | null; openPerson: (id: string | null) => void;
   spec: SpecResult | null; specFor: (feature: string) => Promise<void>;
   actor: string; setActor: (a: string) => void;
@@ -19,6 +20,8 @@ type Brain = {
   arrival: { ticket: string | null; requirement: string | null; nonce: number } | null;
   announce: (a: { ticket?: string | null; requirement?: string | null }) => void;
   newDrift: number; clearNew: () => void;
+  /** The demo sandbox (?org=demo) is built from the demo data the first time it's opened. */
+  workspace: "ready" | "preparing" | "failed"; workspaceError: string | null;
 };
 
 const Ctx = createContext<Brain | null>(null);
@@ -48,6 +51,8 @@ export function BrainProvider({ children }: { children: ReactNode }) {
   const [arrival, setArrival] = useState<Brain["arrival"]>(null);
   const [newDrift, setNewDrift] = useState(0);
   const total = 5;
+  const [workspace, setWorkspace] = useState<Brain["workspace"]>(ORG === DEMO_ORG ? "preparing" : "ready");
+  const [workspaceError, setWorkspaceError] = useState<string | null>(null);
 
   const lastArrival = useRef<Brain["arrival"]>(null);
   const announce = useCallback((a: { ticket?: string | null; requirement?: string | null }) => {
@@ -56,7 +61,7 @@ export function BrainProvider({ children }: { children: ReactNode }) {
     const same = prev && prev.ticket === (a.ticket ?? null) && Date.now() - prev.nonce < 4000;
     const next = same ? { ...prev!, requirement: a.requirement ?? prev!.requirement }
       : { ticket: a.ticket ?? null, requirement: a.requirement ?? null, nonce: Date.now() };
-    if (!same) { setNewDrift((n) => n + 1); edgeGlow(); }
+    if (!same) setNewDrift((n) => n + 1);
     lastArrival.current = next;
     setArrival(next);
   }, []);
@@ -72,7 +77,20 @@ export function BrainProvider({ children }: { children: ReactNode }) {
     setVersion((v) => v + 1);
   }, []);
 
-  useEffect(() => { void refresh(); }, [refresh]);
+  useEffect(() => {
+    void (async () => {
+      if (ORG === DEMO_ORG) {
+        // first visit (or a wiped server): build the sandbox from the demo data; later visits keep what you did in it
+        // a sandbox built before projects and doc chunks existed is rebuilt too, so every section has its data
+        const empty = await api.stats().then((s) => s.nodes.reduce((a, x) => a + x.n, 0) === 0 || !["Project", "Chunk"].every((l) => s.nodes.some((x) => x.label === l))).catch(() => true);
+        if (empty) {
+          try { await api.bootstrap(DEMO_ORG); } catch (e) { setWorkspaceError((e as Error).message); setWorkspace("failed"); return; }
+        }
+        setWorkspace("ready");
+      }
+      await refresh();
+    })();
+  }, [refresh]);
 
   // Live updates: the API pushes drift / resolution / ticket / PR / rebuild events over SSE
   useEffect(() => {
@@ -117,8 +135,8 @@ export function BrainProvider({ children }: { children: ReactNode }) {
   const value = useMemo<Brain>(() => ({
     stats, drift, features, sprints, coverage, loaded, total, version, refresh, feature, setFeature, focus, focusOn,
     view, setView, person, openPerson, spec, specFor, actor, setActor, paletteOpen, setPaletteOpen, toasts, dismissToast, live,
-    arrival, announce, newDrift, clearNew,
-  }), [stats, drift, features, sprints, coverage, loaded, version, refresh, feature, focus, focusOn, view, person, spec, specFor, actor, paletteOpen, toasts, dismissToast, live, arrival, announce, newDrift, clearNew]);
+    arrival, announce, newDrift, clearNew, workspace, workspaceError,
+  }), [workspace, workspaceError, stats, drift, features, sprints, coverage, loaded, version, refresh, feature, focus, focusOn, view, person, spec, specFor, actor, paletteOpen, toasts, dismissToast, live, arrival, announce, newDrift, clearNew]);
 
   return <Ctx.Provider value={value}>{children}</Ctx.Provider>;
 }

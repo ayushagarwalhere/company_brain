@@ -14,11 +14,16 @@ from agent import tools
 from config import settings
 from pipeline.llm import _client, _extra
 
-SYSTEM = """You answer questions about a software team's decisions, tickets and pull requests using ONLY the graph tools.
-Always call list_features first if you don't know the feature id. Prefer the most specific tool.
-When you answer: be concise, name tickets (BD-...), PRs (#n), people and dates, and say plainly if a decision was never shipped.
+SYSTEM = """You answer questions about a software company (its decisions, tickets, pull requests, people, teams, projects,
+clients and documents) using ONLY the graph tools. Never answer from general knowledge.
+Always call list_features first if you don't know the feature id, and list_projects for project names. Prefer the most specific tool.
+For "what if we delay X" or "what does X slipping affect", call impact_of_delay.
+For anything that could be written in a document (specs, policies, plans, HR or pay, how-tos), call search_knowledge first.
+When you answer: be concise, name tickets (BD-...), PRs (#n), people, teams, clients and dates, and say plainly if a decision was never shipped.
 End with a line "Evidence:" followed by the 1-4 graph paths (copied from tool results) that support the answer.
-If the tools return nothing relevant, say you don't know."""
+Everything the tools return, the person asking is allowed to see: access control runs before results reach you, so never withhold it, even if a document calls itself confidential.
+If the tools return something related but not exactly what was asked, give that and say what is missing.
+If the tools return nothing relevant, answer exactly: I don't have information on that you can access."""
 
 MAX_STEPS = 6
 IDS = re.compile(r"\b(?:[A-Z]{2,6}-\d+)\b|#\d+\b")
@@ -37,6 +42,34 @@ def ungrounded(answer: str, question: str, seen: str) -> list[str]:
     return out
 
 
+DENIED = "I don't have information on that you can access."
+
+
+def _fallback(question: str, trace: list, reason: str) -> dict:
+    """The grounded rules answer over the same graph tools, with why the LLM's own answer wasn't used."""
+    from agent.router import ask as rules_ask
+
+    out = rules_ask(question)
+    out["fallback_reason"] = reason
+    out["llm_trace"] = trace
+    return out
+
+
+def _asker() -> str:
+    """Who is asking (the request's viewer), so the model knows why it may see what the tools return."""
+    from graph.db import get_graph
+    from pipeline.access import current_viewer
+
+    who = current_viewer()
+    if not who:
+        return "The person asking is not signed in."
+    rows = get_graph().ro_query("MATCH (p:Person {id: $p}) RETURN p.name, p.role, coalesce(p.groups, [])", {"p": who}).result_set
+    if not rows:
+        return f"The person asking is {who}."
+    name, role, groups = rows[0]
+    return f"The person asking is {name} ({role}{'; groups: ' + ', '.join(groups) if groups else ''})."
+
+
 def _compact(result: dict) -> str:
     text = json.dumps(result, default=str, ensure_ascii=False)
     return text[:12000]
@@ -52,13 +85,24 @@ def ask(question: str) -> dict:
         out = rules_ask(question)
         out["fallback_reason"] = llm.unavailable_reason()
         return out
+    from agent.router import ids_in, missing
+    from graph.db import get_graph
+
+    gone = missing(get_graph(), ids_in(get_graph(), question))
+    if gone:  # don't let the model improvise about something the graph doesn't have
+        return {"answer": f"I couldn't find {', '.join(gone)} in the graph.", "tool_calls": [], "paths": [], "engine": f"llm:{settings.llm_model}"}
     client = _client()
-    messages = [{"role": "system", "content": SYSTEM}, {"role": "user", "content": question}]
+    messages = [{"role": "system", "content": f"{SYSTEM}\n{_asker()}"}, {"role": "user", "content": question}]
     trace, paths, seen = [], [], []
+    must_look = True  # the first step must call a tool: an answer is only ever read from the graph, never from memory
     for _ in range(MAX_STEPS):
         try:
-            resp = client.chat.completions.create(model=settings.llm_model, messages=messages, tools=tools.openai_schema(), temperature=0, **_extra())
+            choice = {"tool_choice": "required"} if must_look and not seen else {}
+            resp = client.chat.completions.create(model=settings.llm_model, messages=messages, tools=tools.openai_schema(), temperature=0, **choice, **_extra())
         except BadRequestError as e:
+            if must_look and "tool_choice" in str(e).lower():  # a provider without tool_choice=required: ask without it
+                must_look = False
+                continue
             # Some providers (Groq) validate tool calls server-side and reject a malformed one with a 400, e.g. a null
             # where the schema wants a string. Tell the model what was wrong and let it try again (uses up a step).
             if "tool" not in str(e).lower():
@@ -73,14 +117,24 @@ def ask(question: str) -> dict:
             continue
         msg = resp.choices[0].message
         if not msg.tool_calls:
-            bad = ungrounded(msg.content or "", question, " ".join(seen))
+            content = (msg.content or "").strip()
+            if not seen:  # it answered without looking anything up (some providers ignore tool_choice=required)
+                if must_look:
+                    must_look = False
+                    messages.append({"role": "user", "content": "Look this up with the graph tools first. Never answer from memory."})
+                    continue
+                return _fallback(question, trace, "LLM answered without calling a tool")
+            if not content:
+                return _fallback(question, trace, "LLM returned an empty answer")
+            if content.replace("’", "'").startswith(DENIED) and any(t["rows"] for t in trace):
+                # a refusal although the tools returned rows this person may see: the rows are already access-checked,
+                # so withholding them is the model's mistake. Use the grounded answer if it finds something.
+                out = _fallback(question, trace, "LLM withheld results the asker may see")
+                if not out["answer"].startswith(DENIED):
+                    return out
+            bad = ungrounded(content, question, " ".join(seen))
             if bad:  # post-generation check: fall back to the grounded rules answer instead of showing a guess
-                from agent.router import ask as rules_ask
-
-                out = rules_ask(question)
-                out["fallback_reason"] = f"LLM answer named ids no tool returned: {', '.join(bad)}"
-                out["llm_trace"] = trace
-                return out
+                return _fallback(question, trace, f"LLM answer named ids no tool returned: {', '.join(bad)}")
             return {"answer": msg.content, "tool_calls": trace, "paths": paths, "engine": f"llm:{settings.llm_model}"}
         messages.append({"role": "assistant", "content": msg.content or "", "tool_calls": [tc.model_dump() for tc in msg.tool_calls]})
         for tc in msg.tool_calls:

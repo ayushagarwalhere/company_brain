@@ -1,0 +1,4 @@
+{
+ "replaces": false,
+ "reason": "The later message adds an XLSX download option, not changing the earlier decision to include a JSON download."
+}

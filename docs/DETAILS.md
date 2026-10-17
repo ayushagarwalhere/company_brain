@@ -151,9 +151,42 @@ docker build -t drift-monitor . && docker run -p 8000:8000 drift-monitor   # htt
 
 On Render: New → Blueprint → this repo ([`render.yaml`](../render.yaml)). It runs as a public sandbox: without `INGEST_TOKEN`, visitors can resolve drifts, and a restart resets the demo. Set `INGEST_TOKEN` to require a token (the dashboard sends it from a `?token=` link).
 
+## Documents, embeddings and access control
+
+| Setting | Meaning |
+|---|---|
+| `EMBED_BASE_URL`, `EMBED_MODEL`, `EMBED_API_KEY` | Any OpenAI-compatible `/embeddings` endpoint for document chunks. Unset: a local 1024-dimension hashed embedding (lexical, free, offline). Changing it re-embeds everything on the next sync. |
+| `GOOGLE_ACCESS_TOKEN` | OAuth token with `drive.readonly`, for `python -m connectors.gdrive sync` |
+| `GDRIVE_CHANNEL_TOKEN` | Secret checked on Drive push notifications to `POST /api/ingest/gdrive` |
+
+- **Restricting a doc:** add `access: leads, hr` to a doc's frontmatter, send `acl` to `POST /api/ingest/doc`, or share it in Google Drive. Grants are group names (from `groups` in `people.json`) or `person:<id>`; Drive sharing becomes `email:<address>` grants (a person's grants include their `email`). A restricted doc's author always keeps access.
+- **Who is asking:** `X-User: <person id>` on the API (`?as=` also works), the chat user in Slack and Discord. Without one, the viewer is anonymous and sees only unrestricted content. The LLM agent is told who is asking, and its first step must call a tool, so it never answers from memory.
+- **Counts follow the viewer:** `/api/stats` leaves out documents the viewer can't see, their chunks and their edges. `GET /api/docs` lists docs with their access, chunks and stale flags; `GET /api/whoami` shows a viewer's grants. Editing a doc you can't see (`POST /api/ingest/doc` with `X-User`) answers 404, as for a doc that doesn't exist.
+- **The demo data** includes one restricted doc, [`data/docs/hr-comp-bands.md`](../data/docs/hr-comp-bands.md) (`access: leads, hr`): maya and arjun (leads) can see it, everyone else can't.
+
+## Impact analysis and feature maps
+
+The org layer ([`data/scenario/org.json`](../data/scenario/org.json), written by [`graph/writer.py`](../graph/writer.py) `write_org`):
+
+```
+Person -MEMBER_OF-> Team            Person -OWNS-> Project -INCLUDES-> Ticket -BLOCKS-> Ticket
+Deliverable -FOR-> Client           Deliverable -NEEDS-> Project       Person -OWNS-> Deliverable
+Message -CONCERNS-> Client          (a message that names the client)
+```
+
+In a real company: Linear projects and their target dates, or Jira versions; "blocks" issue links; the HR system or GitHub teams; the CRM for clients and what was promised to them. Replace the file with your own (same shape) and rebuild.
+
+| Endpoint / tool | What it returns |
+|---|---|
+| `GET /api/projects`, tool `list_projects` | Projects with launch date, owner, tickets, features and the deliverables that need them |
+| `GET /api/impact?target=alpha&days=14`, tool `impact_of_delay` | Downstream projects and how far each slips, deliverables (misses / tight under 7 days / on track), teams and people with their roles, open drift on the delayed tickets, evidence paths, a layered graph |
+| `GET /api/features/{id}/map` | Every requirement version with `INTRODUCED` (who wrote that version, or said it in chat: a summary of `POSTED`/`CHANGES` and the ticket's history), tickets, PRs, tasks, docs, projects, deliverables, clients, teams |
+
+The rules agent routes "delay / slip / push back / postpone" questions here and reads the amount ("two weeks" = 14 days, default 14). The LLM agent gets the same tool.
+
 ## Tests and CI
 
-`python -m pytest -q` runs 121 tests, none of which need an LLM or API keys. They include:
+`python -m pytest -q` runs 141 tests, none of which need an LLM or API keys. They include:
 - the published numbers in [`docs/RESULTS.md`](RESULTS.md) against the committed result files ([`tests/test_readme_numbers.py`](../tests/test_readme_numbers.py));
 - the fix-it agent: the plan's assignees, owners-only approval, follow-ups that survive a rebuild, the chat-thread commands, read-only tools and the post-generation id check ([`tests/test_work.py`](../tests/test_work.py));
 - human actions surviving rebuilds, and live updates (a write-back survives a live recompute; an unverified candidate never supersedes the owner's decision);
@@ -164,6 +197,8 @@ On Render: New → Blueprint → this repo ([`render.yaml`](../render.yaml)). It
 - unverified candidates;
 - routing per intent and the former misroutes;
 - the SQL baseline and the ablation guard;
+- docs kept in sync (only changed chunks re-embedded, MENTIONS edges follow edits, the Google Drive connector against a fake Drive) and access control (the salary question per viewer, tools and API responses never leaking a restricted doc) ([`tests/test_knowledge.py`](../tests/test_knowledge.py));
+- impact analysis: a delay through BLOCKS chains to projects, client deliverables and teams, the agent's answer to the delay question, feature maps, and the per-viewer docs endpoints ([`tests/test_impact.py`](../tests/test_impact.py));
 - the graph, API, webhooks, connector contracts and paging.
 
 [`.github/workflows/ci.yml`](../.github/workflows/ci.yml) also runs:
