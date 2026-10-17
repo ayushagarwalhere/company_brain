@@ -1,0 +1,85 @@
+/* Depth for the sections after the hero (004 onward): each section gets its own hue (--sh, "r g b"), an ambient
+   light behind it, a numbered header with a large faded index numeral, and panels lit in that hue. Loaded last. */
+
+#drift { --sh: 255 90 54; }
+#graph-sec { --sh: 125 211 252; }
+#ask { --sh: 167 139 250; }
+#retro-sec { --sh: 110 231 168; }
+#simulate { --sh: 252 211 77; }
+#coverage { --sh: 240 171 252; }
+#spec-sec { --sh: 196 181 253; }
+
+/* ---------- section shell ---------- */
+.sec { --sh-c: rgb(var(--sh, 167 139 250)); position: relative; isolation: isolate; border-top: 0;
+  background-image: linear-gradient(90deg, transparent, rgb(var(--sh, 167 139 250) / .45) 50%, transparent); }
+/* ambient light: one glow behind the title, a softer one behind the body */
+.sec::after { content: ""; position: absolute; inset: 0; z-index: -2; pointer-events: none;
+  background:
+    radial-gradient(520px 380px at 14% 120px, rgb(var(--sh, 167 139 250) / .11), transparent 70%),
+    radial-gradient(900px 520px at 80% 55%, rgb(var(--sh, 167 139 250) / .06), transparent 70%); }
+/* dot grid, faded out towards the edges */
+.sec::before { content: ""; position: absolute; inset: 0; z-index: -1; pointer-events: none; opacity: .55;
+  background: radial-gradient(rgb(var(--sh, 167 139 250) / .16) 1px, transparent 1.2px) 0 0 / 26px 26px;
+  -webkit-mask-image: radial-gradient(70% 60% at 30% 30%, #000, transparent 75%); mask-image: radial-gradient(70% 60% at 30% 30%, #000, transparent 75%); }
+
+/* header bar: "[● 004] OPEN DRIFT ———" */
+.sec__bar { gap: 16px !important; color: var(--soft); }
+.sec__bar > span:first-child { display: inline-flex; align-items: center; padding: 5px 11px; border: 1px solid rgb(var(--sh, 167 139 250) / .45);
+  background: rgb(var(--sh, 167 139 250) / .08); color: var(--sh-c); box-shadow: 0 0 24px -6px rgb(var(--sh, 167 139 250) / .55); }
+.sec__bar .sq { width: 7px; height: 7px; border-radius: 50%; margin-right: 10px; background: var(--sh-c); box-shadow: 0 0 10px var(--sh-c); }
+.sec__bar > span:last-child .sq { display: none; }
+.sec__bar::after { content: ""; flex: 1; height: 1px; background: linear-gradient(90deg, rgb(var(--sh, 167 139 250) / .5), transparent); }
+
+/* large outlined index numeral above the title; the title overlaps its lower edge */
+.sec__num { display: block; pointer-events: none; user-select: none; margin: -.12em 0 -.34em -.04em;
+  font: 200 clamp(96px, 9vw, 150px)/1 var(--font); letter-spacing: -.06em; font-variant-numeric: tabular-nums;
+  color: transparent; -webkit-text-stroke: 1px rgb(var(--sh, 167 139 250) / .55);
+  -webkit-mask-image: linear-gradient(180deg, #000 30%, transparent 92%); mask-image: linear-gradient(180deg, #000 30%, transparent 92%); }
+.sec__label h2 { position: relative; }
+.sec--wide .sec__num { flex-basis: 100%; }
+.sec__label h2 { background: linear-gradient(180deg, var(--ink) 35%, color-mix(in srgb, var(--ink) 60%, var(--sh-c)));
+  -webkit-background-clip: text; background-clip: text; color: transparent; padding-bottom: .06em; }
+.sec__head > p { padding-left: 14px; border-left: 2px solid rgb(var(--sh, 167 139 250) / .5); }
+
+/* ---------- panels lit in the section hue ---------- */
+.violation, .console, .chat, .gpanel, .canvas, .timeline, .rt-row, .cov2, .specdoc {
+  border-color: color-mix(in srgb, var(--sh-c) 22%, var(--line)) !important;
+  box-shadow: inset 0 1px 0 rgb(255 255 255 / .06), 0 40px 90px -50px rgb(var(--sh, 167 139 250) / .5);
+  transition: border-color .3s, box-shadow .3s, transform .3s var(--ease); }
+.console, .chat, .gpanel, .rt-row, .specdoc {
+  background: linear-gradient(180deg, color-mix(in srgb, var(--card-2) 100%, rgb(var(--sh, 167 139 250)) 4%), var(--card)) !important; }
+.rt-row:hover, .cov2:hover { transform: translateY(-2px); border-color: color-mix(in srgb, var(--sh-c) 45%, var(--line)) !important;
+  box-shadow: inset 0 1px 0 rgb(255 255 255 / .08), 0 40px 90px -40px rgb(var(--sh, 167 139 250) / .6); }
+/* the drift card keeps its own state colours (resolving green, dismissed grey) */
+.violation--ok { border-color: color-mix(in srgb, var(--ok) 55%, var(--line)) !important; }
+.violation--grey { border-color: var(--line) !important; box-shadow: none; }
+
+/* console / chat title bars: a thin lit strip */
+.console__bar, .chat__head { background: linear-gradient(90deg, rgb(var(--sh, 167 139 250) / .10), transparent 60%); }
+
+/* retro summary: four lit tiles instead of ruled columns */
+.rt-sum { border: 0 !important; gap: 12px; }
+.rt-sum > div { padding: 18px 18px 16px !important; border: 1px solid color-mix(in srgb, var(--sh-c) 20%, var(--line)) !important;
+  background: linear-gradient(180deg, rgb(var(--sh, 167 139 250) / .07), transparent 80%), var(--card); position: relative; overflow: hidden; }
+.rt-sum > div::before { content: ""; position: absolute; left: 0; right: 0; top: 0; height: 2px; background: linear-gradient(90deg, var(--sh-c), transparent); }
+.rt-sum b { background: linear-gradient(180deg, var(--ink), color-mix(in srgb, var(--ink) 55%, var(--sh-c))); -webkit-background-clip: text; background-clip: text; color: transparent; }
+.rt-sum .warn b { background: linear-gradient(180deg, var(--accent-ink), var(--accent)); -webkit-background-clip: text; background-clip: text; }
+.rt-sum .warn::before { background: linear-gradient(90deg, var(--accent), transparent); }
+
+/* simulate: empty thread gets a soft lit well */
+.chat__empty { padding: 34px 20px; border: 1px dashed rgb(var(--sh, 167 139 250) / .3); background: radial-gradient(60% 100% at 50% 0%, rgb(var(--sh, 167 139 250) / .08), transparent); }
+
+/* coverage numbers glow in their own colour */
+.cov2__n { text-shadow: 0 0 34px color-mix(in srgb, var(--c) 55%, transparent); }
+
+@media (max-width: 760px) { .rt-sum { grid-template-columns: repeat(2, minmax(0, 1fr)) !important; } .sec__num { font-size: 104px; } }
+@media (prefers-reduced-motion: reduce) { .rt-row:hover, .cov2:hover { transform: none; } }
+
+/* light theme: softer light, darker hue lines */
+:root[data-theme="light"] .sec::after { opacity: .7; }
+:root[data-theme="light"] .sec::before { opacity: .35; }
+:root[data-theme="light"] .violation, :root[data-theme="light"] .console, :root[data-theme="light"] .chat, :root[data-theme="light"] .gpanel,
+:root[data-theme="light"] .canvas, :root[data-theme="light"] .timeline, :root[data-theme="light"] .rt-row, :root[data-theme="light"] .cov2,
+:root[data-theme="light"] .specdoc { box-shadow: 0 24px 60px -40px rgb(var(--sh, 167 139 250) / .55); }
+:root[data-theme="light"] .sec__bar > span:first-child { color: color-mix(in srgb, var(--sh-c) 45%%, var(--ink)); }
+:root[data-theme="light"] .sec__num { -webkit-text-stroke-color: color-mix(in srgb, var(--sh-c) 60%%, var(--ink)); opacity: .5; }

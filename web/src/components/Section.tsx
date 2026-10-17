@@ -18,7 +18,7 @@ export function TickIndex({ value }: { value: string }) {
   return <span ref={ref} className="tick">{String(n).padStart(value.length, "0")}</span>;
 }
 
-/** Numbered section: "■ 004 ■ OPEN DRIFT" bar, sticky label column, body. `wide`: heading row on top, full-width body. */
+/** Numbered section: "● 004  OPEN DRIFT ———" bar, large faded "04" behind the title, sticky label column, body. `wide`: heading row on top, full-width body. */
 export function Section({ id, index, kicker, title, intro, aside, children, wide = false }: {
   id: string; index: string; kicker: string; title: string; intro: ReactNode; aside?: ReactNode; children: ReactNode; wide?: boolean;
 }) {
@@ -26,6 +26,7 @@ export function Section({ id, index, kicker, title, intro, aside, children, wide
     <section className={`sec ${wide ? "sec--wide" : ""}`} id={id}>
       <div className="sec__bar mono"><span><i className="sq" /><TickIndex value={index} /></span><span><i className="sq" />{kicker}</span></div>
       <Reveal className="sec__label">
+        <span className="sec__num" aria-hidden>{index.slice(-2)}</span>
         <div className="sec__head">
           <h2>{title}</h2>
           <p>{intro}</p>

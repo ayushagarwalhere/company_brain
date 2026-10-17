@@ -4,6 +4,7 @@ import App from "./App";
 import "./styles.css";
 import "./motion.css";
 import "./sections.css";
+import "./depth.css";
 
 // ?static: no entrance animations (screenshots, slow machines, demos on a projector)
 if (new URLSearchParams(location.search).has("static")) document.documentElement.classList.add("static");
