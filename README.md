@@ -73,7 +73,7 @@ The honest boundary: given the same extracted facts and the same version chain, 
 
 ## Results at a glance
 
-Every number comes from a command in [`docs/RESULTS.md`](docs/RESULTS.md), which has the full tables. Rules = the rule-based extractor; qwen3:8b = a small local LLM.
+Every number comes from a command in [`docs/RESULTS.md`](docs/RESULTS.md), which has the full tables. Rules = the rule-based extractor; qwen3:8b = a small local LLM; gpt-oss-120b = OpenAI's open-weight 120B model on Groq's free tier.
 
 | Measurement | Result |
 |---|---|
@@ -81,8 +81,9 @@ Every number comes from a command in [`docs/RESULTS.md`](docs/RESULTS.md), which
 | Ablation: remove version reasoning | drift precision 1.00 → **0.50**; stale PRs found 1.00 → 0.00 |
 | 500 noise messages, rules / qwen3:8b | both real drifts found; 14 / **1** noise-caused false alerts |
 | Stress test, 22,940 nodes | **100 / 100** planted drifts, 0 false |
-| Real GitHub text, rules / qwen3:8b | known false positives still flagged: 25/25 / **3/25**; recall 1 of 7 for both |
-| Demo Q&A (15 questions), rules agent / retrieval top-25 | 0.86 / **0.98**; retrieval wins, at five times the answer length |
+| Real GitHub text, rules / qwen3:8b / gpt-oss-120b | known false positives still flagged: 25/25 / 3/25 / **2/25**; recall 1/7 / 1/7 / **2/7**, precision of what's flagged 0.17 / 0.25 / **1.00** |
+| Demo Q&A (15 questions), **gpt-oss-120b agent over the graph** / retrieval into the same model | **0.84** (11/15) / 0.71 (8/15) |
+| Demo Q&A, rules agent (no LLM) / raw top-25 passages | 0.86 / **0.98**; the passage dump wins, at five times the answer length |
 | Cross-feature Q&A at 20k messages (n = 3) | rules agent 1.00 / retrieval top-25 0.15 |
 | Same facts in SQL | **identical** drift |
 
@@ -90,10 +91,10 @@ Every number comes from a command in [`docs/RESULTS.md`](docs/RESULTS.md), which
 
 The full list, with numbers, is in [`docs/RESULTS.md`](docs/RESULTS.md#limitations).
 
-- **Extraction on real text is the weak link.** On two public GitHub repos the rules' drift flags were all false (0 of 25 labelled) and both extractors found 1 of 7 real decisions. The real-data labels were made by the AI assistant, and 0 of 25 have been re-checked by me.
+- **Extraction on real text is the weak link.** On two public GitHub repos the rules' drift flags were all false (0 of 25 labelled). A strong model (gpt-oss-120b) fixes the false positives (2 of 25 still flagged, and everything it flagged in the sample was right) but still finds only 2 of 7 real decisions. The real-data labels were made by the AI assistant, and 0 of 25 have been re-checked by me.
 - **The rules, prompts and thresholds were written against the test data.** The synthetic 1.00s are an upper bound: raising one similarity threshold from 0.22 to 0.30 halves drift recall.
 - **The demo is small.** Two real drifts; the ablation's "half are false" is 2 of 4 alerts.
-- **A small LLM can't drive the tools.** The qwen3:8b agent scores 0.33 on the demo Q&A; no strong hosted model has been measured.
+- **A small LLM can't drive the tools.** The qwen3:8b agent scores 0.33 on the demo Q&A. A strong model (gpt-oss-120b) scores 0.84 and beats retrieval into the same model, but only 15 questions were run, on the free tier.
 - **The graph is not the source of the accuracy** (see above).
 - **The real-Slack run used the synthetic company's messages,** in a one-person workspace; Discord and GitHub have not been run live.
 
@@ -210,7 +211,17 @@ LLM_API_KEY=ollama
 LLM_REASONING_EFFORT=none   # skip qwen3's thinking phase, about 15x faster
 ```
 
-Unset, it uses DeepSeek (`DEEPSEEK_*`). Every extraction call is cached by (model, prompt) in `data/llm_cache/`, which is committed, so the qwen3 **extraction** numbers (resolution, noise, real data) reproduce without a GPU. The qwen3 **Q&A** numbers don't: the agent's calls aren't cached, so re-running them needs Ollama. When no LLM answers, everything falls back instead of failing.
+The strong-model numbers used Groq's free tier:
+
+```bash
+LLM_BASE_URL=https://api.groq.com/openai/v1
+LLM_MODEL=openai/gpt-oss-120b
+LLM_API_KEY=gsk_...
+LLM_REASONING_EFFORT=low
+LLM_MAX_RETRIES=10          # the free tier allows 8,000 tokens a minute
+```
+
+Unset, it uses DeepSeek (`DEEPSEEK_*`). Every extraction call is cached by (model, prompt) in `data/llm_cache/`, which is committed, so the qwen3 and gpt-oss **extraction** numbers (resolution, noise, real data) reproduce without a GPU or key. The **Q&A** numbers don't: the agent's calls aren't cached, so re-running them needs Ollama. When no LLM answers, everything falls back instead of failing.
 
 **Real Slack, Discord and GitHub:** see [`docs/REAL_RUN.md`](docs/REAL_RUN.md). `build --live` reads each configured source from its API, falls back to the scenario files for the rest, and prints which is which.
 

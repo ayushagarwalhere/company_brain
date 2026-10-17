@@ -27,7 +27,9 @@ Every number comes from the command shown with it. Raw output is in [`benchmark/
 - **Rules** = the rule-based extractor, no LLM.
 - **qwen3:8b** = the LLM extractor running a local model through Ollama ([setup](../README.md#setup)).
 
-No hosted model (DeepSeek, Groq, …) was run. Nothing below mixes extractors in one number.
+- **gpt-oss-120b** = OpenAI's open-weight 120B model on Groq's free tier (`reasoning_effort=low`), run on 2026-10-17 for the real-data extraction and the agent Q&A only. The free tier's daily limits didn't allow the full noise run.
+
+Nothing below mixes extractors in one number.
 
 ### 1. Synthetic company: resolution and drift
 
@@ -104,10 +106,13 @@ Lines of query code: Cypher `DRIFT` has 24, against 6 for `sql_chain` and 8 for 
 | retrieval top-25, extractive (no LLM) | **0.98** | 14/15 | 4,515 chars |
 | graph, **LLM agent (qwen3:8b)** | **0.33** | 4/15 | 308 chars |
 | retrieval top-25 → **qwen3:8b** | **0.82** | 11/15 | 241 chars |
+| graph, **LLM agent (gpt-oss-120b)** | **0.84** | **11/15** | 395 chars |
+| retrieval top-25 → **gpt-oss-120b** | **0.71** | 8/15 | 423 chars |
 
 - **Retrieval wins this benchmark.** The rules agent misses q01 (it reads "ticket" as the export feature and leaves out SLA), q03, q05, q11 and q14. The top-25 dump contains nearly everything, at five times the length.
 - **The router was tuned on q03 before this grader existed,** so the rules result is not held-out. The router fixes made after the stricter grading (unknown ids, ticket-scoped answers) left this score unchanged.
 - **The qwen3 rows are re-graded from the stored answers;** the model was not re-run.
+- **With a strong model the graph agent beats retrieval into the same model** (0.84 vs 0.71) at a similar answer length. `FALKORDB_GRAPH=bench_qa python -m benchmark.run` with the gpt-oss settings, over a rules-built graph → [`latest_llm_openai-gpt-oss-120b.json`](../benchmark/results/latest_llm_openai-gpt-oss-120b.json). It loses q13 and q14 to retrieval. Groq rejected two of its tool calls as malformed (a null feature id); the agent now hands the rejection back to the model and both questions still finished. The first attempt crashed on that, before the fix.
 - **The qwen3 agent fails at tool use, not at the data.** It typically makes one call with an invented id (`BD-123`) or a feature name instead of an id, gets nothing back, and answers "I don't know".
 - **Retrieval into the same model needs no tool calls, so a small model does better there.**
 
@@ -125,16 +130,19 @@ Lines of query code: Cypher `DRIFT` has 24, against 6 for `sql_chain` and 8 for 
 
 `python -m benchmark.real_data extraction --extractor heuristic|llm`:
 
-| | Rules | qwen3:8b |
-|---|---|---|
-| The 25 known false positives: still called a change | 25 / 25 | **3 / 25** |
-| 60-comment sample: precision | 0.17 (1 of 6 flagged) | 0.25 (1 of 4 flagged) |
-| 60-comment sample: recall | 0.14 (1 of 7) | 0.14 (1 of 7) |
+| | Rules | qwen3:8b | gpt-oss-120b |
+|---|---|---|---|
+| The 25 known false positives: still called a change | 25 / 25 | 3 / 25 | **2 / 25** |
+| 60-comment sample: precision | 0.17 (1 of 6 flagged) | 0.25 (1 of 4 flagged) | **1.00 (2 of 2 flagged)** |
+| 60-comment sample: recall | 0.14 (1 of 7) | 0.14 (1 of 7) | **0.29 (2 of 7)** |
+
+`--extractor llm` with the gpt-oss settings above → [`real_extraction_llm_openai-gpt-oss-120b.json`](../benchmark/results/real_extraction_llm_openai-gpt-oss-120b.json). The first run had 12 rate-limited calls fail (each would have counted as "no change"); the numbers are from a re-run with 0 failed calls.
 
 - **The rules fail** on code review and status (12 of 25), analysis that *asks* for a decision (6) and volunteer proposals (5).
 - **qwen3:8b mostly avoids those mistakes**, and the evidence guard discarded 2 of its extractions.
-- **Both miss the Go decisions,** which say "accepted" and "the proposal is to…".
-- **The qwen3 prompt names these failure patterns,** so its real-data numbers aren't fully independent.
+- **gpt-oss-120b flags little, and what it flags is right,** but it still misses 5 of the 7 real decisions.
+- **All three miss most of the Go decisions,** which say "accepted" and "the proposal is to…".
+- **The LLM prompt names these failure patterns,** so the qwen3 and gpt-oss real-data numbers aren't fully independent.
 
 ### 5. Noise: 500 messages that change nothing
 

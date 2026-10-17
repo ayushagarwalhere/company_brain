@@ -27,12 +27,15 @@ def nums(line: str) -> list[str]:
 def test_demo_qa_table_matches_result_files():
     rules = result("latest.json")["summary"]
     llm = result("latest_llm_qwen3-8b.json")["summary"]
+    oss = result("latest_llm_openai-gpt-oss-120b.json")["summary"]
     cases = [
         ("graph, rules agent", rules["graph (rules agent, no LLM)"]),
         ("retrieval top-3, extractive", rules["baseline (extractive top-3, no LLM)"]),
         ("retrieval top-25, extractive", rules["baseline (extractive top-25, no LLM)"]),
         ("graph, **LLM agent", llm["graph (LLM agent, qwen3:8b)"]),
         ("retrieval top-25 → **qwen3", llm["baseline (TF-IDF top-25 -> qwen3:8b)"]),
+        ("graph, **LLM agent (gpt-oss", oss["graph (LLM agent, openai/gpt-oss-120b)"]),
+        ("retrieval top-25 → **gpt-oss", oss["baseline (TF-IDF top-25 -> openai/gpt-oss-120b)"]),
     ]
     for label, s in cases:
         got = nums(row(label))

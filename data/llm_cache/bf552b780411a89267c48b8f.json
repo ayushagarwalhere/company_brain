@@ -1,0 +1,10 @@
+{
+ "is_change": true,
+ "kind": "requirement_change",
+ "old": null,
+ "new": "The Go toolchain will generate split DWARF on darwin, placing DWARF in a separate x.dSYM directory and not embedding it in the executable, with go build and go test -c generating both the executable and the dSYM directory, go install installing the executable without DWARF by default, and go clean removing the DWARF file when cleaning the executable.",
+ "evidence_quote": "- the Go toolchain will generate split DWARF on darwin, following the platform convention. The executable will not contain DWARF. The DWARF will be generated in a separate file in a `x.dSYM` directory for executable `x`.\n- `go build` and `go test -c` will generate the executable and the dSYM directory.\n- `go install` will by default install the executable without DWARF.\n- `go clean` will understand this naming convention and remove the DWARF file if it is invoked to remove the executable.",
+ "feature": null,
+ "ticket": null,
+ "confidence": 0.9
+}

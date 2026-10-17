@@ -1,0 +1,10 @@
+{
+ "is_change": true,
+ "kind": "requirement_change",
+ "old": "Bound-text containers currently grow the container when text overflows.",
+ "new": "Bound-text containers must optionally use a fitting behavior that shrinks text to fit within a fixed container size, controlled by an \"auto text size\" toggle and a fontSizeMax ceiling, instead of growing the container.",
+ "evidence_quote": "expose the same fitting behaviour to ordinary bound-text containers, opt-in per element rather than as a new default. The \"auto text size\" toggle in the text settings proposed above would be a natural switch, with `fontSizeMax` as the value it captures.",
+ "feature": null,
+ "ticket": null,
+ "confidence": 0.97
+}

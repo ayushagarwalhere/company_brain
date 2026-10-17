@@ -1,0 +1,10 @@
+{
+ "is_change": true,
+ "kind": "requirement_change",
+ "old": "RSA functions accepted keys of any size, including <1024 bits",
+ "new": "RSA functions must reject keys smaller than 1024 bits by returning an error from rsa.GenerateKey and all Sign, Verify, Encrypt, and Decrypt methods, unless GODEBUG=rsa1024min=0 is set",
+ "evidence_quote": "The proposal is to change crypto/rsa to reject <1024-bit RSA keys by default.\n- Return an error from rsa.GenerateKey if bits is less than 1024\n- Return an error from all Sign, Verify, Encrypt, and Decrypt methods if the key is smaller than 1024 bits",
+ "feature": "crypto/rsa",
+ "ticket": null,
+ "confidence": 0.97
+}

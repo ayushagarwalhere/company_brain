@@ -1,0 +1,734 @@
+{
+ "mode": "llm",
+ "grader": "required facts per question (benchmark/questions.json), whole-word match; a keyword list still passes, see README",
+ "extractor": "heuristic",
+ "summary": {
+  "graph (LLM agent, openai/gpt-oss-120b)": {
+   "mean_score": 0.844,
+   "passed": 11,
+   "questions": 15,
+   "mean_answer_chars": 395
+  },
+  "baseline (TF-IDF top-25 -> openai/gpt-oss-120b)": {
+   "mean_score": 0.711,
+   "passed": 8,
+   "questions": 15,
+   "mean_answer_chars": 423
+  }
+ },
+ "results": {
+  "graph (LLM agent, openai/gpt-oss-120b)": [
+   {
+    "id": "q01",
+    "q": "Which features have a requirement that was changed in chat but never reflected in the ticket?",
+    "answer": "The features that have a requirement changed in chat but never reflected in the ticket are:\n\n* **SLA breach notifications** – the chat decision (m_sla_05) changed the requirement, but the ticket BD‑103 still contains the old wording.  \n* **Ticket export to CSV** – the chat decision (m_exp_12) changed the requirement, but the ticket BD‑101 still contains the original wording.\n\nEvidence:\n- `(Person maya)-[:POSTED]->(Message m_sla_05 …)-[:CHANGES]->(Requirement \"Let's change it: …\")-[:AMENDS]->(Ticket BD-103)-[:ABOUT]->(Feature feat_sla_breach_notifications)`\n- `(Person maya)-[:POSTED]->(Message m_exp_12 …)-[:CHANGES]->(Requirement \"the export must support any custom date range …\")-[:AMENDS]->(Ticket BD-101)-[:ABOUT]->(Feature feat_ticket_export_to_csv)`",
+    "score": 1.0,
+    "hits": [
+     true,
+     true
+    ],
+    "forbidden": [
+     false
+    ],
+    "passed": true,
+    "chars": 761,
+    "seconds": 3.94,
+    "tools": [
+     {
+      "tool": "list_features",
+      "args": {},
+      "rows": 3
+     },
+     {
+      "tool": "drift_for_feature",
+      "args": {
+       "feature": ""
+      },
+      "rows": 0
+     },
+     {
+      "tool": "drift_for_feature",
+      "args": {
+       "feature": "feat_dark_mode"
+      },
+      "rows": 0
+     },
+     {
+      "tool": "drift_for_feature",
+      "args": {
+       "feature": "feat_sla_breach_notifications"
+      },
+      "rows": 1
+     },
+     {
+      "tool": "drift_for_feature",
+      "args": {
+       "feature": "feat_ticket_export_to_csv"
+      },
+      "rows": 1
+     }
+    ]
+   },
+   {
+    "id": "q02",
+    "q": "What is the current requirement for the ticket CSV export?",
+    "answer": "The current requirement for the ticket‑export‑to‑CSV feature (ticket BD‑101) is:\n\n*Export must support any custom date range up to 12 months (instead of a fixed 30 days) and must include all custom fields as extra columns.*\n\nEvidence:\n- (Decision dec:m_exp_12)-[:CHANGES]->(Requirement req:m_exp_12 @ 2026-09-22T09:40:00Z)-[:SUPERSEDES]->(Requirement req:BD-101:v2)",
+    "score": 0.5,
+    "hits": [
+     false,
+     true
+    ],
+    "forbidden": [],
+    "passed": false,
+    "chars": 365,
+    "seconds": 30.14,
+    "tools": [
+     {
+      "tool": "list_features",
+      "args": {},
+      "rows": 3
+     },
+     {
+      "tool": "decision_history",
+      "args": {
+       "feature": "feat_ticket_export_to_csv"
+      },
+      "rows": 8
+     }
+    ]
+   },
+   {
+    "id": "q03",
+    "q": "Does the export that shipped match what was decided? Which PR shipped it?",
+    "answer": "The export that shipped (PR #6) only implements the earlier requirement req:BD‑101:v2 (adds an **assignee** column). The later decision dec:m_exp_12 – to support any custom date range up to 12 months and include all custom fields – was never implemented.\n\n**Decision not fully shipped.**  \n**PR that shipped:** #6 (merged 2026‑09‑25).\n\nEvidence:\n- Decision dec:m_exp_12 supersedes req:BD‑101:v2 but has no PR implementing it.  \n- PR #6 implements req:BD‑101:v2 only.  \n\n```\n(Decision dec:m_exp_12)-[:CHANGES]->(Requirement req:m_exp_12 @ 2026-09-22T09:40:00Z)-[:SUPERSEDES]->(Requirement req:BD-101:v2)\n(PullRequest #6)-[:REFERENCES {via: hard}]->(Ticket BD-101)  implements req:BD-101:v2\n```",
+    "score": 0.667,
+    "hits": [
+     true,
+     false,
+     true
+    ],
+    "forbidden": [],
+    "passed": false,
+    "chars": 692,
+    "seconds": 38.62,
+    "tools": [
+     {
+      "tool": "list_features",
+      "args": {},
+      "rows": 3
+     },
+     {
+      "tool": "decision_history",
+      "args": {
+       "feature": "feat_ticket_export_to_csv"
+      },
+      "rows": 8
+     },
+     {
+      "tool": "feature_prs",
+      "args": {
+       "feature": "feat_ticket_export_to_csv"
+      },
+      "rows": 2
+     }
+    ]
+   },
+   {
+    "id": "q04",
+    "q": "Who decided that SLA warnings should go to Slack before the breach, and where was it decided?",
+    "answer": "Maya decided that SLA warnings should be posted to the team’s Slack channel before the breach. The decision was made in the engineering Discord channel.\n\nEvidence:\n(Person maya)-[:MADE]->(Decision dec:m_sla_05)-[:RECORDED_IN]->(Message @ discord#engineering)",
+    "score": 1.0,
+    "hits": [
+     true,
+     true
+    ],
+    "forbidden": [],
+    "passed": true,
+    "chars": 258,
+    "seconds": 29.36,
+    "tools": [
+     {
+      "tool": "(rejected tool call)",
+      "args": {},
+      "rows": 0
+     },
+     {
+      "tool": "list_features",
+      "args": {},
+      "rows": 3
+     },
+     {
+      "tool": "list_decisions",
+      "args": {
+       "feature": "feat_sla_breach_notifications"
+      },
+      "rows": 1
+     }
+    ]
+   },
+   {
+    "id": "q05",
+    "q": "What does BD-103 say and is it still accurate?",
+    "answer": "BD‑103 originally required “When a ticket breaches its SLA, send an email notification to the ticket’s assignee.” That requirement (req:BD‑103:v1) was later superseded by a chat decision (dec:m_sla_05) on 2026‑09‑17 that changed it to “send the warning 15 minutes BEFORE the breach, post it to the team’s Slack channel, and drop email notifications entirely.” No PR has implemented the new requirement, so the ticket’s text is no longer accurate.\n\n**Evidence:**\n- (Ticket BD-103)-[:STATES]->(Requirement req:BD-103:v1 @ 2026-09-14T06:20:00Z) <-[:IMPLEMENTS]- PR [5]  \n- (Decision dec:m_sla_05)-[:CHANGES]->(Requirement req:m_sla_05 @ 2026-09-17T05:31:00Z)-[:SUPERSEDES]->(Requirement req:BD-103:v1)",
+    "score": 1.0,
+    "hits": [
+     true,
+     true,
+     true
+    ],
+    "forbidden": [],
+    "passed": true,
+    "chars": 698,
+    "seconds": 22.18,
+    "tools": [
+     {
+      "tool": "list_features",
+      "args": {},
+      "rows": 3
+     },
+     {
+      "tool": "decision_history",
+      "args": {
+       "feature": "feat_sla_breach_notifications"
+      },
+      "rows": 6
+     }
+    ]
+   },
+   {
+    "id": "q06",
+    "q": "Which pull request implemented the SLA notifications, and did it follow the latest decision?",
+    "answer": "The SLA breach notifications were implemented by Pull Request #5 (“SLA breach email notifications”). The latest decision (dec:m_sla_05, 2026‑09‑17) changed the approach to send a warning 15 minutes before the breach and post it to Slack, dropping email entirely. PR #5 still implements email notifications, so it does **not** follow the latest decision.\n\n**Evidence:**\n- (PullRequest #5)-[:REFERENCES {via: hard}]->(Ticket BD-103)  \n- (Person maya)-[:MADE]->(Decision dec:m_sla_05)-[:RECORDED_IN]->(Message @ discord#engineering)",
+    "score": 1.0,
+    "hits": [
+     true,
+     true,
+     true
+    ],
+    "forbidden": [],
+    "passed": true,
+    "chars": 529,
+    "seconds": 23.2,
+    "tools": [
+     {
+      "tool": "list_features",
+      "args": {},
+      "rows": 3
+     },
+     {
+      "tool": "feature_prs",
+      "args": {
+       "feature": "feat_sla_breach_notifications"
+      },
+      "rows": 3
+     },
+     {
+      "tool": "list_decisions",
+      "args": {
+       "feature": "feat_sla_breach_notifications"
+      },
+      "rows": 1
+     }
+    ]
+   },
+   {
+    "id": "q07",
+    "q": "Was the dark mode toggle placement change written back into the ticket?",
+    "answer": "Yes. The placement change (“the theme toggle lives in Settings > Appearance, not in the navbar”) was added back into ticket BD‑105, creating a new requirement version (req:BD‑105:v2) that supersedes the earlier version.\n\n**Evidence:**\n- (Message m_dark_05) → (Requirement req:m_dark_05 @ 2026‑10‑02T06:00:00Z) → supersedes (req:BD‑105:v1)  \n- (Ticket BD‑105) → (Requirement req:BD‑105:v2 @ 2026‑10‑02T06:05:00Z) supersedes (req:m_dark_05)  \n\nThese paths show the chat decision was recorded and the ticket was updated accordingly.",
+    "score": 1.0,
+    "hits": [
+     true,
+     true
+    ],
+    "forbidden": [],
+    "passed": true,
+    "chars": 529,
+    "seconds": 17.38,
+    "tools": [
+     {
+      "tool": "list_features",
+      "args": {},
+      "rows": 3
+     },
+     {
+      "tool": "decision_history",
+      "args": {
+       "feature": "feat_dark_mode"
+      },
+      "rows": 5
+     }
+    ]
+   },
+   {
+    "id": "q08",
+    "q": "Is there any drift on the dark mode feature?",
+    "answer": "There is no recorded drift for the dark mode feature.  \n\nEvidence:\n- No drift entries returned for `feat_dark_mode`.",
+    "score": 1.0,
+    "hits": [
+     true
+    ],
+    "forbidden": [],
+    "passed": true,
+    "chars": 116,
+    "seconds": 18.67,
+    "tools": [
+     {
+      "tool": "list_features",
+      "args": {},
+      "rows": 3
+     },
+     {
+      "tool": "drift_for_feature",
+      "args": {
+       "feature": "feat_dark_mode"
+      },
+      "rows": 0
+     }
+    ]
+   },
+   {
+    "id": "q09",
+    "q": "Which PR added the export button, and which ticket does it belong to?",
+    "answer": "The export button was added by PR #7, which implements the requirement from ticket **BD‑102**.  \n\nEvidence:\n- (Ticket BD-102)-[:STATES]->(Requirement req:BD-102:v1 @ 2026-09-14T05:00:00Z) <-[:IMPLEMENTS]- PR [7]",
+    "score": 1.0,
+    "hits": [
+     true,
+     true
+    ],
+    "forbidden": [],
+    "passed": true,
+    "chars": 211,
+    "seconds": 20.88,
+    "tools": [
+     {
+      "tool": "list_features",
+      "args": {},
+      "rows": 3
+     },
+     {
+      "tool": "decision_history",
+      "args": {
+       "feature": "feat_ticket_export_to_csv"
+      },
+      "rows": 8
+     }
+    ]
+   },
+   {
+    "id": "q10",
+    "q": "Who knows the most about the ticket export feature?",
+    "answer": "Maya Chen knows the most about the ticket export feature.  \n\nEvidence:\n(Person maya)-[:POSTED|AUTHORED|MADE]->(11 items)-[:ABOUT]->(Feature feat_ticket_export_to_csv)",
+    "score": 1.0,
+    "hits": [
+     true
+    ],
+    "forbidden": [],
+    "passed": true,
+    "chars": 166,
+    "seconds": 12.25,
+    "tools": [
+     {
+      "tool": "list_features",
+      "args": {},
+      "rows": 3
+     },
+     {
+      "tool": "who_knows",
+      "args": {
+       "feature": "feat_ticket_export_to_csv"
+      },
+      "rows": 5
+     }
+    ]
+   },
+   {
+    "id": "q11",
+    "q": "Was XLSX export agreed as a requirement?",
+    "answer": "No, XLSX export was never agreed as a requirement.  \n\nEvidence: (no relevant paths found)",
+    "score": 1.0,
+    "hits": [
+     true,
+     true
+    ],
+    "forbidden": [],
+    "passed": true,
+    "chars": 89,
+    "seconds": 21.81,
+    "tools": [
+     {
+      "tool": "list_features",
+      "args": {},
+      "rows": 3
+     },
+     {
+      "tool": "decision_history",
+      "args": {
+       "feature": "feat_ticket_export_to_csv"
+      },
+      "rows": 8
+     }
+    ]
+   },
+   {
+    "id": "q12",
+    "q": "What changed in the export requirements on 15 September, and was it shipped?",
+    "answer": "On 15 September a chat decision (dec:m_exp_06) added an **assignee column** to the ticket‑export CSV (it superseded the original requirement). The updated requirement (req:BD‑101:v2) was implemented by PR #6, so the change was shipped.  \n\n**Evidence:**  \n- (Decision dec:m_exp_06)-[:CHANGES]->(Requirement req:m_exp_06 @ 2026-09-15T08:40:00Z)-[:SUPERSEDES]->(Requirement req:BD-101:v1)  \n- (Ticket BD-101)-[:STATES]->(Requirement req:BD-101:v2 @ 2026-09-15T10:30:00Z)-[:SUPERSEDES]->(Requirement req:m_exp_06) <-[:IMPLEMENTS]- PR [6]",
+    "score": 1.0,
+    "hits": [
+     true,
+     true
+    ],
+    "forbidden": [],
+    "passed": true,
+    "chars": 533,
+    "seconds": 21.37,
+    "tools": [
+     {
+      "tool": "list_features",
+      "args": {},
+      "rows": 3
+     },
+     {
+      "tool": "decision_history",
+      "args": {
+       "feature": "feat_ticket_export_to_csv"
+      },
+      "rows": 8
+     }
+    ]
+   },
+   {
+    "id": "q13",
+    "q": "Who owns BD-101 and which decision makes their shipped work stale?",
+    "answer": "BD-101 is owned by **Maya Chen**. The decision **dec:m_exp_12** (add custom date range and all custom fields) supersedes the last implemented requirement (req:BD‑101:v2), making any work shipped under that requirement stale.\n\n**Evidence:**\n- (Ticket BD-101)<-[:AUTHORED]-(Person maya)  \n- (Decision dec:m_exp_12)-[:CHANGES]->(Requirement req:m_exp_12 @ 2026-09-22T09:40:00Z)-[:SUPERSEDES]->(Requirement req:BD-101:v2)",
+    "score": 0.5,
+    "hits": [
+     false,
+     true
+    ],
+    "forbidden": [],
+    "passed": false,
+    "chars": 417,
+    "seconds": 54.89,
+    "tools": [
+     {
+      "tool": "list_features",
+      "args": {},
+      "rows": 3
+     },
+     {
+      "tool": "decision_history",
+      "args": {
+       "feature": "feat_ticket_export_to_csv"
+      },
+      "rows": 8
+     },
+     {
+      "tool": "who_knows",
+      "args": {
+       "feature": "feat_ticket_export_to_csv"
+      },
+      "rows": 5
+     },
+     {
+      "tool": "how_connected",
+      "args": {
+       "a": "BD-101",
+       "b": "maya"
+      },
+      "rows": 1
+     }
+    ]
+   },
+   {
+    "id": "q14",
+    "q": "List the decisions made in Sprint 1 that are not shipped.",
+    "answer": "I don’t know.",
+    "score": 0.0,
+    "hits": [
+     false,
+     false
+    ],
+    "forbidden": [
+     false
+    ],
+    "passed": false,
+    "chars": 13,
+    "seconds": 16.94,
+    "tools": [
+     {
+      "tool": "(rejected tool call)",
+      "args": {},
+      "rows": 0
+     },
+     {
+      "tool": "list_features",
+      "args": {},
+      "rows": 3
+     }
+    ]
+   },
+   {
+    "id": "q15",
+    "q": "Which tickets and PRs are affected by the decision to send SLA warnings 15 minutes before breach?",
+    "answer": "The decision to send SLA warnings 15 minutes before a breach modifies the requirement for **ticket BD‑103**. The original version of that ticket was already implemented by **PR #5**, so that PR is now affected by the change.\n\n**Answer:** Ticket BD‑103 and PR #5 are affected by the decision.\n\n**Evidence:**\n- (Decision dec:m_sla_05)-[:CHANGES]->(Requirement req:m_sla_05 @ 2026-09-17T05:31:00Z)-[:SUPERSEDES]->(Requirement req:BD-103:v1)\n- (Ticket BD-103)-[:STATES]->(Requirement req:BD-103:v1 @ 2026-09-14T06:20:00Z) <-[:IMPLEMENTS]- PR [5]",
+    "score": 1.0,
+    "hits": [
+     true,
+     true
+    ],
+    "forbidden": [],
+    "passed": true,
+    "chars": 541,
+    "seconds": 17.1,
+    "tools": [
+     {
+      "tool": "list_features",
+      "args": {},
+      "rows": 3
+     },
+     {
+      "tool": "decision_history",
+      "args": {
+       "feature": "feat_sla_breach_notifications"
+      },
+      "rows": 6
+     }
+    ]
+   }
+  ],
+  "baseline (TF-IDF top-25 -> openai/gpt-oss-120b)": [
+   {
+    "id": "q01",
+    "q": "Which features have a requirement that was changed in chat but never reflected in the ticket?",
+    "answer": "- **BD‑104** – The design chat on 2026‑09‑14 said “settings page where admins set SLA hours per priority,” but there is no ticket for BD‑104, so the requirement never made it into a ticket.  \n\n- **BD‑105** – The design chat on 2026‑09‑29 said “keep System and make it the default, exactly as BD‑105 says,” yet no ticket for BD‑105 exists, so that requirement was never captured in a ticket.  \n\nThese two features have requirements that were discussed in chat but never appear in any ticket record.",
+    "score": 0.5,
+    "hits": [
+     false,
+     true
+    ],
+    "forbidden": [
+     false
+    ],
+    "passed": false,
+    "chars": 497,
+    "seconds": 6.55,
+    "tools": null
+   },
+   {
+    "id": "q02",
+    "q": "What is the current requirement for the ticket CSV export?",
+    "answer": "The export must let **admins** download a CSV of tickets created in the **last 30 days**.  \nThe CSV file must contain the columns:\n\n* **id**  \n* **subject**  \n* **status**  \n* **created_at**  \n* **assignee**  \n\n(These columns were added after the support‑escalations request on 2026‑09‑15.)",
+    "score": 0.0,
+    "hits": [
+     false,
+     false
+    ],
+    "forbidden": [],
+    "passed": false,
+    "chars": 290,
+    "seconds": 0.81,
+    "tools": null
+   },
+   {
+    "id": "q03",
+    "q": "Does the export that shipped match what was decided? Which PR shipped it?",
+    "answer": "The shipped export is the one built in **PR #6** (the “CSV export endpoint”) and wired up by **PR #7** (the “Add export button to ticket list”).  \n\n- It streams tickets created in the **last 30 days** (as specified in the original ticket BD‑101).  \n- It includes the **assignee** column, which was added after the support‑escalations request (see Maya’s update to BD‑101).  \n\nSo the export matches the agreed‑upon column set (id, subject, status, created_at, **assignee**), but it does **not** meet the later request for a 12‑month range or custom fields. The code that shipped the feature is PR #6 (endpoint) together with PR #7 (button).",
+    "score": 0.333,
+    "hits": [
+     true,
+     false,
+     false
+    ],
+    "forbidden": [],
+    "passed": false,
+    "chars": 639,
+    "seconds": 7.74,
+    "tools": null
+   },
+   {
+    "id": "q04",
+    "q": "Who decided that SLA warnings should go to Slack before the breach, and where was it decided?",
+    "answer": "The change was proposed by **maya** on **2026‑09‑17** in the **discord #engineering** channel, where she wrote: “send the warning 15 minutes BEFORE the breach, and post it to the team's Slack channel instead of email.”",
+    "score": 1.0,
+    "hits": [
+     true,
+     true
+    ],
+    "forbidden": [],
+    "passed": true,
+    "chars": 218,
+    "seconds": 8.34,
+    "tools": null
+   },
+   {
+    "id": "q05",
+    "q": "What does BD-103 say and is it still accurate?",
+    "answer": "**BD‑103 description**  \n- *“SLA breach notifications: When a ticket breaches its SLA, send an email notification to the ticket’s assignee.”*  \n\n**Is it still accurate?**  \nYes. The ticket is marked **Done** (assigned to dev, sprint s1) and the functionality was delivered in PR #5 (“SLA breach email notifications”), which implements exactly that behavior. No later messages indicate any change to the requirement.",
+    "score": 0.333,
+    "hits": [
+     true,
+     false,
+     false
+    ],
+    "forbidden": [],
+    "passed": false,
+    "chars": 415,
+    "seconds": 7.52,
+    "tools": null
+   },
+   {
+    "id": "q06",
+    "q": "Which pull request implemented the SLA notifications, and did it follow the latest decision?",
+    "answer": "The SLA‑notification feature was delivered in **PR #5** (by dev, merged 2026‑09‑24 – it closes BD‑103).  \n\nThe latest decision (made 2026‑09‑17) was to **warn 15 minutes before a breach and post the alert to the team’s Slack channel, dropping email notifications entirely**. PR #5 still implements the original “email when a ticket breaches its SLA” behavior, so it does **not** follow the most recent decision.",
+    "score": 1.0,
+    "hits": [
+     true,
+     true,
+     true
+    ],
+    "forbidden": [],
+    "passed": true,
+    "chars": 411,
+    "seconds": 14.88,
+    "tools": null
+   },
+   {
+    "id": "q07",
+    "q": "Was the dark mode toggle placement change written back into the ticket?",
+    "answer": "Yes. After the design review Priya updated **BD‑105** to specify that the theme toggle lives in **Settings > Appearance** (instead of the navbar). The ticket now reflects that placement change.",
+    "score": 1.0,
+    "hits": [
+     true,
+     true
+    ],
+    "forbidden": [],
+    "passed": true,
+    "chars": 193,
+    "seconds": 9.42,
+    "tools": null
+   },
+   {
+    "id": "q08",
+    "q": "Is there any drift on the dark mode feature?",
+    "answer": "Based on the available records, the dark‑mode work is fully aligned with its ticket:\n\n* **Ticket BD‑105** (assigned to kenji, sprint S2) is marked **Done** and its description matches the final implementation.\n* **PR #12** (created 2026‑10‑07, merged 2026‑10‑08) explicitly **closes BD‑105** and implements the Light / Dark / System toggle in Settings > Appearance, with System as the default (following the OS theme).\n* A follow‑up note from priya on 2026‑10‑08 confirms the build “matches the ticket” and is being shipped.\n\nNo subsequent comments or tickets indicate any deviation or regression, so there is **no reported drift** on the dark‑mode feature.",
+    "score": 1.0,
+    "hits": [
+     true
+    ],
+    "forbidden": [],
+    "passed": true,
+    "chars": 657,
+    "seconds": 9.95,
+    "tools": null
+   },
+   {
+    "id": "q09",
+    "q": "Which PR added the export button, and which ticket does it belong to?",
+    "answer": "The export‑button work is in **PR #7** (by kenji, created 2026‑09‑30, merged 2026‑10‑01). It implements the functionality described in **ticket BD‑102** (“Export button in ticket list view”).",
+    "score": 0.5,
+    "hits": [
+     true,
+     false
+    ],
+    "forbidden": [],
+    "passed": false,
+    "chars": 191,
+    "seconds": 9.49,
+    "tools": null
+   },
+   {
+    "id": "q10",
+    "q": "Who knows the most about the ticket export feature?",
+    "answer": "Sofia — she built the export endpoint, authored PR #6 (the core CSV export implementation), and is the current assignee of the export‑related tickets (BD‑101, BD‑108, BD‑112). Her work covers the backend logic, performance considerations and the known bugs, so she has the deepest knowledge of the feature.",
+    "score": 1.0,
+    "hits": [
+     true
+    ],
+    "forbidden": [],
+    "passed": true,
+    "chars": 306,
+    "seconds": 8.65,
+    "tools": null
+   },
+   {
+    "id": "q11",
+    "q": "Was XLSX export agreed as a requirement?",
+    "answer": "No. The team discussed offering XLSX (kenji 06/23) but Maya explicitly said “Not this quarter. CSV with UTF‑8 BOM should fix the Excel encoding issue. Let’s park XLSX.” So XLSX export was not agreed to be a requirement.",
+    "score": 1.0,
+    "hits": [
+     true,
+     true
+    ],
+    "forbidden": [],
+    "passed": true,
+    "chars": 219,
+    "seconds": 8.64,
+    "tools": null
+   },
+   {
+    "id": "q12",
+    "q": "What changed in the export requirements on 15 September, and was it shipped?",
+    "answer": "On 15 September the export spec was expanded – the team added an **assignee column** to the CSV (see Maya’s note in the support‑escalations channel and the ticket history for BD‑101, which shows the column added on 2026‑09‑15).  \n\nThat change was shipped: PR #6 (by Sofia) – “BD‑101: CSV export endpoint” – was merged on 2026‑09‑25 and the endpoint now streams tickets with the columns **id, subject, status, created_at, assignee**.",
+    "score": 1.0,
+    "hits": [
+     true,
+     true
+    ],
+    "forbidden": [],
+    "passed": true,
+    "chars": 432,
+    "seconds": 10.64,
+    "tools": null
+   },
+   {
+    "id": "q13",
+    "q": "Who owns BD-101 and which decision makes their shipped work stale?",
+    "answer": "- **Owner of BD‑101:** Sofia (she took the backend work and authored PR #6 that shipped the CSV‑export endpoint).  \n\n- **Decision that now makes that shipped work stale:** The 2026‑09‑22 decision that the export must support any custom date range up to 12 months and include all custom fields as extra columns. That expands the scope far beyond the original “last 30 days with fixed columns” implemented in PR #6.",
+    "score": 1.0,
+    "hits": [
+     true,
+     true
+    ],
+    "forbidden": [],
+    "passed": true,
+    "chars": 413,
+    "seconds": 5.39,
+    "tools": null
+   },
+   {
+    "id": "q14",
+    "q": "List the decisions made in Sprint 1 that are not shipped.",
+    "answer": "**Sprint 1 – decisions that have not yet been shipped**\n\n- **Export date‑range & custom‑field decision (2026‑09‑22)** – Maya announced that the ticket‑export feature must support any custom date range up to 12 months (instead of a fixed 30‑day window) and must include all custom fields as extra CSV columns. This change has not been implemented in the shipped export button (BD‑102) yet.",
+    "score": 0.5,
+    "hits": [
+     false,
+     true
+    ],
+    "forbidden": [
+     false
+    ],
+    "passed": false,
+    "chars": 388,
+    "seconds": 10.14,
+    "tools": null
+   },
+   {
+    "id": "q15",
+    "q": "Which tickets and PRs are affected by the decision to send SLA warnings 15 minutes before breach?",
+    "answer": "The change to **send a Slack warning 15 minutes before a ticket’s SLA breach** directly impacts the work that was already done for the original “email‑at‑breach” flow:\n\n| Ticket | Current state | Why it’s affected |\n|--------|---------------|-------------------|\n| **BD‑103** – “SLA breach notifications: When a ticket breaches its SLA, send an email notification to the ticket’s assignee.” | Done (assignee dev, sprint s1) | The ticket’s definition (email at breach) is now out‑of‑date; it needs to be revised to “send a Slack warning 15 min before breach (no email).” |\n| **PR #5** – “SLA breach email notifications” (created 2026‑09‑23, merged 2026‑09‑24) | Merged, closes BD‑103 | This PR implements the email‑at‑breach behavior that the new decision discards, so the code it introduced will have to be changed (or a new PR added) to send the pre‑breach Slack message instead. |\n\nNo other tickets or PRs currently reference the breach‑time notification logic, so only **BD‑103** and **PR #5** are directly affected by the decision to warn 15 minutes before the breach.",
+    "score": 0.5,
+    "hits": [
+     false,
+     true
+    ],
+    "forbidden": [],
+    "passed": false,
+    "chars": 1072,
+    "seconds": 9.21,
+    "tools": null
+   }
+  ]
+ },
+ "model": "openai/gpt-oss-120b"
+}

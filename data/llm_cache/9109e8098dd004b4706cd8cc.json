@@ -1,0 +1,10 @@
+{
+ "is_change": true,
+ "kind": "requirement_change",
+ "old": "Picking a color from the properties panel while editing text closed the editor.",
+ "new": "Picking a color from the properties panel while editing text now applies the color without closing the editor.",
+ "evidence_quote": "picking a color from the properties panel while editing text now applies it instead of closing the editor",
+ "feature": null,
+ "ticket": "8012",
+ "confidence": 0.95
+}
