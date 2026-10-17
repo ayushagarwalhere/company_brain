@@ -85,6 +85,12 @@
 .steps2__n { color: var(--note); font-size: 11px; }
 .steps2__rows { margin-left: auto; color: var(--muted); font-size: 11px; white-space: nowrap; }
 .console__paths { padding-left: 42px; padding-bottom: 8px; }
+.console__paths summary { cursor: pointer; list-style: none; display: inline-flex; gap: 8px; color: var(--muted); }
+.console__paths summary::-webkit-details-marker { display: none; }
+.console__paths summary::after { content: "▾"; }
+.console__paths[open] summary::after { content: "▴"; }
+.console__paths[open] summary { margin-bottom: 12px; }
+.console__paths summary:hover { color: var(--ink); }
 .console__prompt { margin: 0; padding: 6px 16px; border-bottom: 0; border-top: 1px solid var(--line); }
 .console__prompt input { font-size: 18px; }
 

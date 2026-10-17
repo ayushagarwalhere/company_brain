@@ -87,7 +87,12 @@ export function AskSection() {
                     ))}
                   </ol>
                 )}
-                {res.paths.length > 0 && <div className="console__paths"><div className="mono kicker">Graph paths used</div>{res.paths.slice(0, 4).map((p) => <PathChips key={p} path={p} />)}</div>}
+                {res.paths.length > 0 && (
+                  <details className="console__paths">
+                    <summary className="mono kicker">Graph paths used ({Math.min(res.paths.length, 4)})</summary>
+                    {res.paths.slice(0, 4).map((p) => <PathChips key={p} path={p} />)}
+                  </details>
+                )}
               </motion.div>
             )}
           </AnimatePresence>

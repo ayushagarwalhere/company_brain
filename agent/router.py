@@ -232,13 +232,17 @@ def drift_lines(ctx: Ctx) -> list[str]:
     drift = ctx.run("drift_for_feature", **({"feature": ctx.feature["id"]} if ctx.feature else {}))
     lines = []
     for d in drift:
-        lines.append(
-            f"DRIFT on {d['feature_name']}: {d['changed_by']} decided \"{d['requirement_text']}\" on "
-            f"{d['changed_at'][:10]} ({d['source']} #{d['channel']}), but {d['ticket']} still says "
-            f"\"{d['ticket_text']}\". PRs that shipped the old version: {stale_pr_list(d)}."
-            + (f" Unmatched, may implement the new scope: {', '.join('#' + str(p['pr']) for p in d['unmatched_prs'])}." if d.get("unmatched_prs") else "")
-            + (f" Docs still describing the old version: {', '.join(x['title'] for x in d['stale_docs'])}." if d["stale_docs"] else "")
-        )
+        # one fact per line, so the answer reads as a short list rather than a paragraph
+        lines += [
+            f"DRIFT on {d['feature_name']}.",
+            f"Decided: \"{d['requirement_text']}\" ({d['changed_by']}, {d['changed_at'][:10]}, {d['source']} #{d['channel']}).",
+            f"{d['ticket']} still says: \"{d['ticket_text']}\"",
+            f"PRs that shipped the old version: {stale_pr_list(d)}.",
+        ]
+        if d.get("unmatched_prs"):
+            lines.append(f"Unmatched, may implement the new scope: {', '.join('#' + str(p['pr']) for p in d['unmatched_prs'])}.")
+        if d["stale_docs"]:
+            lines.append(f"Docs still describing the old version: {', '.join(x['title'] for x in d['stale_docs'])}.")
     if not drift:
         lines.append(f"No open drift on {ctx.feature['name']}: its tickets and PRs match the latest decision." if ctx.feature else "No open drift.")
     return lines
