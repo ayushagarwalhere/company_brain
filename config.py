@@ -51,6 +51,7 @@ class Settings:
     llm_model: str = _get("LLM_MODEL") or _get("DEEPSEEK_MODEL", "deepseek-chat")
     llm_api_key: str = _get("LLM_API_KEY") or _get("DEEPSEEK_API_KEY")
     llm_reasoning_effort: str = _get("LLM_REASONING_EFFORT")
+    llm_max_retries: int = int(_get("LLM_MAX_RETRIES", "2"))  # raise for rate-limited free tiers (Groq: 10)
 
 
 settings = Settings()

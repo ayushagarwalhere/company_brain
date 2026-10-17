@@ -1,11 +1,12 @@
 """Container entrypoint: wait for FalkorDB, build the graph if it's empty, start the API.
 
+EXTRACTOR=heuristic|deepseek|oracle overrides the automatic choice (Render uses heuristic
+so the free instance boots in seconds instead of making ~300 LLM calls first).
+
     python -m scripts.serve
 
-Extraction uses DeepSeek when DEEPSEEK_API_KEY is set. Cached LLM results in
-data/llm_cache/ are reused, so a committed cache reproduces the published run
-without a key. With neither, it falls back to the rule-based heuristic extractor,
-and the dashboard says which one built the graph.
+Extraction uses the configured LLM when one answers, otherwise the rule-based heuristic
+extractor; the dashboard says which one built the graph.
 """
 
 import os
@@ -15,7 +16,6 @@ import uvicorn
 
 from config import settings
 from graph.db import get_db, get_graph
-from pipeline.llm import CACHE_DIR
 
 
 def wait_for_db(timeout: int = 60):
@@ -39,19 +39,13 @@ def ensure_graph():
     if n and not os.getenv("REBUILD"):
         print(f"graph '{settings.falkordb_graph}' already built")
         return
-    from pipeline.ingest import ingest
-    from pipeline.resolve import resolve
-
-    has_cache = CACHE_DIR.exists() and any(CACHE_DIR.glob("*.json"))
     from pipeline import llm
+    from pipeline.build import build_graph
 
-    extractor = "deepseek" if (llm.available() or has_cache) else "heuristic"
+    # an LLM only when one actually answers; the committed cache holds qwen3 answers, so it can't stand in for DeepSeek
+    extractor = os.getenv("EXTRACTOR") or ("llm" if llm.available() else "heuristic")
     print(f"building graph with {extractor} extraction ...")
-    ingest(reset=True)
-    resolve(get_graph(), extractor)
-    from pipeline.build import mark_build
-
-    mark_build(get_graph(), extractor)
+    build_graph(extractor=extractor)
 
 
 if __name__ == "__main__":

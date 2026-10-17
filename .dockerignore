@@ -1,0 +1,16 @@
+# Secrets never go into the image
+.env
+.env.*
+
+.git
+.venv
+venv
+__pycache__
+*.pyc
+.pytest_cache
+web/node_modules
+web/dist
+data/seed_maps
+benchmark/results/*.local.json
+docs/*.png
+docs/*.gif

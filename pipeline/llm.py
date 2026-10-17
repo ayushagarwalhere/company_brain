@@ -25,7 +25,8 @@ def _client():
 
     if not settings.llm_api_key:
         raise RuntimeError("no LLM key set (LLM_API_KEY or DEEPSEEK_API_KEY)")
-    return OpenAI(api_key=settings.llm_api_key, base_url=settings.llm_base_url)
+    # free tiers rate-limit hard (Groq: 8k tokens/min); the SDK backs off on 429 using Retry-After
+    return OpenAI(api_key=settings.llm_api_key, base_url=settings.llm_base_url, max_retries=settings.llm_max_retries)
 
 
 def _extra() -> dict:

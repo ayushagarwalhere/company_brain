@@ -1,0 +1,28 @@
+# Render Blueprint: dashboard.render.com -> New -> Blueprint -> pick this repo.
+# One free web service running the self-contained Docker image (FalkorDB + API + dashboard).
+# Public sandbox: no INGEST_TOKEN, so visitors can resolve drifts and simulate messages; every restart
+# (including the free tier waking from sleep) rebuilds the graph from the synthetic company, which resets it.
+services:
+  - type: web
+    name: drift-monitor
+    runtime: docker
+    plan: free
+    dockerfilePath: ./Dockerfile
+    healthCheckPath: /api/health
+    autoDeploy: true
+    envVars:
+      - key: FALKORDB_GRAPH
+        value: company_brain
+      # Boot with the rules extractor so the free instance starts in seconds.
+      - key: EXTRACTOR
+        value: heuristic
+      # Optional, set in the Render dashboard: any OpenAI-compatible model for the Q&A agent
+      # (e.g. Groq: https://api.groq.com/openai/v1, openai/gpt-oss-120b). Without one, the rules agent answers.
+      - key: LLM_BASE_URL
+        sync: false
+      - key: LLM_MODEL
+        sync: false
+      - key: LLM_API_KEY
+        sync: false
+      - key: LLM_MAX_RETRIES
+        value: "10"
