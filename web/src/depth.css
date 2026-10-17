@@ -81,5 +81,5 @@
 :root[data-theme="light"] .violation, :root[data-theme="light"] .console, :root[data-theme="light"] .chat, :root[data-theme="light"] .gpanel,
 :root[data-theme="light"] .canvas, :root[data-theme="light"] .timeline, :root[data-theme="light"] .rt-row, :root[data-theme="light"] .cov2,
 :root[data-theme="light"] .specdoc { box-shadow: 0 24px 60px -40px rgb(var(--sh, 167 139 250) / .55); }
-:root[data-theme="light"] .sec__bar > span:first-child { color: color-mix(in srgb, var(--sh-c) 45%%, var(--ink)); }
-:root[data-theme="light"] .sec__num { -webkit-text-stroke-color: color-mix(in srgb, var(--sh-c) 60%%, var(--ink)); opacity: .5; }
+:root[data-theme="light"] .sec__bar > span:first-child { color: color-mix(in srgb, var(--sh-c) 45%, var(--ink)); }
+:root[data-theme="light"] .sec__num { -webkit-text-stroke-color: color-mix(in srgb, var(--sh-c) 60%, var(--ink)); opacity: .5; }
