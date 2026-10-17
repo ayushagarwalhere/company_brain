@@ -69,7 +69,7 @@ RETURN f.id AS feature, f.name AS feature_name, t.id AS ticket, t.title AS ticke
 ORDER BY changed_ms
 ```
 
-Used by: [`agent/retro.py`](../agent/retro.py), [`agent/tools.py`](../agent/tools.py), [`api/main.py`](../api/main.py), [`benchmark/noise.py`](../benchmark/noise.py), [`benchmark/real_data.py`](../benchmark/real_data.py), [`benchmark/scale.py`](../benchmark/scale.py), [`benchmark/score_resolution.py`](../benchmark/score_resolution.py), [`benchmark/sql_baseline.py`](../benchmark/sql_baseline.py), [`bots/commands.py`](../bots/commands.py), [`bots/digest.py`](../bots/digest.py), [`graph/explore.py`](../graph/explore.py), [`pipeline/actions.py`](../pipeline/actions.py), [`pipeline/build.py`](../pipeline/build.py), [`pipeline/impact.py`](../pipeline/impact.py), [`pipeline/live.py`](../pipeline/live.py), [`pipeline/teamsync.py`](../pipeline/teamsync.py), [`pipeline/webhooks.py`](../pipeline/webhooks.py), [`pipeline/work.py`](../pipeline/work.py)
+Used by: [`agent/mcp_server.py`](../agent/mcp_server.py), [`agent/retro.py`](../agent/retro.py), [`agent/tools.py`](../agent/tools.py), [`api/main.py`](../api/main.py), [`benchmark/noise.py`](../benchmark/noise.py), [`benchmark/real_data.py`](../benchmark/real_data.py), [`benchmark/scale.py`](../benchmark/scale.py), [`benchmark/score_resolution.py`](../benchmark/score_resolution.py), [`benchmark/sql_baseline.py`](../benchmark/sql_baseline.py), [`bots/commands.py`](../bots/commands.py), [`bots/digest.py`](../bots/digest.py), [`graph/explore.py`](../graph/explore.py), [`pipeline/actions.py`](../pipeline/actions.py), [`pipeline/build.py`](../pipeline/build.py), [`pipeline/impact.py`](../pipeline/impact.py), [`pipeline/live.py`](../pipeline/live.py), [`pipeline/teamsync.py`](../pipeline/teamsync.py), [`pipeline/tryrepo.py`](../pipeline/tryrepo.py), [`pipeline/webhooks.py`](../pipeline/webhooks.py), [`pipeline/work.py`](../pipeline/work.py)
 
 ## SPRINT_DECISIONS
 
@@ -147,7 +147,7 @@ RETURN t.id AS ticket, r.id AS requirement, r.text AS text, r.at AS at, r.origin
 ORDER BY ticket, at_ms
 ```
 
-Used by: [`agent/tools.py`](../agent/tools.py)
+Used by: [`agent/mcp_server.py`](../agent/mcp_server.py), [`agent/tools.py`](../agent/tools.py)
 
 ## WHO_KNOWS
 
@@ -162,7 +162,7 @@ RETURN p.id AS person, p.name AS name, p.role AS role, sum(w) AS score, count(x)
 ORDER BY score DESC
 ```
 
-Used by: [`agent/tools.py`](../agent/tools.py), [`pipeline/work.py`](../pipeline/work.py)
+Used by: [`agent/mcp_server.py`](../agent/mcp_server.py), [`agent/tools.py`](../agent/tools.py), [`pipeline/work.py`](../pipeline/work.py)
 
 ## DECISION_IMPACT
 

@@ -110,7 +110,7 @@ export function Connect() {
   return (
     <section className="ch" id="connect">
       <Reveal className="ch__head">
-        <div className="hs__idx"><b>07</b><span>—</span><span>Connect</span></div>
+        <div className="hs__idx"><b>08</b><span>—</span><span>Connect</span></div>
         <h2>Bring your own team. <span className="muted">Two clicks.</span></h2>
         <p>Add the bot to your Slack workspace or Discord server. It reads the channels you pick, links each message into your team's own private graph, and speaks up in the thread when a decision never made it into the work.</p>
       </Reveal>

@@ -189,6 +189,44 @@ PRs come from GitHub whichever tracker is used: "Fixes ENG-12" or "ACME-12" in a
 
 **Not covered yet:** other trackers (Asana, ClickUp, Shortcut), GitHub and Linear ticket text from before the connection (their APIs keep no old versions; Jira's does), a team's own documents (the Google Drive connector is server-wide), and sign-in (the dashboard link is the key).
 
+## MCP server for coding agents
+
+[`agent/mcp_server.py`](../agent/mcp_server.py) exposes the graph to any MCP client as six read-only tools, thin wrappers
+over [`agent/tools.py`](../agent/tools.py) (every query is `GRAPH.RO_QUERY`, every answer redacted for the viewer):
+
+| Tool | Returns |
+|---|---|
+| `current_spec(ticket)` | the newest requirement for the ticket and where it came from (who, which channel, when, the message), what the ticket still says, PRs that shipped the old version, stale docs, owners, who knows the feature best, and the graph paths. Status `TICKET_OUT_OF_DATE` or `CURRENT`. |
+| `drift(feature?)` | open drift, optionally for one feature (id, name or ticket id) |
+| `who_knows(topic)` | people ranked by involvement (ticket id, feature id or name, or a few words) |
+| `decision_history(topic)` | every requirement version and chat change, what replaced what, which PR implements which |
+| `impact(target, days)` | downstream projects, client deliverables and teams a delay reaches |
+| `find(query)` | ticket and feature ids from a few words |
+
+The server's instructions tell the agent to call `current_spec` before implementing a ticket and to build what it
+returns, not the ticket text. On a public repo's graph ("Try it on your repo"), `current_spec` adds the rules
+extractor's caveat and any earlier hand-check of the flag.
+
+- **Hosted:** the API serves it at `/mcp` (streamable HTTP, stateless JSON). `X-Org` (or `?org=`) picks the graph, `X-User` (or `?as=`) the viewer. `claude mcp add --transport http company-brain https://<host>/mcp [--header "X-Org: <org>"]`.
+- **Local:** `claude mcp add company-brain -- python -m agent.mcp_server` (stdio; `BRAIN_ORG`, `BRAIN_USER`).
+
+The before/after example is [`examples/mcp-demo`](../examples/mcp-demo): a stub `export_csv`, the BD-101 ticket as the
+tracker shows it, and two recorded Claude Code runs of "implement BD-101", without and with the server
+([`RUNS.md`](../examples/mcp-demo/RUNS.md)). Tested over the real HTTP transport in [`tests/test_mcp.py`](../tests/test_mcp.py).
+
+## Try it on your own repo
+
+`POST /api/try {repo}` (or `/try/<owner>/<name>` in a browser) builds a public GitHub repo's graph in the background
+([`pipeline/tryrepo.py`](../pipeline/tryrepo.py)); `GET /api/try/status?repo=` polls it.
+
+- **Window:** the `TRY_ISSUES` most recently updated issues (150) and `TRY_PRS` PRs (100), up to `TRY_REF_ISSUES` older issues those PRs name (25, only with a server `GITHUB_TOKEN`: without one GitHub allows 60 calls an hour), and `TRY_COMMENT_PAGES` × 100 recent comments (4). Bots are left out.
+- **Pipeline:** the real-data adapter ([`benchmark/real_data.py`](../benchmark/real_data.py)): issue → `Ticket GH-<n>`, issue comment → `Message` that mentions it, PR → `PullRequest`; then `resolve` with the rules extractor and one feature per issue. PR comments add `REVIEWED` edges for "who knows".
+- **What the page shows:** people; who knows what per label (opened 1, commented 1, assigned 2, wrote a PR for it 3); issue ← PR chains; open issues no PR names; decisions in comments; drift; a layered graph; a link to the full dashboard on that graph (read-only) and the MCP command for it.
+- **Guards:** private repos are refused (the server token could read them), two builds at a time, results reused for `TRY_TTL_HOURS` (12), at most `TRY_MAX_REPOS` graphs kept (40). `TRY_PREWARM` (FalkorDB/FalkorDB) is built at startup, from the bundled snapshot if GitHub can't be reached. Every write endpoint answers 403 on a repo's graph.
+- **Honest part:** decisions and drift come from the rules extractor, whose precision on 60 hand-labelled real comments was 0.17; the page says so, and shows the earlier verdict next to a flag that was already labelled. On FalkorDB/FalkorDB both drift flags are known false positives.
+
+Tested with a fake GitHub in [`tests/test_tryrepo.py`](../tests/test_tryrepo.py).
+
 ## Deploy (Docker / Render)
 
 One image runs FalkorDB v4.22.1, the API and the built dashboard ([`Dockerfile`](../Dockerfile)); the graph is rebuilt from the synthetic company on every start.
@@ -234,7 +272,7 @@ The rules agent routes "delay / slip / push back / postpone" questions here and 
 
 ## Tests and CI
 
-`python -m pytest -q` runs 162 tests, none of which need an LLM or API keys. They include:
+`python -m pytest -q` runs 172 tests, none of which need an LLM or API keys. They include:
 - the published numbers in [`docs/RESULTS.md`](RESULTS.md) against the committed result files ([`tests/test_readme_numbers.py`](../tests/test_readme_numbers.py));
 - the fix-it agent: the plan's assignees, owners-only approval, follow-ups that survive a rebuild, the chat-thread commands, read-only tools and the post-generation id check ([`tests/test_work.py`](../tests/test_work.py));
 - human actions surviving rebuilds, and live updates (a write-back survives a live recompute; an unverified candidate never supersedes the owner's decision);
@@ -249,6 +287,8 @@ The rules agent routes "delay / slip / push back / postpone" questions here and 
 - impact analysis: a delay through BLOCKS chains to projects, client deliverables and teams, the agent's answer to the delay question, feature maps, and the per-viewer docs endpoints ([`tests/test_impact.py`](../tests/test_impact.py));
 - Jira and Linear for a team: Jira's full description history and comments, Linear's dated edits, people matched to Slack, the owner's Slack decision raising drift on a Jira and a Linear ticket and the Linear edit closing it, connecting both without showing tokens ([`tests/test_trackers.py`](../tests/test_trackers.py));
 - a real team gets the demo's experience: Slack and GitHub people linked into one person each, GitHub issues and PRs as tickets and PRs, the owner's Slack decision raising drift, an issue edit closing it, message edits and deletes, new titles, merging people, and setup pages only for team graphs ([`tests/test_team.py`](../tests/test_team.py)); connecting Slack and Discord, per-team graphs ([`tests/test_integrations.py`](../tests/test_integrations.py));
+- the MCP server over its HTTP transport: the handshake and its instructions, `current_spec` giving BD-101's Slack decision instead of the stale ticket, a current ticket, an unknown one, topics from ticket ids or words, and the org header and `BRAIN_ORG` selecting another graph ([`tests/test_mcp.py`](../tests/test_mcp.py));
+- trying a public repo: parsing what people paste, bots left out, older issues the PRs name, who knows what per label, issue → PR chains, open issues without a PR, a decision in a comment raising drift, private repos refused, the cache, and the repo graph read-only ([`tests/test_tryrepo.py`](../tests/test_tryrepo.py));
 - the graph, API, webhooks, connector contracts and paging.
 
 [`.github/workflows/ci.yml`](../.github/workflows/ci.yml) also runs:

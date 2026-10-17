@@ -2,11 +2,12 @@ import { useEffect, useState } from "react";
 import { ORG } from "../lib/api";
 import { useBrain } from "../lib/brain";
 import { LiveDot } from "./Toasts";
-import { DEMO_HREF, isAppMode, isTeamOrg } from "../lib/routes";
+import { DEMO_HREF, isAppMode, isRepoOrg, isTeamOrg } from "../lib/routes";
 
 const ALL_SECTIONS = [["setup", "Setup"], ["drift", "Drift"], ["graph-sec", "Graph"], ["map-sec", "Map"], ["impact", "Impact"], ["simulate", "Monitor"], ["stream", "Stream"], ["ask", "Ask"], ["docs-sec", "Docs"], ["retro-sec", "Retro"], ["coverage", "Risk"]];
 /** The nav links: a connected team's dashboard has a Setup section and none of the demo-only ones (App.tsx). */
-export const SECTIONS = ALL_SECTIONS.filter(([id]) => (isTeamOrg(ORG) ? !["impact", "simulate", "docs-sec"].includes(id) : id !== "setup"));
+export const SECTIONS = ALL_SECTIONS.filter(([id]) =>
+  isTeamOrg(ORG) ? !["impact", "simulate", "docs-sec"].includes(id) : isRepoOrg(ORG) ? !["setup", "impact", "simulate", "docs-sec"].includes(id) : id !== "setup");
 
 export function Nav() {
   const { setPaletteOpen, newDrift, clearNew } = useBrain();

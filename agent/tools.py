@@ -28,6 +28,20 @@ def _g():
     return _ReadOnly(get_graph())
 
 
+def _fid(feature: str | None) -> str | None:
+    """The feature id a caller meant: the id itself, a ticket id (the ticket's feature) or the feature's name. A model
+    asked about "GH-3070" passes the ticket id where a feature id goes; this finds the feature instead of nothing."""
+    if not (feature or "").strip():
+        return None  # "" from a model means "all features", as None does
+    g = _g()
+    if Q.rows(g, "MATCH (f:Feature {id: $f}) RETURN f.id AS id", f=feature):
+        return feature
+    r = Q.rows(g, "MATCH (:Ticket {id: $t})-[:ABOUT]->(f:Feature) RETURN f.id AS id LIMIT 1", t=feature.strip().upper())
+    if not r:
+        r = Q.rows(g, "MATCH (f:Feature) WHERE toLower(f.name) = toLower($n) RETURN f.id AS id LIMIT 1", n=feature.strip())
+    return r[0]["id"] if r else feature
+
+
 def drift_path(d: dict) -> str:
     p = (
         f"(Person {d['changed_by']})-[:POSTED]->(Message {d['message']} @ {d['source']}#{d['channel']}, {d['changed_at']})"
@@ -57,11 +71,12 @@ def list_features() -> dict:
 
 
 def drift_for_feature(feature: str | None = None) -> dict:
-    rows = Q.drift(_g(), feature=feature)
+    rows = Q.drift(_g(), feature=_fid(feature))
     return {"rows": rows, "paths": [drift_path(d) for d in rows]}
 
 
 def decision_history(feature: str) -> dict:
+    feature = _fid(feature) or feature
     rows = Q.rows(_g(), Q.DECISION_HISTORY, feature=feature)
     paths = []
     for r in rows:
@@ -76,6 +91,7 @@ def decision_history(feature: str) -> dict:
 
 
 def feature_timeline(feature: str) -> dict:
+    feature = _fid(feature) or feature
     rows = Q.rows(_g(), Q.FEATURE_TIMELINE, feature=feature)
     for r in rows:
         r["at"] = from_ms(r.pop("at"))
@@ -84,6 +100,7 @@ def feature_timeline(feature: str) -> dict:
 
 
 def who_knows(feature: str) -> dict:
+    feature = _fid(feature) or feature
     rows = Q.rows(_g(), Q.WHO_KNOWS, feature=feature)
     return {"rows": rows, "paths": [f"(Person {r['person']})-[:POSTED|AUTHORED|MADE]->({r['items']} items)-[:ABOUT]->(Feature {feature})" for r in rows]}
 
@@ -100,6 +117,7 @@ def decision_impact(decision: str) -> dict:
 
 
 def list_decisions(feature: str | None = None) -> dict:
+    feature = _fid(feature)
     rows = Q.rows(
         _g(),
         """MATCH (p:Person)-[:MADE]->(d:Decision)-[:CHANGES]->(r:Requirement)-[:ABOUT]->(f:Feature)
@@ -131,6 +149,7 @@ def how_connected(a: str, b: str) -> dict:
 
 def feature_prs(feature: str) -> dict:
     """PRs about a feature: their ticket, how the link was made, author, merge date, what they implement."""
+    feature = _fid(feature) or feature
     rows = Q.rows(
         _g(),
         """MATCH (pr:PullRequest)-[:ABOUT]->(:Feature {id: $f}) MATCH (a:Person)-[:AUTHORED]->(pr)

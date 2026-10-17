@@ -65,7 +65,7 @@ def test_one_question_hops_across_four_systems(client):
     # the evidence walks chat -> doc -> ticket -> assignee -> manager
     assert "-[:REFERS_TO]->(Document DOC-6)-[:MENTIONS]->(Ticket BD-116)-[:ASSIGNED_TO]->(Person dev)-[:REPORTS_TO]->(Person arjun)" in r["paths"][0]
     labels = {s["label"] for s in r["sources"]}
-    assert {"Slack #engineering", "Notion", "Linear", "HR"} <= labels
+    assert {"Slack #engineering", "Notion (demo)", "Linear (demo)", "HR (demo)"} <= labels  # sample data, labelled as such
 
 
 def test_nothing_blocked_means_no_made_up_reason(client):

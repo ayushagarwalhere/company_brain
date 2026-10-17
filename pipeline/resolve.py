@@ -147,12 +147,17 @@ def has_decision_rights(author: str | None, ticket: dict) -> bool:
 # ---------------------------------------------------------------- stages
 
 
-def group_features(g, ex, tickets: list[dict], tix: dict, log=print, ungrouped: bool = False) -> tuple[list[dict], dict]:
+def group_features(g, ex, tickets: list[dict], tix: dict, log=print, ungrouped: bool = False, one_per_ticket: bool = False) -> tuple[list[dict], dict]:
     """1. Features from tickets. Returns (features, feature id per ticket). With `ungrouped`, a ticket no group took
-    becomes a feature of its own (a real team's repo is mostly one-off issues; the demo keeps its grouping as is)."""
+    becomes a feature of its own (a real team's repo is mostly one-off issues; the demo keeps its grouping as is).
+    `one_per_ticket` skips grouping: every ticket is its own feature, named by its title (a public repo tried from the
+    site, where the rules' label groups would be named after an arbitrary member issue)."""
     from pipeline.extract import slug
 
-    features = ex.group_tickets([{"id": t["id"], "title": t["title"], "description": t["description"], "labels": t["labels"] or []} for t in tickets])
+    if one_per_ticket:
+        features, ungrouped = [], True
+    else:
+        features = ex.group_tickets([{"id": t["id"], "title": t["title"], "description": t["description"], "labels": t["labels"] or []} for t in tickets])
     feat_of_ticket = {}
     for f in features:
         f["tickets"] = [t for t in f["tickets"] if t in tix]
@@ -514,6 +519,7 @@ def resolve(
     keep_candidates: bool = True,
     min_confidence: float = MIN_CONFIDENCE,
     ungrouped_features: bool = False,
+    one_feature_per_ticket: bool = False,
 ) -> dict:
     """Runs every stage in order. `ablate` switches off graph capabilities one at a time (benchmark/ablation.py):
     threads (REPLY_TO), pr_proximity (author + time window), semantic, supersession (SUPERSEDES/IMPLEMENTS),
@@ -527,7 +533,7 @@ def resolve(
     tickets = load_tickets(g)
     tix = {t["id"]: t for t in tickets}
 
-    features, feat_of_ticket = group_features(g, ex, tickets, tix, log, ungrouped_features)
+    features, feat_of_ticket = group_features(g, ex, tickets, tix, log, ungrouped_features, one_feature_per_ticket)
     write_ticket_requirements(g, tickets, feat_of_ticket)
     prs = load_prs(g)
     ticket_sim = TfIdf({t["id"]: f"{t['title']} {t['description']}" for t in tickets})

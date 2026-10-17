@@ -12,11 +12,12 @@ import { Features } from "./Features";
 import { fadeIn, gsap, moving, revealHeading, scrambleIn, SplitText, useGSAP, WIDE } from "../lib/gsap";
 import { CountUp, EASE } from "./Motion";
 import { Sources } from "./Panels";
+import { TryRepo } from "./TryRepo";
 
 /* The overview at "/": the pain, the idea, the product working live on the demo graph, what it's worth and what
    it's built on. Every "Open the demo" goes to the app on a private sandbox company. */
 
-const CHAPTERS = [["pain", "The pain"], ["vision", "The graph"], ["demo", "Live demo"], ["features", "Features"], ["value", "Value"], ["stack", "Stack"], ["connect", "Connect"]];
+const CHAPTERS = [["pain", "The pain"], ["vision", "The graph"], ["demo", "Live demo"], ["try", "Your repo"], ["features", "Features"], ["value", "Value"], ["stack", "Stack"], ["connect", "Connect"]];
 
 function LandingNav() {
   const [line, setLine] = useState(false);
@@ -123,6 +124,7 @@ function LandingHero() {
         </p>
         <div className="hero__cta">
           <a className="btn" href={DEMO_HREF}>Open the demo →</a>
+          <a className="btn btn--ghost" href="#try">Try it on your repo ↓</a>
           <a className="btn btn--ghost" href="#pain">How it works ↓</a>
           <a className="btn btn--ghost" href="#connect">Connect Slack or Discord</a>
         </div>
@@ -139,7 +141,7 @@ function LandingHero() {
 
 /** A band of what it does, on an endless loop under the nav. Hovering pauses it; reduced motion keeps it still. */
 const TICKER: [string, string][] = [
-  ["Drift detection", "--c-coral"], ["Slack → Notion → Jira → HR in one answer", "--c-violet"], ["Live corporate stream", "--c-pink"], ["Company map", "--c-cyan"], ["Every alert with its graph path", "--c-blue"],
+  ["Drift detection", "--c-coral"], ["Slack → doc → ticket → HR in one answer", "--c-violet"], ["Live corporate stream", "--c-pink"], ["Company map", "--c-cyan"], ["Every alert with its graph path", "--c-blue"],
   ["Slack · Discord · GitHub · Jira · Docs", "--c-green"], ["What-if impact analysis", "--c-amber"], ["Only owners approve changes", "--c-coral"],
   ["Docs re-embedded chunk by chunk", "--c-cyan"], ["Answers only what you may see", "--c-cyan"], ["Sprint retro: decided vs shipped", "--c-pink"],
   ["Bus-factor risk", "--c-yellow"], ["39 ms drift query on FalkorDB", "--c-amber"],
@@ -316,7 +318,7 @@ function Vision() {
 /* ---------------------------------------------------------------- 03 live demo */
 
 const CASES = [
-  { k: "Four tools", q: "Why is the database migration delayed and who can approve an override?", why: "Slack points to a Notion doc, the doc names the ticket, HR knows the assignee is away and who their manager is." },
+  { k: "Four tools", q: "Why is the database migration delayed and who can approve an override?", why: "Slack points to a design doc, the doc names the ticket, and the (demo) HR records say the assignee is away and who their manager is." },
   { k: "Root cause", q: "How is Liam connected to PR #6?", why: "A customer-success message, a reply, a ticket and a PR. Four hops nobody would find by searching." },
   { k: "Alignment", q: "Did we ship what we decided about SLA notifications?", why: "Chat decided one thing, the PR shipped another. Needs the decision, its version chain and what implements it." },
   { k: "Impact", q: "If we delay the launch of Project Alpha by two weeks, which other teams and downstream client deliverables will be impacted?", why: "Project → tickets → the tickets they block → waiting projects, client deliverables and the teams doing the work." },
@@ -392,7 +394,18 @@ function LiveDemo() {
   );
 }
 
-/* ---------------------------------------------------------------- 05 value + 06 stack */
+/* ---------------------------------------------------------------- 04 your repo */
+
+function TryChapter() {
+  return (
+    <Chapter id="try" n="04" k="Your repo" title={<>Now on your own repo. <span className="muted">Any public GitHub repo.</span></>}
+      intro="Paste a repo. The server reads its most recent issues, pull requests and comments, runs the same pipeline into a graph of its own (the rules extractor: fast, no LLM), and shows what the graph knows: who knows what, which PRs close which issues, open issues nobody is working on, decisions in comments, and drift.">
+      <TryRepo />
+    </Chapter>
+  );
+}
+
+/* ---------------------------------------------------------------- 06 value + 07 stack */
 
 function Value() {
   const ref = useRef<HTMLDivElement>(null);
@@ -403,7 +416,7 @@ function Value() {
     fadeIn(el.querySelectorAll(".nums > div"), el.querySelector(".nums"));
   }, { scope: ref });
   return (
-    <Chapter id="value" n="05" k="Business value" title={<>Less searching. <span className="muted">Fewer surprises. Faster fixes.</span></>}>
+    <Chapter id="value" n="06" k="Business value" title={<>Less searching. <span className="muted">Fewer surprises. Faster fixes.</span></>}>
      <div ref={ref}>
       <div className="value">
         {[
@@ -445,7 +458,7 @@ function Stack() {
     fadeIn(el.querySelectorAll(".stack > div"), el, { stagger: 0.1 });
   }, { scope: ref });
   return (
-    <Chapter id="stack" n="06" k="Tech stack" title={<>Built on a graph database. <span className="muted">Runs anywhere.</span></>}>
+    <Chapter id="stack" n="07" k="Tech stack" title={<>Built on a graph database. <span className="muted">Runs anywhere.</span></>}>
       <div className="stack" ref={ref}>
         {STACK.map(([k, h, pts]) => (
           <div key={k}>
@@ -490,6 +503,7 @@ export function Landing() {
       <Pain />
       <Vision />
       <LiveDemo />
+      <TryChapter />
       <Features />
       <Value />
       <Stack />

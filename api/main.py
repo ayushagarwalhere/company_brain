@@ -35,14 +35,35 @@ async def lifespan(_app):
     team's graph current (pipeline/teamsync.py)."""
     import threading
 
-    from pipeline import teamsync
+    from agent import mcp_server
+    from pipeline import teamsync, tryrepo
 
     stop = bus.start_listener()
     sync_stop = threading.Event()
     teamsync.start(sync_stop)
-    yield
+    tryrepo.start(sync_stop)  # pre-warms FalkorDB/FalkorDB, so the first "try your repo" click is instant
+    _mcp["app"] = mcp_server.http_app()  # a fresh session manager per start: each one can run only once
+    async with mcp_server.server.session_manager.run():
+        yield
+    _mcp["app"] = None
     stop.set()
     sync_stop.set()
+
+
+_mcp: dict = {"app": None}
+
+
+class _McpEndpoint:
+    """/mcp: the MCP server (agent/mcp_server.py) over streamable HTTP, for coding agents. An ASGI app, not a FastAPI
+    route, so the MCP transport handles the request itself; the org and viewer come from X-Org / X-User or ?org= / ?as=."""
+
+    async def __call__(self, scope, receive, send):
+        if _mcp["app"] is None:
+            from fastapi.responses import JSONResponse
+
+            await JSONResponse({"detail": "MCP server not started"}, status_code=503)(scope, receive, send)
+            return
+        await _mcp["app"](scope, receive, send)
 
 
 app = FastAPI(
@@ -73,6 +94,14 @@ app.include_router(_integrations)
 from api.team import router as _team  # noqa: E402 - a connected team's setup: GitHub, sync, who's who
 
 app.include_router(_team)
+
+from api.tryrepo import router as _try  # noqa: E402 - paste a public GitHub repo, get its graph
+
+app.include_router(_try)
+
+from starlette.routing import Route  # noqa: E402
+
+app.router.routes.append(Route("/mcp", endpoint=_McpEndpoint(), methods=["GET", "POST", "DELETE"]))
 
 
 log = logging.getLogger("api")
@@ -119,6 +148,13 @@ async def org_scope(request: Request, call_next):
         token = set_org(org)
     except ValueError as e:
         return JSONResponse({"detail": str(e)}, status_code=400)
+    from pipeline.tryrepo import is_repo_org
+
+    if is_repo_org(org) and request.method == "POST" and request.url.path.startswith("/api/") and request.url.path not in ("/api/ask", "/api/spec"):
+        from graph.db import _org
+
+        _org.reset(token)
+        return JSONResponse({"detail": "a public repo's graph is read-only here: it's rebuilt from GitHub"}, status_code=403)
     try:
         return await call_next(request)
     finally:
@@ -128,7 +164,7 @@ async def org_scope(request: Request, call_next):
 
 
 # expensive or state-changing POSTs (LLM calls / graph writes)
-LIMITED = {"/api/ask", "/api/simulate", "/api/spec", "/api/drift/write-to-ticket", "/api/drift/dismiss", "/api/drift/apply", "/api/drift/keep"}
+LIMITED = {"/api/ask", "/api/simulate", "/api/spec", "/api/drift/write-to-ticket", "/api/drift/dismiss", "/api/drift/apply", "/api/drift/keep", "/api/try"}
 limiter = RateLimiter(rate=int(__import__("os").getenv("RATE_LIMIT_PER_MIN", "30")), per=60.0)
 
 
@@ -481,11 +517,12 @@ DOC_SYSTEMS = {"notion": "Notion", "gdrive": "Google Drive", "confluence": "Conf
 
 def _tracker(url: str | None) -> tuple[str, str]:
     u = (url or "").lower()
+    demo = " (demo)" if ".example/" in u else ""  # the synthetic company's tickets (linear.example): not a connected Linear
     if "linear" in u:
-        return "linear", "Linear"
+        return "linear", "Linear" + demo
     if "jira" in u or "atlassian" in u:
-        return "jira", "Jira"
-    return "tracker", "Tracker"
+        return "jira", "Jira" + demo
+    return "tracker", "Tracker" + demo
 
 
 def answer_sources(g, paths: list[str]) -> list[dict]:
@@ -502,7 +539,10 @@ def answer_sources(g, paths: list[str]) -> list[dict]:
             hr += [x for x in (a.strip(), b.strip()) if x not in hr]
     ids = lambda t: sorted({nid for typ, nid in found if typ == t})  # noqa: E731
     doc_src = (
-        {r["id"]: r["s"] for r in Q.rows(g, "MATCH (d:Document) WHERE d.id IN $ids RETURN d.id AS id, d.source AS s", ids=ids("Document"))}
+        {
+            r["id"]: (r["s"], r["u"])
+            for r in Q.rows(g, "MATCH (d:Document) WHERE d.id IN $ids RETURN d.id AS id, d.source AS s, d.url AS u", ids=ids("Document"))
+        }
         if ids("Document")
         else {}
     )
@@ -529,8 +569,10 @@ def answer_sources(g, paths: list[str]) -> list[dict]:
         elif typ == "Ticket" or (typ == "Requirement" and ":v" in nid):
             key, label = _tracker(ticket_url.get(nid if typ == "Ticket" else nid.split(":")[1]))
         elif typ == "Document":
-            s = doc_src.get(nid)
+            s, u = doc_src.get(nid, (None, None))
             key, label = (s, DOC_SYSTEMS.get(s, s.capitalize())) if s else ("docs", "Docs")
+            if (u or "").startswith("scenario://"):
+                label += " (demo)"  # a sample doc of the synthetic company: there is no Notion connector
         else:
             continue
         src = out.setdefault(key, {"system": key.split("#")[0], "label": label, "refs": []})
@@ -538,7 +580,7 @@ def answer_sources(g, paths: list[str]) -> list[dict]:
         if ref not in src["refs"]:
             src["refs"].append(ref)
     if hr:
-        out["hr"] = {"system": "hr", "label": "HR", "refs": hr}
+        out["hr"] = {"system": "hr", "label": "HR (demo)", "refs": hr}  # hand-written records: no HR system is connected
     return list(out.values())
 
 
@@ -773,9 +815,10 @@ def bootstrap_org(org: str, extractor: str | None = None):
     from pipeline.build import mark_build
     from pipeline.ingest import ingest
     from pipeline.resolve import resolve
+    from pipeline.tryrepo import is_repo_org
 
-    if is_team_org(org):
-        raise HTTPException(403, "a connected team's graph is never replaced with demo data")
+    if is_team_org(org) or is_repo_org(org):
+        raise HTTPException(403, "a connected team's or a public repo's graph is never replaced with demo data")
     try:
         name = org_graph_name(org)
     except ValueError as e:
@@ -1097,6 +1140,30 @@ def index():
         raise HTTPException(503, "Frontend not built: run `npm install && npm run build` in web/")
     # the page must revalidate on every load, or browsers keep running an old build; assets are content-hashed
     return FileResponse(page, headers={"Cache-Control": "no-cache"})
+
+
+@app.get("/demo")
+def demo_link():
+    """The link to share: straight into the guided tour, on a fresh private sandbox of the demo company. No sign-up."""
+    from fastapi.responses import RedirectResponse
+
+    return RedirectResponse("/?app&org=demo&tour=1", status_code=307)
+
+
+@app.get("/try/{owner}/{name}")
+def try_link(owner: str, name: str):
+    """/try/FalkorDB/FalkorDB: the overview page with that repo's graph open in "Try it on your repo"."""
+    from urllib.parse import quote
+
+    from fastapi.responses import RedirectResponse
+
+    from pipeline.tryrepo import TryError, parse
+
+    try:
+        repo = parse(f"{owner}/{name}")
+    except TryError as e:
+        raise HTTPException(400, str(e)) from e
+    return RedirectResponse(f"/?try={quote(repo, safe='/')}#try", status_code=307)
 
 
 if (WEB_DIST / "assets").exists():

@@ -221,8 +221,8 @@ export function Tour() {
       kicker: "Four tools, one answer", target: "ask",
       title: "“Why is the database migration delayed, and who can approve an override?”",
       todo: <>Click <b>Ask across four tools ▸</b>. Watch the hops light up in the labelled graph.</>,
-      after: <>Slack → Notion → Linear → HR: the answer names the blocker and who can override, and the sources under it say where each piece came from.</>,
-      body: <>Nobody wrote the answer down anywhere. A Slack message points to a Notion doc, the doc names the ticket, the ticket's assignee is out of office in the HR system, and HR knows their manager. The agent walks all four in one go.</>,
+      after: <>Slack → doc → ticket → HR: the answer names the blocker and who can override, and the sources under it say where each piece came from (the doc, ticket and HR record are the demo company's sample data).</>,
+      body: <>Nobody wrote the answer down anywhere. A Slack message points to a design doc, the doc names the ticket, the ticket's assignee is out of office in the HR records, and HR knows their manager. The agent walks all four in one go.</>,
       action: {
         label: "Ask across four tools",
         run: async () => {

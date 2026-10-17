@@ -1,7 +1,7 @@
 import { useRef, useState } from "react";
 import { api, ORG } from "../lib/api";
 import { useBrain } from "../lib/brain";
-import { DEMO_ORG } from "../lib/routes";
+import { DEMO_ORG, isRepoOrg, repoName } from "../lib/routes";
 import { gsap, moving, revealHeading, useGSAP } from "../lib/gsap";
 import { CountUp } from "./Motion";
 import { TOUR_HREF } from "./Tour";
@@ -20,6 +20,7 @@ export function AppHeader() {
   const n = (l: string) => stats?.nodes.find((x) => x.label === l)?.n ?? 0;
   const demo = ORG === DEMO_ORG;
   const team = !!ORG && /^(slack|discord)-/.test(ORG);  // a connected team's own graph
+  const repo = isRepoOrg(ORG);  // a public repo's graph, from "Try it on your repo"
   const reset = async () => {
     setBusy(true);
     try { if (demo) await api.bootstrap(DEMO_ORG); else await api.resetDemo(); await refresh(); } finally { setBusy(false); }
@@ -32,22 +33,26 @@ export function AppHeader() {
       <div className="hero__3d">
         <div className="apphead__row">
           <div>
-            <span className="eyebrow">{demo ? "Demo workspace · private sandbox" : team ? "Your team · private graph" : ORG ? `Workspace · ${ORG}` : "Workspace"}</span>
+            <span className="eyebrow">{demo ? "Demo workspace · private sandbox" : team ? "Your team · private graph" : repo ? "Public GitHub repo · read-only graph" : ORG ? `Workspace · ${ORG}` : "Workspace"}</span>
             {team
               ? <h1><span className="apphead__name">Your team</span> <span className="muted">({ORG!.startsWith("slack-") ? "Slack" : "Discord"})</span></h1>
-              : <h1><span className="apphead__name">Brightdesk</span> <span className="muted">(synthetic company)</span></h1>}
+              : repo
+                ? <h1><span className="apphead__name">{repoName() || ORG}</span> <span className="muted">(GitHub)</span></h1>
+                : <h1><span className="apphead__name">Brightdesk</span> <span className="muted">(synthetic company)</span></h1>}
             <p className="lede">
               {demo
                 ? "Your own copy of the demo company. Every button does the real thing: approve fixes, post as a teammate, edit tickets, ask the graph. Reset it whenever you like."
                 : team
-                  ? "Messages from the channels your bot reads, in a graph only your team's link opens. Drift checks start once your tickets and pull requests are connected too, which the site's admin sets up for now."
-                  : "8 people, Slack and Discord chat, tickets, GitHub PRs and docs, all in one FalkorDB graph."}
+                  ? "Messages from the channels your bot reads, in a graph only your team's link opens. Connect GitHub, Jira or Linear in Your setup and drift checks start on your tickets and pull requests too."
+                  : repo
+                    ? "The repo's most recent issues, pull requests and comments, from \"Try it on your repo\", through the same pipeline (rules extractor). Read-only: it's rebuilt from GitHub, so the buttons that change the graph are off. Ask it who knows an issue, what a PR closes, or what drifted."
+                    : "8 people, Slack and Discord chat, tickets, GitHub PRs and docs, all in one FalkorDB graph."}
             </p>
           </div>
           <div className="apphead__actions">
             <a className="btn btn--ghost btn--sm" href="/">← Overview</a>
             <a className="btn btn--ghost btn--sm" href={TOUR_HREF} title="A fresh sandbox, from the first step">Restart the tour</a>
-            {!team && (
+            {!team && !repo && (
               <button className="btn btn--sm" onClick={reset} disabled={busy || workspace !== "ready"} title="Rebuild this workspace from the demo data">
                 {busy ? "Resetting…" : "Reset demo"}
               </button>

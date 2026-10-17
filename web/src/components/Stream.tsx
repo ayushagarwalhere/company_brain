@@ -23,7 +23,7 @@ const TICKETS = [
   { title: "SLA breach webhook for Globex", description: "Send breach events to Globex's incident tool.", creator: "arjun", assignee: "dev", project: "beta" },
 ];
 
-const SYSTEM: Record<string, string> = { slack: "Slack", discord: "Discord", linear: "Linear", jira: "Jira", tracker: "Tracker", notion: "Notion", gdrive: "Google Drive" };
+const SYSTEM: Record<string, string> = { slack: "Slack", discord: "Discord", linear: "Linear", jira: "Jira", tracker: "Tracker", notion: "Notion (demo)", gdrive: "Google Drive" };
 
 function where(it: StreamItem) {
   if (it.kind === "message") return `${SYSTEM[it.source || ""] || "Chat"} #${it.channel}`;

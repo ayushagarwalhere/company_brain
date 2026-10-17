@@ -55,6 +55,19 @@ function DetectVis() {
   );
 }
 
+const MCP = (
+  <pre className="code">
+    <b>&gt; implement BD-101</b>{"\n\n"}
+    company-brain · current_spec("BD-101"){"\n"}
+    {"  "}status{"     "}<b>TICKET_OUT_OF_DATE</b>{"\n"}
+    {"  "}build{"      "}any date range up to 12 months,{"\n"}
+    {"  "}{"           "}every custom field as a column{"\n"}
+    {"  "}decided{"    "}Maya Chen (PM) · Slack · 2026-09-22{"\n"}
+    {"  "}ticket says{" "}last 30 days, five columns{"\n"}
+    {"  "}shipped old{" "}PR #6: change it, don't build beside it
+  </pre>
+);
+
 const CYPHER = (
   <pre className="code">
     <b>MATCH</b> (m:Message)-[:CHANGES]-&gt;(r:Requirement){"\n"}
@@ -195,7 +208,7 @@ function RiskVis() {
 const PANELS: { k: string; title: string; body: string; points: string[]; go: [string, string]; vis: () => ReactNode }[] = [
   { k: "Detect", title: "Catches decisions that never shipped.", go: ["drift", "See open drift"], vis: () => <DetectVis />,
     body: "An owner decides something new in chat. The ticket keeps the old text and the PR ships the old version. That gap is drift.",
-    points: ["Reads Slack, Discord, tickets, GitHub and docs", "Links messages to tickets through threads, people and time", "Precision first: it alerts rarely, and is right when it does"] },
+    points: ["Reads Slack, Discord, tickets, GitHub and docs", "Links messages to tickets through threads, people and time", "Precision first: 1.00 on the benchmark; on real repos, alerts are candidates and say so"] },
   { k: "Prove", title: "Every alert carries its graph path.", go: ["graph-sec", "Explore the graph"], vis: () => <Screen title="DRIFT query" right="Cypher">{CYPHER}</Screen>,
     body: "Drift is a time-ordered path question. One Cypher query finds every case, and the path it walks is the evidence.",
     points: ["Every version is its own Requirement, linked by SUPERSEDES", "Shortest causal paths with algo.SPpaths", "Nobody has to trust the bot: they can read why it fired"] },
@@ -208,6 +221,10 @@ const PANELS: { k: string; title: string; body: string; points: string[]; go: [s
   { k: "Ask", title: "Answers questions a team actually asks.", go: ["ask", "Ask the graph"], vis: () => <AskVis />,
     body: "Who owns this? Who knows the most? How are these two connected? The agent picks graph tools and answers from their rows.",
     points: ["Read-only tools, no free-form queries", "Every answer shows its steps and paths", "Says \"not in the graph\" instead of guessing"] },
+  { k: "Agents", title: "Gives coding agents the current spec.", go: ["https://github.com/ayushagarwalhere/company_brain/tree/main/examples/mcp-demo", "See both runs"],
+    vis: () => <Screen title="Claude Code · MCP" right="company-brain">{MCP}</Screen>,
+    body: "An MCP server hands any coding agent what the team decided since the ticket was written. Asked to implement BD-101, Claude Code without it built the ticket's 30-day export; with it, it built the 12-month one and named the stale PR.",
+    points: ["Six read-only tools: current_spec, drift, who_knows, decision_history, impact, find", "Hosted at /mcp, or local over stdio", "Works on a team's graph or a public repo's"] },
   { k: "Impact", title: "Sees what a delay ripples into.", go: ["impact", "Run a what-if"], vis: () => <ImpactVis />,
     body: "If a launch slips two weeks, the graph walks from the project to every ticket it blocks, the projects waiting on them, the client deliverables that need them and the teams doing the work.",
     points: ["Downstream projects through BLOCKS chains, at any depth", "Client deliverables that miss or get tight", "A map per feature: every spec, who introduced it, the work on it"] },
@@ -279,7 +296,7 @@ export function Features() {
     <section ref={section} id="features" className={`hs ${on ? "hs--on" : ""}`} aria-label="What it does" data-i={idx}>
       <div className="hs__sticky">
         <div className="hs__top mono">
-          <span>04 — Features</span>
+          <span>05 — Features</span>
           {on && (
             <span className="hs__dots" role="tablist" aria-label="Feature pages">
               {PANELS.map((p, i) => (
@@ -298,7 +315,8 @@ export function Features() {
                 <h2>{p.title}</h2>
                 <p>{p.body}</p>
                 <ul>{p.points.map((x) => <li key={x}>{x}</li>)}</ul>
-                <a className="btn btn--ghost btn--sm hs__go" href={`${DEMO_HREF}#${p.go[0]}`}>{p.go[1]} →</a>
+                <a className="btn btn--ghost btn--sm hs__go" href={p.go[0].startsWith("http") ? p.go[0] : `${DEMO_HREF}#${p.go[0]}`}
+                  {...(p.go[0].startsWith("http") ? { target: "_blank", rel: "noreferrer" } : {})}>{p.go[1]} →</a>
               </div>
               <div className="hs__vis">{p.vis()}</div>
             </article>

@@ -117,6 +117,24 @@ export type Integrations = {
 };
 export type SlackChannels = { team: string; channels: { id: string; name: string; members: number | null; watched: boolean }[] };
 export type SourcePass = { tickets: number; new_versions: number; comments: number; prs: number; people: number };
+/** A flag's earlier hand-check (benchmark/real_data_labels.json, labelled by the AI assistant). */
+export type TryLabel = { verdict: string; pattern: string | null; note: string | null };
+/** "Try it on your own repo" (pipeline/tryrepo.py): what a public repo's graph shows. */
+export type TryResult = {
+  repo: string; url: string; org: string; description: string | null; stars: number | null; fetched_at: string; source: string; build_seconds: number;
+  window: { issues: number; older_issues?: number; prs: number; comments: number; cap_issues: number; cap_prs: number };
+  counts: { people: number; issues: number; open_issues: number; prs: number; merged: number; chains: number; decisions: number; drift: number; open_no_pr: number };
+  people: { person: string; url: string; issues: number; prs: number; merged: number; comments: number; assigned: number; reviews: number; areas: string[]; score: number }[];
+  areas: { label: string; issues: number; open: number; with_pr: number; url: string; people: { person: string; score: number }[] }[];
+  chains: { issue: string; issue_title: string; issue_url: string; issue_state: string; opened_by: string | null; pr: number; pr_title: string; pr_url: string; pr_state: string; pr_by: string; how: string }[];
+  decisions: { by: string; comment: string; url: string; at: string; requirement: string; requirement_text: string; issue: string; issue_title: string; issue_url: string; implemented_by: number[]; drift: boolean; label: TryLabel | null }[];
+  no_pr: { issue: string; title: string; url: string; labels: string[]; opened_by: string | null; assignee: string | null; comments: number }[];
+  drift: { issue: string; title: string; url: string; issue_says: string; comment: string; comment_url: string; by: string; at: string; stale_prs: number[]; label: TryLabel | null }[];
+  graph: CGraph;
+  note: string;
+};
+export type TryState = { state: "ready" | "queued" | "running" | "error" | "none"; repo: string; org: string; step?: string; error?: string; since?: number; result?: TryResult };
+export type TryRecent = { repo: string; org: string; fetched_at: string; counts: TryResult["counts"] };
 export type TeamStatus = {
   org: string; people: number;
   slack: { team: string; channels: { id: string; name: string }[] } | null;
@@ -197,6 +215,9 @@ export const api = {
   connectGithub: (repo: string, token: string) => req<{ repo: string; private: boolean }>("/api/team/github", { repo, token }),
   connectJira: (site: string, email: string, token: string, project: string) => req<{ project: string; name: string }>("/api/team/jira", { site, email, token, project }),
   connectLinear: (token: string, team: string) => req<{ team: string; name: string }>("/api/team/linear", { token, team }),
+  tryRepo: (repo: string) => req<TryState>("/api/try", { repo }),
+  tryStatus: (repo: string) => req<TryState>(`/api/try/status?repo=${enc(repo)}`),
+  tryRecent: () => req<{ repos: TryRecent[] }>("/api/try/recent"),
   mergePeople: (keep: string, drop: string) => req<{ kept: string; merged: string }>("/api/team/people/merge", { keep, drop }),
   editPerson: (id: string, role: string, groups: string[]) => req<{ id: string }>(`/api/team/people/${enc(id)}`, { role, groups }),
   /** `key`: the setup key Slack's redirect handed to the person who just installed */

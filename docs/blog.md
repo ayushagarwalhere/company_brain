@@ -70,12 +70,51 @@ A company brain that's only right at ingest time isn't much use. Two webhooks ke
 
 ## Where it breaks
 
-I ran the unchanged pipeline on two public GitHub repos (FalkorDB and excalidraw). Every drift flag was wrong: 0 of 25 labelled items. The phrase rules fire on code review ("let's use a constant *instead of* the magic number"), status updates and "I'd like to work on this" offers. I also injected 500 messages that change nothing into the demo. The misread ones superseded the real decisions, and both real drifts disappeared. One principled fix, decision rights (only a ticket's creator or assignee can change it from chat), removed 71% of the false changes but brought neither drift back. Two later fixes changed that picture. A later message now replaces an open decision only when the extractor judges that it revises it, which brought both drifts back. And a small local model (qwen3:8b through Ollama) as the extractor let almost no noise through: one noise-caused alert in 500 messages.
+I ran the unchanged pipeline on two public GitHub repos (FalkorDB and excalidraw). Every drift flag was wrong: 0 of 25 labelled items (labelled by the AI assistant; a random 10 of them are on a re-check sheet for a human). The phrase rules fire on code review ("let's use a constant *instead of* the magic number"), status updates and "I'd like to work on this" offers. I also injected 500 messages that change nothing into the demo. The misread ones superseded the real decisions, and both real drifts disappeared. One principled fix, decision rights (only a ticket's creator or assignee can change it from chat), removed 71% of the false changes but brought neither drift back. Two later fixes changed that picture. A later message now replaces an open decision only when the extractor judges that it revises it, which brought both drifts back. And a small local model (qwen3:8b through Ollama) as the extractor let almost no noise through: one noise-caused alert in 500 messages.
 
 The most useful result was the one against the graph: I loaded the same extracted facts into SQLite, and an anti-join over the same version chain found exactly the same drift, faster. The graph didn't make drift detection possible; the version-chain reasoning did. What the graph still gives me is the evidence path with every answer, variable-depth "how is X connected to Y" questions, and new node types without migrations. The README has every number and the command behind it, including the ones that went the wrong way.
 
+## One real drift in the wild, and a lot of nothing
+
+Then I went looking on purpose. Accepted Go proposals are a good hunting ground: the decision is made in the comments,
+and the issue body is the "ticket". In [golang/go#77441](https://github.com/golang/go/issues/77441) the body still
+proposes `func (*Server) ServeHTTP(ResponseWriter, *Request)`, while the version the Go team accepted, amended by the
+issue's author in a comment, is `func (*Server) HandleRequest(ResponseWriter, *Request) error`: renamed, with an error
+return. The title was updated; the body never was. Anyone implementing from the issue text builds the wrong method.
+
+The honest part: I found it while labelling real decisions by hand, not because the pipeline flagged it. My extractor
+saw the change, but its own evidence guard threw it away, because the quote sat inside a `//` code comment. One fix
+later it catches it, and that fix came after I'd seen the case, so it isn't a held-out result.
+
+And across 289 comments from FalkorDB's and excalidraw's repos, nothing checked out as drift. In well-run open-source
+projects, decisions travel inside the PR that implements them. That negative result shaped the pitch: this is for teams
+that decide in one tool and ship in another.
+
+## Handing the context to coding agents
+
+The failure this project prevents is someone building from a stale ticket, and increasingly that someone is an AI
+coding agent. So the graph is also an MCP server: six read-only tools, the main one being `current_spec(ticket)`, which
+returns the newest requirement, who decided it and where, what the ticket still says, and which PR shipped the old
+version.
+
+I asked Claude Code to "implement BD-101" twice, in a small app whose local copy of the ticket says "last 30 days".
+Without the server it built exactly that, and left the custom fields out "since the ticket lists only five columns".
+With it, the agent called `current_spec` first, built the version Maya decided in Slack (any range up to 12 months,
+every custom field as a column), cited her message and flagged PR #6 as the old version. There was no prompt
+engineering on my side beyond the server's one-paragraph instructions. Two runs are an example, not a measurement;
+both are in the repo word for word.
+
+## Try it on your own repo
+
+The live site also takes any public GitHub repo, reads its recent issues, PRs and comments, and builds the same graph
+in about fifteen seconds with the rules extractor. Who knows what, which PRs close which issues and which open issues
+nobody is working on come out well, because they come from GitHub's own links. Drift mostly comes back empty or wrong,
+for the reasons above, and the page says so next to every flag.
+
 ## What I'd do next
 
-Real Linear and Jira connectors, FalkorDB vector indexes for the semantic step, and a feedback loop where dismissing an alert teaches the extractor. The biggest lesson, though, was that **most of the hard part was the data model, not the model**. Once requirements were versioned nodes with `SUPERSEDES` and `IMPLEMENTS` edges, "did we ship what we decided?" stopped being a judgment call and became a query.
+A feedback loop where dismissing an alert teaches the extractor, an LLM extractor tuned for review-heavy repos (the
+rules fire on code review), and real-world validation on a team that decides in Slack and ships in Jira or Linear (the
+Jira and Linear connectors are built, and tested only against fake APIs so far). The biggest lesson, though, was that **most of the hard part was the data model, not the model**. Once requirements were versioned nodes with `SUPERSEDES` and `IMPLEMENTS` edges, "did we ship what we decided?" stopped being a judgment call and became a query.
 
-*The scenario is fully synthetic: a fictional helpdesk startup with 300 messages, 15 tickets, 12 PRs and 4 docs, with planted drifts, traps and an answer key. I built this with help from an AI coding assistant (Claude Code), and disclosed it as the rules require.*
+*The scenario is fully synthetic: a fictional helpdesk startup with 300 messages, 15 tickets, 12 PRs and a handful of docs, with planted drifts, traps and an answer key. I built this with help from an AI coding assistant (Claude Code), and disclosed it as the rules require.*

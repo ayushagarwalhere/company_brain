@@ -1,10 +1,20 @@
-# Drift Monitor
+# Drift Monitor · Company Brain
 
-> **A context graph for decisions that never made it into the work.**
+**Teams change the plan in Slack, the ticket keeps the old one, and people (now coding agents too) build the old one.**
+Drift Monitor is a FalkorDB context graph of a company's chat, tickets, pull requests and docs that catches that gap and
+hands the current decision to whoever is about to build: a person, or an AI agent over MCP.
 
-Drift Monitor, also called **Company Brain**, connects Slack, Discord, tickets, GitHub pull requests, and documents in one FalkorDB graph. It answers cross-system questions and catches the gap between *what a team decided* and *what the team shipped*.
+![The site: the overview, open drift with its graph path, a cross-tool answer with its sources, a real repo's graph, and the MCP server](docs/demo.gif)
 
-![Drift Monitor landing page](docs/screenshot-hero.png)
+**▶ [Live demo](https://LIVE_URL/demo)**: straight into the guided tour, on a private sandbox. No sign-up, no setup.
+
+**▶ [Video](https://VIDEO_URL)** · **[Try it on your own GitHub repo](https://LIVE_URL/try/FalkorDB/FalkorDB)** · **[Give Claude Code the current spec (MCP)](examples/mcp-demo)**
+
+| Proof | What it shows |
+|---|---|
+| **1.00 → 0.50** | Drift precision with the graph's version reasoning, and without it (`SUPERSEDES` / `IMPLEMENTS` switched off): half the alerts become false. Synthetic benchmark; CI fails if the full graph drops below 1.00 or if switching version reasoning off stops making drift worse. [Ablation](docs/RESULTS.md#ablation-switch-the-graph-off-piece-by-piece) |
+| **100 of 100** | Planted drifts found in a synthetic **22,940-node** graph with no false alarms; the whole-graph drift query runs in 39 ms (p50). [Stress test](docs/RESULTS.md#6-stress-test) |
+| **golang/go#77441** | A real drift in the wild: the API the Go team accepted (`HandleRequest(…) error`) is in a comment, while the issue body still proposes `ServeHTTP`. Found while labelling real decisions; the extractor catches it only after a fix made after seeing it, so it isn't a held-out result. [Details](docs/RESULTS.md#7-looking-for-real-drift-in-real-repos) |
 
 ## The problem
 
@@ -17,7 +27,7 @@ Drift Monitor builds the missing context. A message can change a requirement; a 
 - **Detects requirement drift.** A chat change is open drift when it is still the newest requirement, no PR implements it, and nobody explicitly kept the old scope.
 - **Shows the evidence.** Each alert includes the author, source channel, previous requirement, affected ticket, stale PRs, and stale documents.
 - **Answers graph questions.** Ask who decided something, what replaced it, who knows the most, how two entities are connected, or which work and client deliverables depend on a delayed project.
-- **Answers across systems.** *"Why is the database migration delayed, and who can approve an override?"* follows a Slack message to a Notion doc, the doc to its ticket (BD-116), the ticket to its assignee, and the HR record to their manager, with a source badge per system. Project status also changes live: a lead's *"We are cancelling Project Gamma"* updates the graph, with that message as evidence.
+- **Answers across systems.** *"Why is the database migration delayed, and who can approve an override?"* follows a Slack message to a design doc, the doc to its ticket (BD-116), the ticket to its assignee, and the HR record to their manager, with a source badge per system. In the demo the doc, the tickets and the HR records are sample data, and their badges say "(demo)": there is no Notion or HR connector. Project status also changes live: a lead's *"We are cancelling Project Gamma"* updates the graph, with that message as evidence.
 - **Creates an auditable fix.** Ticket owners can write the decision into the ticket or keep the old scope. Approval creates follow-up tasks assigned to the people who own the stale PRs and docs.
 - **Keeps knowledge current.** Documents are chunked, embedded, access-filtered, and linked to the surrounding graph. Changed chunks are re-embedded by content hash, while removed ticket mentions are removed too.
 - **Supports live operations.** Slack and Discord bots monitor threads, the API accepts ticket, document, GitHub, and Google Drive updates, and open dashboards receive Server-Sent Events.
@@ -42,6 +52,34 @@ WHERE NOT (r)<-[:SUPERSEDES]-(:Requirement)
 The graph also powers connection answers, feature timelines, retrospectives, expert and bus-factor views, coverage risks, impact analysis, and spec generation. FalkorDB vector search handles document chunks, with viewer permissions applied in the query, before agent tools receive results, and at the API boundary.
 
 ![Graph walkthrough: a decision becomes drift](docs/screenshot-chain.png)
+
+## For coding agents: an MCP server
+
+The same graph, as six read-only MCP tools any coding agent can call: `current_spec(ticket)`, `drift`, `who_knows`,
+`decision_history`, `impact` and `find` ([`agent/mcp_server.py`](agent/mcp_server.py)). The API serves it at `/mcp`;
+locally it also runs over stdio.
+
+```bash
+claude mcp add --transport http company-brain https://LIVE_URL/mcp
+```
+
+Asked to "implement BD-101", Claude Code without it built what the ticket says: the last 30 days, five columns. With it,
+it first called `current_spec("BD-101")`, built the version Maya decided in Slack (any range up to 12 months, every custom
+field as a column), cited the decision and said PR #6 had shipped the old version. Both runs, with the code they wrote:
+[`examples/mcp-demo/RUNS.md`](examples/mcp-demo/RUNS.md). Two runs are an example, not a measurement.
+
+## Try it on your own repo
+
+The live site takes any public GitHub repo (`/try/owner/name`). It reads the 150 most recently updated issues, 100 PRs and
+up to 400 comments, runs the same pipeline with the rules extractor (no LLM; about 15 seconds for FalkorDB/FalkorDB) into a graph of its own,
+and shows who knows what (per label), which PRs close which issues, open issues no PR touches, decisions in comments and
+drift. FalkorDB/FalkorDB is built at startup, so it opens at once. Private repos are refused even if the server's token
+could read them, and a repo's graph is read-only.
+
+On real text, drift is the weakest part, and the page says so: on 60 hand-labelled real comments the rules extractor's
+precision was 0.17 and its recall 0.14, so decisions and drift there are candidates to read. A flag that was already
+hand-checked shows that verdict next to it (both FalkorDB flags are known false positives). People, areas and
+issue-PR chains come from GitHub's own links. Code: [`pipeline/tryrepo.py`](pipeline/tryrepo.py).
 
 ## Agents, guardrails, and actions
 
@@ -99,7 +137,16 @@ LLM_API_KEY=ollama
 LLM_REASONING_EFFORT=none
 ```
 
-## For real Slack or Discord data, add the relevant bot credentials to `.env` and follow [`docs/REAL_RUN.md`](docs/REAL_RUN.md). The web overview also provides consent-based “Add to Slack” and “Add to Discord” flows.
+## Real Slack or Discord data
+
+Add the relevant bot credentials to `.env` and follow [`docs/REAL_RUN.md`](docs/REAL_RUN.md). The web overview also provides consent-based “Add to Slack” and “Add to Discord” flows.
+
+## Honest limits
+
+- The synthetic benchmark's rules and thresholds were tuned on that scenario, which has two planted drifts: its 1.00 is an upper bound, not a production number.
+- On real text, extraction is conservative and noisy (see above); the real-data labels were made by the AI assistant and only partly re-checked ([`docs/LABEL_RECHECK.md`](docs/LABEL_RECHECK.md)).
+- The impact-analysis organisation data and the HR records are hand-written demo data; project status changes are read from chat with a keyword rule.
+- Jira and Linear are tested against fake APIs only; Google Drive likewise. There is no sign-in: a team's dashboard link is its key.
 
 
 ## Project map

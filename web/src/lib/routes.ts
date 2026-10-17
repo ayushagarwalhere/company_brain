@@ -24,3 +24,8 @@ export const tourOn = () => typeof window !== "undefined" && new URLSearchParams
 
 /** A connected team's own graph (?org=slack-… / discord-…): real people and work, no demo-only sections. */
 export const isTeamOrg = (org: string | null | undefined) => !!org && /^(slack|discord)-/.test(org);
+
+/** A public GitHub repo's graph, built by "Try it on your repo" (?org=gh-…): read-only, no demo-only sections. */
+export const isRepoOrg = (org: string | null | undefined) => !!org && org.startsWith("gh-");
+/** The repo's name, for the header (?repo=owner/name; the org id can be a hash). */
+export const repoName = () => (typeof window === "undefined" ? null : new URLSearchParams(window.location.search).get("repo"));

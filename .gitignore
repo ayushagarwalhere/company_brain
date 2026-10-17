@@ -31,3 +31,6 @@ data/installs.json
 
 # per-workspace seed maps (written by scripts/seed_slack.py / seed_discord.py)
 data/seed_maps/
+
+# try-your-repo results (pipeline/tryrepo.py)
+data/try/

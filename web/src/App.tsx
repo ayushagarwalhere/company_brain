@@ -2,7 +2,7 @@ import { useEffect } from "react";
 import { BrainProvider, useBrain } from "./lib/brain";
 import { scrollToEl } from "./lib/fx";
 import { ORG } from "./lib/api";
-import { isAppMode, isTeamOrg } from "./lib/routes";
+import { isAppMode, isRepoOrg, isTeamOrg } from "./lib/routes";
 import { Footer, Nav } from "./components/Chrome";
 import { CompanyMapSection } from "./components/CompanyMap";
 import { DriftSection } from "./components/DriftSection";
@@ -31,6 +31,7 @@ function ScrollToHash() {
 /** The working app: every feature on the live graph (the demo sandbox when opened from the overview). */
 function Workspace() {
   const team = isTeamOrg(ORG);  // a real team: its setup first; the demo-only sections (personas, projects, sample docs) are left out
+  const real = team || isRepoOrg(ORG);  // a team's graph or a public repo's: no demo-only sections
   return (
     <>
       <a className="skip" href="#drift">Skip to open drift</a>
@@ -41,11 +42,11 @@ function Workspace() {
         <DriftSection />
         <GraphSection />
         <CompanyMapSection />
-        {!team && <ImpactSection />}
-        {!team && <SimulateSection />}
+        {!real && <ImpactSection />}
+        {!real && <SimulateSection />}
         <StreamSection />
         <AskSection />
-        {!team && <DocsSection />}
+        {!real && <DocsSection />}
         <RetroSection />
         <CoverageSection />
         <SpecSection />
