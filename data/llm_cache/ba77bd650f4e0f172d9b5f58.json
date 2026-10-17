@@ -1,0 +1,10 @@
+{
+ "is_change": true,
+ "kind": "requirement_change",
+ "old": "Round arrowhead was not available in the arrowhead picker",
+ "new": "Round arrowhead is available in the arrowhead picker as \"Circle\" (filled and outline).",
+ "evidence_quote": "The round arrowhead is back in the arrowhead picker, as \"Circle\" (filled and outline).",
+ "feature": null,
+ "ticket": null,
+ "confidence": 0.95
+}

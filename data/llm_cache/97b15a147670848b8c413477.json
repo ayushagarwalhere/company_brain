@@ -1,0 +1,10 @@
+{
+ "is_change": true,
+ "kind": "requirement_change",
+ "old": "`onPaste` did not run for images pasted from outside before insertion",
+ "new": "`onPaste` now runs for every paste, including images pasted from outside, before anything is inserted",
+ "evidence_quote": "`onPaste` now runs for every paste, including images pasted from outside, before anything is inserted",
+ "feature": null,
+ "ticket": "9875",
+ "confidence": 0.95
+}

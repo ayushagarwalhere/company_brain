@@ -1,0 +1,10 @@
+{
+ "is_change": true,
+ "kind": "requirement_change",
+ "old": "The package bundled react/jsx-runtime and was not an ESM build, and React 19 was not a supported peer dependency.",
+ "new": "The package is now an ESM build that no longer bundles react/jsx-runtime, and React 19 is a supported peer dependency.",
+ "evidence_quote": "Fixed in 0.18.0: the package is now an ESM build that no longer bundles `react/jsx-runtime`, and React 19 is a supported peer dependency.",
+ "feature": null,
+ "ticket": null,
+ "confidence": 0.9
+}

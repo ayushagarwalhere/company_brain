@@ -1,0 +1,10 @@
+{
+ "is_change": true,
+ "kind": "requirement_change",
+ "old": "pasting spreadsheet data did not offer a radar (net) chart",
+ "new": "pasting spreadsheet data now offers a radar (net) chart",
+ "evidence_quote": "Implemented in #10824: pasting spreadsheet data now offers a radar (net) chart.",
+ "feature": null,
+ "ticket": "#10824",
+ "confidence": 0.95
+}

@@ -1,0 +1,10 @@
+{
+ "is_change": true,
+ "kind": "requirement_change",
+ "old": null,
+ "new": "Right-click Paste now reads the system clipboard, allowing screenshots and images copied from web pages to paste as images.",
+ "evidence_quote": "Fixed by #7198: right-click → Paste now reads the system clipboard, so screenshots (e.g. Snipping Tool's Copy) and images copied from web pages paste as images.",
+ "feature": null,
+ "ticket": "#7198",
+ "confidence": 0.99
+}

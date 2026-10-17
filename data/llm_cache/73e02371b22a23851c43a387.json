@@ -1,0 +1,10 @@
+{
+ "is_change": true,
+ "kind": "requirement_change",
+ "old": null,
+ "new": "Alt+H now only distributes horizontally, and H alone switches to the hand tool.",
+ "evidence_quote": "Alt+H now only distributes horizontally, and H alone switches to the hand tool.",
+ "feature": null,
+ "ticket": "7189",
+ "confidence": 0.9
+}

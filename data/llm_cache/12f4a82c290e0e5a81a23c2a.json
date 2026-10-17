@@ -1,0 +1,10 @@
+{
+ "is_change": true,
+ "kind": "requirement_change",
+ "old": "\"Arrow type\" was not translated into all languages",
+ "new": "\"Arrow type\" is translated in all languages",
+ "evidence_quote": "\"Arrow type\" is translated in all languages now.",
+ "feature": null,
+ "ticket": null,
+ "confidence": 0.95
+}

@@ -1,0 +1,10 @@
+{
+ "is_change": true,
+ "kind": "requirement_change",
+ "old": "The text editor closes when the properties panel is used.",
+ "new": "The text editor remains open while the properties panel is in use.",
+ "evidence_quote": "Superseded by #8012, which keeps the text editor open while using the properties panel.",
+ "feature": "text editor",
+ "ticket": "8012",
+ "confidence": 0.95
+}

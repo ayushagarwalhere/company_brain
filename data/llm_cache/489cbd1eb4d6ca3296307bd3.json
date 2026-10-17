@@ -1,0 +1,10 @@
+{
+ "is_change": true,
+ "kind": "decision",
+ "old": "The literal value after \"price:\" was preserved in the replacement string.",
+ "new": "The literal value after \"price:\" must be removed, so \"price: X\" becomes \"price: \" in the replacement.",
+ "evidence_quote": "The decisive point is not the `'$5'` case, it is `'price: X'` -> `'price: '`",
+ "feature": null,
+ "ticket": null,
+ "confidence": 0.65
+}

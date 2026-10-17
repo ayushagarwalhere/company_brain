@@ -1,0 +1,10 @@
+{
+ "is_change": true,
+ "kind": "requirement_change",
+ "old": "new flowchart nodes did not copy the starting node's style",
+ "new": "new flowchart nodes now copy the starting node's style (roundness, stroke, fill, opacity).",
+ "evidence_quote": "new flowchart nodes now copy the starting node's style (roundness, stroke, fill, opacity).",
+ "feature": null,
+ "ticket": "9047",
+ "confidence": 0.9
+}

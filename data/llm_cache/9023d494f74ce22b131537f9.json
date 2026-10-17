@@ -1,0 +1,10 @@
+{
+ "is_change": true,
+ "kind": "requirement_change",
+ "old": null,
+ "new": "The system must support arbitrary curved arrows, not just 3-point arrows.",
+ "evidence_quote": "We don't want to do quite what tldraw does because they only support 3-point arrows effectively, whereas we need to handle arbitrary curves.",
+ "feature": null,
+ "ticket": null,
+ "confidence": 0.95
+}

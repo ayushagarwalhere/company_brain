@@ -1,0 +1,10 @@
+{
+ "is_change": true,
+ "kind": "requirement_change",
+ "old": "Tagging elements with non-visual labels and filtering or greying them out",
+ "new": "Tagging elements with non-visual labels and filtering or greying them out will not be implemented",
+ "evidence_quote": "Tagging elements with non-visual labels and filtering or greying them out isn't something we're currently planning.",
+ "feature": null,
+ "ticket": null,
+ "confidence": 0.9
+}

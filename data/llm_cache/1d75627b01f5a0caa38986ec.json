@@ -1,0 +1,10 @@
+{
+ "is_change": false,
+ "kind": "status",
+ "old": null,
+ "new": null,
+ "evidence_quote": null,
+ "feature": null,
+ "ticket": "#11922",
+ "confidence": 0.99
+}

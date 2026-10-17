@@ -1,0 +1,10 @@
+{
+ "is_change": true,
+ "kind": "requirement_change",
+ "old": "Ctrl/Cmd+S while editing text opens the browser's save dialog",
+ "new": "Ctrl/Cmd+S while editing text now saves the drawing",
+ "evidence_quote": "Fixed by #9295: Ctrl/Cmd+S while editing text now saves the drawing instead of opening the browser's save dialog. Ctrl/Cmd+Shift+S is tracked in #11914.",
+ "feature": null,
+ "ticket": "9295",
+ "confidence": 0.95
+}

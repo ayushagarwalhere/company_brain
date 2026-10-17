@@ -66,12 +66,21 @@ def evidence_ok(quote: str | None, message: str) -> bool:
     return len(q) >= 8 and q in _norm(message)
 
 
+def _confidence(v) -> float:
+    """Models don't always respect the schema: gpt-oss-20b sometimes returns "0.8" as a string. Anything unparseable
+    counts as 0.0, which is below MIN_CONFIDENCE, so it can never become a change."""
+    try:
+        return max(0.0, min(1.0, float(v)))
+    except (TypeError, ValueError):
+        return 0.0
+
+
 def from_structured(out: dict, message: str) -> dict:
     """Maps the structured answer to the pipeline's {kind, feature, ticket, requirement, confidence}."""
     base = {
         "feature": out.get("feature"),
         "ticket": out.get("ticket"),
-        "confidence": out.get("confidence") or 0.0,
+        "confidence": _confidence(out.get("confidence")),
         "evidence_quote": out.get("evidence_quote"),
         "old": out.get("old"),
     }

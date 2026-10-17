@@ -1,0 +1,10 @@
+{
+ "is_change": true,
+ "kind": "requirement_change",
+ "old": "Khmer not available in the language picker",
+ "new": "Khmer will appear in the language picker once its translation reaches 85%",
+ "evidence_quote": "Khmer is available on Crowdin (https://crowdin.com/project/excalidraw) and about half translated. It will show up in the language picker once it's about 85% translated.",
+ "feature": "language_picker",
+ "ticket": null,
+ "confidence": 0.95
+}

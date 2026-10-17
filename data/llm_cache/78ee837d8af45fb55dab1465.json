@@ -1,0 +1,10 @@
+{
+ "is_change": true,
+ "kind": "requirement_change",
+ "old": null,
+ "new": "Input validation must enforce that CMD_INFO garbage, CACHE_SIZE, THREAD_COUNT, and MAX_QUEUED_QUERIES cannot be zero, FOO must be 1, unknown argument names are rejected, ignored arguments must be logged as detracted but accepted, and no bolt port is required.",
+ "evidence_quote": "input validation should be enforced CMD_INFO garbage, CACHE_SIZE 0, THREAD_COUNT 0, MAX_QUEUED_QUERIES 0, FOO 1 (unknown name), CACHE_SIZE (odd arg count). ... ignored arguments should be set the right way, however if we are not using them a log line should be written that it the value is detracted, but accepted. no need for bolt port for now",
+ "feature": null,
+ "ticket": null,
+ "confidence": 0.97
+}

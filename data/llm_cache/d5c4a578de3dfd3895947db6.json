@@ -1,0 +1,10 @@
+{
+ "is_change": true,
+ "kind": "requirement_change",
+ "old": "Changing a frame's X/Y in the properties panel did not move its child elements",
+ "new": "Changing a frame's X/Y in the properties panel now moves its child elements along with it",
+ "evidence_quote": "changing a frame's X/Y in the properties panel now moves its children along with it",
+ "feature": null,
+ "ticket": "9433",
+ "confidence": 0.95
+}

@@ -1,0 +1,10 @@
+{
+ "is_change": true,
+ "kind": "requirement_change",
+ "old": "Box-selecting frames did not include their contents when resizing multiple frames.",
+ "new": "Box-selecting frames now includes their contents, so resizing several frames scales them together with everything inside.",
+ "evidence_quote": "box-selecting frames now includes their contents, so resizing several frames scales them together with everything inside",
+ "feature": null,
+ "ticket": "9031",
+ "confidence": 0.99
+}

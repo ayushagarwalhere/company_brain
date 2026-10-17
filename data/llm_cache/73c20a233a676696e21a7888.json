@@ -1,0 +1,10 @@
+{
+ "is_change": true,
+ "kind": "decision",
+ "old": null,
+ "new": "cmd/ctrl behavior should align with the rest of the editor behavior",
+ "evidence_quote": "I did take your idea of aligning cmd/ctrl with the rest of the editor behavior 👍",
+ "feature": null,
+ "ticket": "12082",
+ "confidence": 0.95
+}

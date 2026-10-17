@@ -1,0 +1,10 @@
+{
+ "is_change": true,
+ "kind": "requirement_change",
+ "old": null,
+ "new": "onPaste now runs for every paste, including images and mixed content, before anything is inserted, and returning false cancels the paste.",
+ "evidence_quote": "onPaste now runs for every paste, including images and mixed content, before anything is inserted, and returning false cancels the paste.",
+ "feature": null,
+ "ticket": "9875",
+ "confidence": 0.95
+}

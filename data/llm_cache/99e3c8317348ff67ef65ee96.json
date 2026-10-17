@@ -1,0 +1,10 @@
+{
+ "is_change": true,
+ "kind": "requirement_change",
+ "old": "Cap was at C's 5000 UNWINDs",
+ "new": "Cap is now a last‑resort error at 10000 levels, twice C's 5000 UNWINDs",
+ "evidence_quote": "The only cap left is a last‑resort error at 10000 levels, twice C's 5000 UNWINDs",
+ "feature": null,
+ "ticket": null,
+ "confidence": 0.78
+}

@@ -205,3 +205,14 @@ def test_agent_recovers_when_the_provider_rejects_a_tool_call(monkeypatch):
     monkeypatch.setattr(agent, "_client", lambda: fake)
     out = agent.ask("anything")
     assert out["answer"] == "ok" and out["tool_calls"][0]["tool"] == "(rejected tool call)"
+
+
+def test_llm_confidence_given_as_a_string_is_parsed_not_crashed_on():
+    """gpt-oss-20b returned confidence "0.8" (a string); comparing it with MIN_CONFIDENCE crashed the run."""
+    from pipeline.extract import from_structured
+
+    msg = "Decision: exports go to 12 months now."
+    base = {"is_change": True, "new": "exports go to 12 months", "kind": "decision", "evidence_quote": "exports go to 12 months"}
+    assert from_structured({**base, "confidence": "0.8"}, msg)["confidence"] == 0.8
+    assert from_structured({**base, "confidence": "high"}, msg)["confidence"] == 0.0
+    assert from_structured({**base, "confidence": None}, msg)["confidence"] == 0.0

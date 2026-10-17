@@ -1,0 +1,10 @@
+{
+ "is_change": true,
+ "kind": "requirement_change",
+ "old": "SVG export resolved fonts through EXCALIDRAW_ASSET_PATH with an extra 'dist' path segment",
+ "new": "SVG export now resolves fonts through the same EXCALIDRAW_ASSET_PATH as the editor and inlines them, removing the extra 'dist' path segment",
+ "evidence_quote": "Fixed by #8384: SVG export now resolves fonts through the same `EXCALIDRAW_ASSET_PATH` as the editor and inlines them, so the extra `dist` path segment is gone.",
+ "feature": null,
+ "ticket": "8384",
+ "confidence": 0.95
+}

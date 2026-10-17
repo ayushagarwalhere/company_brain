@@ -25,7 +25,7 @@ The [README](../README.md) summarises these. Raw output is in [`benchmark/result
 
 Every number comes from the command shown with it. Raw output is in [`benchmark/results/`](../benchmark/results/).
 - **Rules** = the rule-based extractor, no LLM.
-- **qwen3:8b** = the LLM extractor running a local model through Ollama ([setup](../README.md#setup)).
+- **qwen3:8b** = the LLM extractor running a local model through Ollama ([setup](DETAILS.md#setup)).
 
 - **gpt-oss-120b** = OpenAI's open-weight 120B model on Groq's free tier (`reasoning_effort=low`), run on 2026-10-17 for the real-data extraction and the agent Q&A only. The free tier's daily limits didn't allow the full noise run.
 
@@ -199,6 +199,23 @@ Problems the stress test caught, each covered by a test or a CI check:
 - a dense TF-IDF scan (inverted index).
 
 How these work: [`docs/EXPLAIN.md`](EXPLAIN.md).
+
+### 7. Looking for real drift in real repos
+
+The question a judge asks: does it find a real drift in a real repo? `python -m benchmark.real_drift_search --repo FalkorDB/FalkorDB` (gpt-oss-120b) and `--repo excalidraw/excalidraw --standing-only` (gpt-oss-20b, because gpt-oss-120b's daily token cap was used up) → [`real_drift_search_falkordb.json`](../benchmark/results/real_drift_search_falkordb.json), [`real_drift_search_excalidraw.json`](../benchmark/results/real_drift_search_excalidraw.json). Same extractor, prompt and thresholds as everywhere else; nothing was tuned on these comments.
+
+| Repo | Comments searched | Flagged as a decision or change | Real drift after reading each thread |
+|---|---|---|---|
+| FalkorDB/FalkorDB | 70 (all human issue comments in the snapshot) | 2 | **0** |
+| excalidraw/excalidraw | 219 (issue comments by the issue's author, assignee or a maintainer) | 79 | **0** |
+
+- **No confirmed drift in either repo.** Each flag was read against its GitHub thread and linked PRs. The verdicts were written by the AI assistant; each one is in the result files with its reason and links, to check.
+- **The two genuine scope decisions it found had already reached the code**, which is exactly the case the product must *not* alert on:
+  - FalkorDB [#2876](https://github.com/FalkorDB/FalkorDB/issues/2876#issuecomment-5826403652): a maintainer widens a bug from nodes to nodes *and* relationships; [PR #2964](https://github.com/FalkorDB/FalkorDB/pull/2964), opened the same minute, fixes both.
+  - Excalidraw [#10001](https://github.com/excalidraw/excalidraw/pull/10001#issuecomment-5620263663): the maintainer narrows sticky notes to a dedicated element; [PR #12064](https://github.com/excalidraw/excalidraw/pull/12064), which supersedes it, shipped on 2026-09-10.
+- **Most flags were closing notes.** Of Excalidraw's 79: 36 were one "closing as superseded" message pasted on 36 PRs, 28 were "Fixed by #N" notes about behaviour that already shipped, 8 other status notes, 5 decisions *not* to change, and 1 agreement with work in progress. FalkorDB's other flag was an outside contributor agreeing with a proposal, which the decision-rights rule keeps as a candidate.
+- **The model matters.** gpt-oss-20b flagged 36% of the comments; gpt-oss-120b flagged 3%. Closing notes ("X now does Y") read like requirement changes to the smaller model.
+- **What this shows:** in two well-run open-source repos, decisions mostly travel inside their PR, so the decided-but-never-shipped case didn't occur in the sampled weeks. It does not show recall on a team that decides in chat and ships elsewhere; the synthetic company and the live Slack run cover that case.
 
 ## Limitations
 

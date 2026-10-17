@@ -1,0 +1,10 @@
+{
+ "is_change": true,
+ "kind": "requirement_change",
+ "old": "F shortcut triggered full screen",
+ "new": "F now only selects the frame tool",
+ "evidence_quote": "the F shortcut for full screen was removed, so F now only selects the frame tool",
+ "feature": null,
+ "ticket": "7222",
+ "confidence": "0.95"
+}

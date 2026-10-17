@@ -1,0 +1,10 @@
+{
+ "is_change": true,
+ "kind": "decision",
+ "old": null,
+ "new": "When a new canvas is called, the existing canvas should not be cleared.",
+ "evidence_quote": "Calling a new canvas would insinuate that we won't clear the existing canvas, so it's safer not to do that.",
+ "feature": null,
+ "ticket": null,
+ "confidence": 0.95
+}

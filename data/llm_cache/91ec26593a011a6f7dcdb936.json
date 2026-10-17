@@ -1,0 +1,10 @@
+{
+ "is_change": true,
+ "kind": "requirement_change",
+ "old": "Validation was not enforced and unknown or zero-valued configuration fields were ignored; arguments like cache_size, ASYNC_DELETE, and CMD_INFO were ignored.",
+ "new": "The server must now enforce validation and refuse to start on invalid configuration fields (e.g., unknown fields, CACHE_SIZE 0, THREAD_COUNT 0, MAX_QUEUED_QUERIES 0) and previously ignored arguments now take effect, with deprecated but accepted fields logged as ignored.",
+ "evidence_quote": "Validation is enforced and the server refuses to start... Arguments that used to be ignored now take effect...",
+ "feature": null,
+ "ticket": "3328",
+ "confidence": 0.93
+}

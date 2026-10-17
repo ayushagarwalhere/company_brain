@@ -1,0 +1,10 @@
+{
+ "is_change": true,
+ "kind": "requirement_change",
+ "old": null,
+ "new": "SVG text is now exported with an alphabetic baseline, so it lines up in Inkscape, draw.io and other SVG editors.",
+ "evidence_quote": "The export misalignment is fixed by #7693: SVG text is now exported with an alphabetic baseline, so it lines up in Inkscape, draw.io and other SVG editors.",
+ "feature": "export",
+ "ticket": "#7693",
+ "confidence": 0.95
+}

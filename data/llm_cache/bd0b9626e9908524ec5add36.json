@@ -1,0 +1,10 @@
+{
+ "is_change": true,
+ "kind": "requirement_change",
+ "old": "Previously, a frame's name could not be cleared while editing; the default name remained when the field was left empty.",
+ "new": "During frame editing, the name field can now be cleared, and the default name will only reappear if the field is left empty.",
+ "evidence_quote": "you can now clear a frame's name while editing it, and the default name only comes back when you leave the field empty",
+ "feature": null,
+ "ticket": "7457",
+ "confidence": 0.95
+}

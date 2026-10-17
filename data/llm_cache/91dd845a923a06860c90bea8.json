@@ -1,0 +1,10 @@
+{
+ "is_change": true,
+ "kind": "requirement_change",
+ "old": "very large elements were rendered at full scale, causing crashes",
+ "new": "very large elements are now rendered at a reduced scale that stays within the browser's canvas limits",
+ "evidence_quote": "very large elements are now rendered at a reduced scale that stays within the browser's canvas limits, so huge text no longer crashes the editor.",
+ "feature": null,
+ "ticket": "6417",
+ "confidence": 0.9
+}

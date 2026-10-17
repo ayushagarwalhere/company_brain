@@ -1,0 +1,10 @@
+{
+ "is_change": true,
+ "kind": "requirement_change",
+ "old": null,
+ "new": "Crop image command is available in the command palette when an image is selected.",
+ "evidence_quote": "Crop is available in the command palette now (\"Crop image\", with an image selected).",
+ "feature": "crop",
+ "ticket": null,
+ "confidence": 0.9
+}

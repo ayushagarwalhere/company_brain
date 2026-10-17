@@ -1,0 +1,10 @@
+{
+ "is_change": true,
+ "kind": "requirement_change",
+ "old": "Error feedback for invalid hex color input was to be implemented in the PR being closed.",
+ "new": "Error feedback for invalid hex color input is now handled in ticket #11782.",
+ "evidence_quote": "Error feedback for invalid hex color input landed in #11782, so I'm closing this as superseded.",
+ "feature": null,
+ "ticket": "11782",
+ "confidence": 0.95
+}

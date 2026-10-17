@@ -1,0 +1,10 @@
+{
+ "is_change": true,
+ "kind": "requirement_change",
+ "old": "getEditorUIOffsets",
+ "new": "Use container-relative offsets instead of getEditorUIOffsets",
+ "evidence_quote": "Superseded by #11554, which replaced `getEditorUIOffsets` with container-relative offsets, so I'm closing this.",
+ "feature": null,
+ "ticket": "11554",
+ "confidence": 0.95
+}

@@ -1,0 +1,10 @@
+{
+ "is_change": true,
+ "kind": "requirement_change",
+ "old": null,
+ "new": "When selecting nested shapes, the system should prefer the closer outline unless the cursor is inside the nested shape.",
+ "evidence_quote": "tweaks the preference of nested shapes - it prefers closer outline unless cursor inside the nested shape.",
+ "feature": null,
+ "ticket": null,
+ "confidence": 0.95
+}

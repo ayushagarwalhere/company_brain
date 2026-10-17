@@ -1,0 +1,10 @@
+{
+ "is_change": true,
+ "kind": "requirement_change",
+ "old": "No text search on the canvas",
+ "new": "You can search text on the canvas using Ctrl/Cmd+F",
+ "evidence_quote": "Implemented in #8438: you can search text on the canvas with Ctrl/Cmd+F.",
+ "feature": null,
+ "ticket": "#8438",
+ "confidence": 0.95
+}

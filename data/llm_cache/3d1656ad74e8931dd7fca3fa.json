@@ -1,0 +1,10 @@
+{
+ "is_change": true,
+ "kind": "requirement_change",
+ "old": "images passed via `initialData` did not render until `initialData` resolved",
+ "new": "images passed via `initialData` now render once their files load, even when `initialData` resolves later",
+ "evidence_quote": "images passed via `initialData` now render once their files load, even when `initialData` resolves later",
+ "feature": null,
+ "ticket": "8471",
+ "confidence": 0.9
+}

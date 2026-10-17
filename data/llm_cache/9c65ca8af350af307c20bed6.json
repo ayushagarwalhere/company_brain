@@ -1,0 +1,10 @@
+{
+ "is_change": true,
+ "kind": "requirement_change",
+ "old": "You did not appear in the collaborators list during a live session",
+ "new": "You now appear in the collaborators list during a live session",
+ "evidence_quote": "Implemented in #7444: you now appear in the collaborators list during a live session.",
+ "feature": null,
+ "ticket": "7444",
+ "confidence": 0.95
+}

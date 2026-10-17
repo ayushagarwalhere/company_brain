@@ -1,0 +1,10 @@
+{
+ "is_change": true,
+ "kind": "requirement_change",
+ "old": null,
+ "new": "The canvas should pan to follow the caret while editing text off-screen.",
+ "evidence_quote": "which pans the canvas to follow the caret while editing text off-screen",
+ "feature": null,
+ "ticket": "#12175",
+ "confidence": 0.95
+}

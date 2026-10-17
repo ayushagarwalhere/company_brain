@@ -1,0 +1,10 @@
+{
+ "is_change": true,
+ "kind": "requirement_change",
+ "old": "Help translation for Portuguese (pt-BR) was not included",
+ "new": "The Help translation for Portuguese (pt-BR) is now included",
+ "evidence_quote": "The Portuguese (pt-BR) \"Help\" translation from Crowdin is included now.",
+ "feature": null,
+ "ticket": null,
+ "confidence": 0.9
+}

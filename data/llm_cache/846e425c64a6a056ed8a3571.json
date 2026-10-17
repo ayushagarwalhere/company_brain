@@ -1,0 +1,10 @@
+{
+ "is_change": true,
+ "kind": "requirement_change",
+ "old": "Arrow binding was always enabled and could not be disabled by the user.",
+ "new": "Arrow binding can be turned off via the main menu, and the setting is remembered on that device for all drawings.",
+ "evidence_quote": "Implemented in #10839: arrow binding can be turned off in the main menu, and the setting is remembered on that device for all drawings.",
+ "feature": null,
+ "ticket": "10839",
+ "confidence": 0.95
+}

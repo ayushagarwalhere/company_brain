@@ -1,0 +1,10 @@
+{
+ "is_change": true,
+ "kind": "requirement_change",
+ "old": "Box selection only selected elements fully inside the selection box (Wrap mode).",
+ "new": "When the preference \"Select on\" is set to \"Overlap\", box selection will also select elements that are only partially overlapped by the selection box.",
+ "evidence_quote": "Implemented in #11053: box selection can now select elements it only partially overlaps. Switch it in the main menu under Preferences → \"Select on\" → \"Overlap\". The default stays \"Wrap\", which selects only elements fully inside the box.",
+ "feature": null,
+ "ticket": "#11053",
+ "confidence": 0.95
+}

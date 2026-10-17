@@ -1,0 +1,10 @@
+{
+ "is_change": true,
+ "kind": "requirement_change",
+ "old": "Arabic was not available in the language picker",
+ "new": "Arabic is available in the language picker with right-to-left support",
+ "evidence_quote": "Arabic is available in the language picker now, with right-to-left support.",
+ "feature": null,
+ "ticket": null,
+ "confidence": 0.95
+}

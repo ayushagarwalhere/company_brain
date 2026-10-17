@@ -1,0 +1,10 @@
+{
+ "is_change": true,
+ "kind": "requirement_change",
+ "old": "(previous line editor exit behavior as defined in the closed ticket)",
+ "new": "The line editor exit behavior is reworked as defined in ticket #9771.",
+ "evidence_quote": "Superseded by #9771, which reworked how the line editor is exited",
+ "feature": null,
+ "ticket": "9771",
+ "confidence": 0.95
+}

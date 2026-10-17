@@ -1,0 +1,10 @@
+{
+ "is_change": true,
+ "kind": "requirement_change",
+ "old": "Distributing elements with equal spacing was not available",
+ "new": "Distribute horizontally or vertically in the Align section for three or more selected elements with equal spacing",
+ "evidence_quote": "Distributing elements with equal spacing is available: select three or more elements and use Distribute horizontally / vertically in the Align section.",
+ "feature": "Align",
+ "ticket": null,
+ "confidence": 0.95
+}

@@ -75,7 +75,7 @@ Then set `"slack": "<your username>"` for `maya` in `data/scenario/people.json`.
 1. The Slack thread: your message and the bot's reply underneath (the important one).
 2. The dashboard's Open drift section with the new card, on <http://localhost:8000>.
 
-Save them as `docs/real-slack-thread.png` and `docs/real-slack-dashboard.png`; the README's "Run on a real Slack workspace" section shows them. Crop out browser tabs and bookmarks first.
+Save them as `docs/real-slack-thread.png` and `docs/real-slack-dashboard.png`; the README shows the thread, and the dashboard one is in [docs/real-slack-dashboard.png](real-slack-dashboard.png). Crop out browser tabs and bookmarks first.
 
 ## Afterwards
 

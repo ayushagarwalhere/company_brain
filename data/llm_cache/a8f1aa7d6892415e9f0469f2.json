@@ -1,0 +1,10 @@
+{
+ "is_change": true,
+ "kind": "requirement_change",
+ "old": "zoom was round-tripped through a string or cut to two decimals",
+ "new": "zoom is now rounded to six decimal places and clamped to the allowed range",
+ "evidence_quote": "zoom is no longer round-tripped through a string or cut to two decimals. It's now rounded to six decimal places and clamped to the allowed range.",
+ "feature": "zoom",
+ "ticket": "4730",
+ "confidence": 0.95
+}

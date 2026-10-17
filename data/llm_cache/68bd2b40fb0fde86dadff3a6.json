@@ -1,0 +1,10 @@
+{
+ "is_change": true,
+ "kind": "requirement_change",
+ "old": "Snapshot of deleted ids is retained until later, causing live entities inheriting snapshotted ids to be shadowed",
+ "new": "When an id is reissued by the allocator, its snapshot must be dropped immediately to prevent shadowing of live entities",
+ "evidence_quote": "Fix in the linked PR: drop an id's snapshot when the allocator reissues it, rather than deferring reuse",
+ "feature": null,
+ "ticket": "#2759",
+ "confidence": 0.78
+}

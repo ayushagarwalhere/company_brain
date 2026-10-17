@@ -1,0 +1,10 @@
+{
+ "is_change": true,
+ "kind": "requirement_change",
+ "old": null,
+ "new": "The line tool shortcut is L, located on the left-hand side of the keyboard.",
+ "evidence_quote": "the line tool shortcut is L now, on the left-hand side of the keyboard.",
+ "feature": "line_tool_shortcut",
+ "ticket": "5832",
+ "confidence": 0.95
+}

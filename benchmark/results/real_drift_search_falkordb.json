@@ -1,0 +1,42 @@
+{
+ "repo": "FalkorDB/FalkorDB",
+ "snapshot": "2026-10-16T08:16:13Z",
+ "model": "openai/gpt-oss-120b",
+ "filter": "issue comments, not PRs, not bots",
+ "comments": 70,
+ "errors": 0,
+ "flagged": [
+  {
+   "url": "https://github.com/FalkorDB/FalkorDB/issues/2876#issuecomment-5826403652",
+   "author": "AviAvni",
+   "created": "2026-09-25T03:54:03Z",
+   "issue": 2876,
+   "kind": "requirement_change",
+   "conf": 0.78,
+   "requirement": "When an id is reissued by the allocator, its snapshot must be dropped immediately to prevent shadowing of live entities",
+   "comment": "### Wider than the two shapes above\n\nThe id-keyed snapshot maps (`Runtime::deleted_nodes` / `deleted_relationships`, `runtime.rs:159`) are consulted first by every accessor (`runtime.rs:1460-1860`: properties, labels, type, endpoints, degree, liveness). So any live entity that inherits a snapshotted id is shadowed — for nodes **and** relationships, and even when nothing keeps the deleted entity reachable. `main` @ 2363723ac vs C (`falkordb.so`, macOS release):\n\n| query (each on a fresh graph, after the setup shown) | Rust | C |\n|---|---|---|\n| setup `CREATE (:A {v:1})`; `MATCH (n) DELETE n WIT",
+   "verdict": "not drift: a real scope change, already carried into a PR",
+   "why": "AviAvni (who also opened the fix) widens the bug from nodes to nodes AND relationships. The issue body still describes nodes only, but PR #2964 (opened 19 s later, 'Closes #2876') patches deleted_relationships as well as deleted_nodes and its test covers relationships. The PR is open, not merged.",
+   "links": [
+    "https://github.com/FalkorDB/FalkorDB/pull/2964"
+   ]
+  },
+  {
+   "url": "https://github.com/FalkorDB/FalkorDB/issues/2929#issuecomment-5845450290",
+   "author": "aniruddhaadak80",
+   "created": "2026-09-26T10:23:23Z",
+   "issue": 2929,
+   "kind": "decision",
+   "conf": 0.65,
+   "requirement": "The literal value after \"price:\" must be removed, so \"price: X\" becomes \"price: \" in the replacement.",
+   "comment": "﻿Agreed on option 1, and the argument for it is stronger than the issue gives.\n\nThe decisive point is not the `'$5'` case, it is `'price: X'` -> `'price: '`. There, the `X` is a *literal* the user wrote, and the expansion silently deletes it. That is a data change on text that never contained a capture group, and it happens with no error and no warning. A user migrating from C gets a different answer for a string they did not think was special.\n\nWorth adding to the case: this is also a footgun in the other direction. `$$` -> `$` means a user who wants a literal `$` in a replacement has to know",
+   "verdict": "not drift: a proposal by someone without standing",
+   "why": "The issue asks maintainers for a decision; this comment ('Agreed on option 1') is from an outside contributor, not the issue author or a maintainer, and no maintainer has decided since. The pipeline's decision-rights rule would keep it as an unverified candidate, not an alert.",
+   "links": [
+    "https://github.com/FalkorDB/FalkorDB/issues/2929"
+   ]
+  }
+ ],
+ "confirmed_drift": 0,
+ "unverified": 0
+}
