@@ -42,7 +42,7 @@
    },
    "same_current_requirements_as_graph": true,
    "p50_ms": {
-    "graph": 2.84,
+    "graph": 2.09,
     "sql_chain": 0.01,
     "sql_latest": 0.03
    }
@@ -81,7 +81,7 @@
    },
    "same_current_requirements_as_graph": true,
    "p50_ms": {
-    "graph": 5.38,
+    "graph": 4.91,
     "sql_chain": 0.02,
     "sql_latest": 0.05
    }
@@ -120,9 +120,9 @@
    },
    "same_current_requirements_as_graph": true,
    "p50_ms": {
-    "graph": 40.97,
-    "sql_chain": 0.72,
-    "sql_latest": 2.22
+    "graph": 32.94,
+    "sql_chain": 0.39,
+    "sql_latest": 1.12
    }
   }
  ]

@@ -186,11 +186,16 @@
  },
  "drift_stale_prs": {
   "precision": 1.0,
-  "recall": 1.0,
-  "f1": 1.0,
-  "tp": 2,
+  "recall": 0.5,
+  "f1": 0.667,
+  "tp": 1,
   "fp": [],
-  "fn": []
+  "fn": [
+   [
+    "BD-103",
+    5
+   ]
+  ]
  },
  "drift_stale_docs": {
   "precision": 1.0,

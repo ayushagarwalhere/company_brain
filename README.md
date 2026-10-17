@@ -33,11 +33,17 @@ Read these before the numbers. Each one is measured in [Results](#results).
   - On two public GitHub repos, the rules extractor's drift flags were all false (0 of 25 labelled), and it found 1 of 7 real decisions in a 60-comment sample.
   - A small local LLM (qwen3:8b) still flags only 3 of those 25, but finds no more real decisions (also 1 of 7).
 - **The labels are not independently verified.** The AI assistant labelled the real-data items. **0 of 25 have been re-checked by me** so far.
-- **The graph itself is not the source of the accuracy.** Given the same extracted facts and the same version chain, an SQLite anti-join finds exactly the same drift, and its query runs in 0.7 ms against the graph's 41 ms at 20k messages (though the Cypher query also gathers the evidence). What the graph adds is listed under [Graph vs. a relational baseline](#2-graph-vs-a-relational-baseline).
-- **A small LLM can't drive the graph tools.** In LLM-agent mode, qwen3:8b calls tools with invented ids and gives up. It scores 0.36 on the demo Q&A, against 0.84 for plain retrieval feeding the same model. The rules agent scores 1.00, but I tuned its routing after seeing which of those questions failed.
+- **The graph itself is not the source of the accuracy.** Given the same extracted facts and the same version chain, an SQLite anti-join finds exactly the same drift, and its query runs in about 0.4 ms against the graph's 33 ms at 20k messages (though the Cypher query also gathers the evidence). What the graph adds is listed under [Graph vs. a relational baseline](#2-graph-vs-a-relational-baseline).
+- **A small LLM can't drive the graph tools.** In LLM-agent mode, qwen3:8b calls tools with invented ids and gives up. It scores 0.33 on the demo Q&A, against 0.82 for plain retrieval feeding the same model.
 - **Rules under noise trade misses for floods.**
   - With rules, the fix that stops a misread message burying a real decision recovers both drifts, but raises 14 noise-caused false alerts.
   - The "unverified candidate" rule kept 14 noise messages and no real decision.
+- **On the demo Q&A, plain retrieval beats the graph agent.** With whole-word grading the rules agent scores 0.86 (10/15); the top-25 passages returned verbatim score 0.98 (14/15), at five times the answer length. The earlier "rules agent 1.00" came from a substring grader: "sla" matched inside "slack".
+- **The rules and prompts were written against the test data.**
+  - The rules extractor's patterns quote the scenario's own phrasing ("not this quarter", "keep it as is", "Agreed.").
+  - The LLM prompt lists the failure patterns found in the 25 labelled real items, and qwen3 is then measured on those same 25.
+  - The noise set was written from the same patterns.
+  - The resolution thresholds were set on the same 300 messages: raising the message→feature threshold from 0.22 to 0.30 halves drift recall (1.00 → 0.50).
 - **The strong-LLM path is unmeasured.** No hosted model was run: the DeepSeek key has no balance (`402`), and no other key is configured.
 - **The demo company is synthetic** (300 messages, 15 tickets, 12 PRs), and I wrote the rules while looking at it. The synthetic 1.00s are an upper bound.
 - **No real Slack workspace has been run yet** (see [Run on a real Slack workspace](#run-on-a-real-slack-workspace)).
@@ -49,7 +55,7 @@ Read these before the numbers. Each one is measured in [Results](#results).
    - merged **after** it but `IMPLEMENTS` the older requirement → stale, "shipped the old version after the decision";
    - merged after it with no `IMPLEMENTS` link either way → **not** stale, shown separately as "unmatched, may implement the new scope".
 2. **Sprint retro.** Shows what was decided, what shipped and where the two diverge, with a source on every line.
-3. **Cited Q&A.** An agent answers from 9 graph tools and shows the graph paths it used. Without an LLM, a rules agent ([`agent/router.py`](agent/router.py)) answers from the same tools. It scores every intent and fails loudly when it can't resolve the feature, person or ticket.
+3. **Cited Q&A.** An agent answers from 9 graph tools and shows the graph paths it used. Without an LLM, a rules agent ([`agent/router.py`](agent/router.py)) answers from the same tools. It scores every intent, says so when a named ticket or PR doesn't exist, answers ticket- and PR-specific questions about that ticket or PR, and flags a weak feature match instead of answering silently about the wrong feature ([`tests/test_router_paraphrase.py`](tests/test_router_paraphrase.py)).
 
 **Human actions survive rebuilds.** "Keep old scope" and "Write to ticket" are stored as human-made nodes and re-attached by stable id after every rebuild ([`pipeline/human.py`](pipeline/human.py)). Everything else lives in [`docs/EXTRAS.md`](docs/EXTRAS.md).
 
@@ -78,11 +84,12 @@ WHERE NOT (r)<-[:SUPERSEDES]-(:Requirement)          // still the newest require
 | **Full graph** | 1.00 / 0.92 | 1.00 / 1.00 | **1.00 / 1.00** | **1.00 / 1.00** |
 | − thread structure (`REPLY_TO`) | 1.00 / **0.77** | 1.00 / 1.00 | 1.00 / 1.00 | 1.00 / 1.00 |
 | − person/time proximity for PRs | 1.00 / 0.92 | 1.00 / 1.00 | 1.00 / 1.00 | 1.00 / 1.00 |
-| − version reasoning (`SUPERSEDES` / `IMPLEMENTS`) | 1.00 / 0.92 | 1.00 / 1.00 | **0.50** / 1.00 | **0.67** / 1.00 |
+| − version reasoning (`SUPERSEDES` / `IMPLEMENTS`) | 1.00 / 0.92 | 1.00 / 1.00 | **0.50** / 1.00 | 1.00 / **0.00** |
 | − time-aware IMPLEMENTS fallback | 1.00 / 0.92 | 1.00 / 1.00 | 1.00 / 1.00 | 1.00 / 1.00 |
 | Ticket IDs only (no threads, proximity or semantic) | 1.00 / **0.33** | 1.00 / **0.50** | 1.00 / **0.00** | 1.00 / **0.00** |
 
-- **Without version reasoning, half the alerts are false.** Two changes were written back into their tickets, but nothing knows the tickets caught up.
+- **Without version reasoning, half the alerts are false and no stale PR is found.** Two changes were written back into their tickets, but nothing knows the tickets caught up. And with no `IMPLEMENTS` edges, PRs #5 and #6 (merged after the decisions) are only "unmatched", not stale.
+- **The "half" is 2 of 4 alerts.** The demo has two real drifts, so every ablation number here is a small-n result.
 - **With ticket IDs only, both real drifts are missed.** The deciding messages never name a ticket.
 - **Person/time proximity and the IMPLEMENTS fallback make no difference here.** The demo never has a PR that implements a chat decision directly. The fallback matters where that happens: in the test above, and in the qwen3 build below, where it removes qwen3's one false drift.
 
@@ -106,12 +113,13 @@ No hosted model (DeepSeek, Groq, …) was run. Nothing below mixes extractors in
 | requirement changes from chat | 1.00 / 1.00 | 0.67 / 1.00 |
 | drift (ticket) | 1.00 / 1.00 | 1.00 / 1.00 |
 | drift (requirement) | 1.00 / 1.00 | 1.00 / 1.00 |
-| stale PRs / stale docs | 1.00 / 1.00 | 1.00 / 1.00 |
+| stale PRs / stale docs | 1.00 / 1.00 | 1.00 / **0.50** · 1.00 / 1.00 |
 
 - **The rules score 1.00 because I wrote them while looking at this data.** Treat that as an upper bound.
 - **qwen3 finds the paraphrased SLA thread the rules miss** (message → feature R = 1.00).
 - **qwen3 groups one-off tickets into 5 extra features**, so the feature-link precision drops.
-- **qwen3 makes no IMPLEMENTS judgment of its own.** It reads a "columns" remark (m_exp_07) as a change. The time-aware fallback then links PR #6, which ships those columns, to it. Without the fallback this was a false drift (requirement-level P was 0.67 before).
+- **qwen3 makes no IMPLEMENTS judgment of its own.** It reads a "columns" remark (m_exp_07) as a change. The time-aware fallback then links PR #6, which ships those columns, to it. Without the fallback this was a false drift.
+- **qwen3 misses PR #5 as stale (stale-PR recall 0.50).** It makes no IMPLEMENTS link from PR #5 to the old BD-103 text, and PR #5 merged after the decision, so the stale-PR rule calls it "unmatched, may implement the new scope". This dropped from 1.00 when that rule was tightened (the rules extractor does make the link). Rebuilt from the committed cache with no live model.
 
 ### 2. Graph vs. a relational baseline
 
@@ -126,9 +134,11 @@ The SQL side never reads the graph. Two SQL variants:
 
 | Dataset | Graph drift found (true / false) | `sql_chain` | `sql_latest` | p50 drift query: graph / `sql_chain` |
 |---|---|---|---|---|
-| Demo (300 messages) | 2 / 0 | **identical** | identical | 2.8 ms / 0.01 ms |
-| Demo + 500 noise messages | 2 / 14 | **identical** | 0 / 5, **misses both** | 5.4 ms / 0.02 ms |
-| Stress test (20,800 messages) | 100 / 0 | **identical** | identical | 41 ms / 0.7 ms |
+| Demo (300 messages) | 2 / 0 | **identical** | identical | 2.1 ms / 0.01 ms |
+| Demo + 500 noise messages | 2 / 14 | **identical** | 0 / 5, **misses both** | 4.9 ms / 0.02 ms |
+| Stress test (20,800 messages) | 100 / 0 | **identical** | identical | 33 ms / 0.4 ms |
+
+Timings are from the committed run and vary by about ±30% between runs on the same machine.
 
 `sql_chain` also returns the same stale PRs and the same current requirement per ticket on all three datasets.
 
@@ -157,17 +167,19 @@ Lines of query code: Cypher `DRIFT` has 24, against 6 for `sql_chain` and 8 for 
 - **Top-100's 1.00 on "which tickets are stale" is an artifact:** drifted tickets have shorter passages.
 - **The router was tuned after seeing these questions.** The third question was a routing miss before the router fix, so this agent result is not held-out.
 
-**Demo Q&A** (15 questions, 300 messages): `python -m benchmark.run --no-llm` → [`latest.json`](benchmark/results/latest.json) and `python -m benchmark.run` with qwen3:8b configured → [`latest_llm_qwen3-8b.json`](benchmark/results/latest_llm_qwen3-8b.json).
+**Demo Q&A** (15 questions, 300 messages). The grader checks required facts per question with **whole-word** matching (a plain substring test let "sla" match inside "slack"); q11 must also name XLSX. A keyword list still passes, so read the answer lengths too. `python -m benchmark.run --no-llm` → [`latest.json`](benchmark/results/latest.json) and `python -m benchmark.run` with qwen3:8b configured → [`latest_llm_qwen3-8b.json`](benchmark/results/latest_llm_qwen3-8b.json).
 
-| System | Mean score | Fully correct |
-|---|---|---|
-| graph, rules agent (no LLM) | 1.00 | 15/15 |
-| retrieval top-3, extractive (no LLM) | 0.60 | 6/15 |
-| retrieval top-25, extractive (no LLM) | 0.98 | 14/15 |
-| graph, **LLM agent (qwen3:8b)** | **0.36** | 5/15 |
-| retrieval top-25 → **qwen3:8b** | **0.84** | 11/15 |
+| System | Mean score | Fully correct | Mean answer length |
+|---|---|---|---|
+| graph, rules agent (no LLM) | **0.86** | 10/15 | 921 chars |
+| retrieval top-3, extractive (no LLM) | 0.52 | 4/15 | 700 chars |
+| retrieval top-25, extractive (no LLM) | **0.98** | 14/15 | 4,515 chars |
+| graph, **LLM agent (qwen3:8b)** | **0.33** | 4/15 | 308 chars |
+| retrieval top-25 → **qwen3:8b** | **0.82** | 11/15 | 241 chars |
 
-- **The rules agent's 15/15 is after fixing q03's routing.** I fixed it knowing q03 had failed, so it's no longer a held-out result.
+- **Retrieval wins this benchmark.** The rules agent misses q01 (it reads "ticket" as the export feature and leaves out SLA), q03, q05, q11 and q14. The top-25 dump contains nearly everything, at five times the length.
+- **The router was tuned on q03 before this grader existed,** so the rules result is not held-out. The router fixes made after the stricter grading (unknown ids, ticket-scoped answers) left this score unchanged.
+- **The qwen3 rows are re-graded from the stored answers;** the model was not re-run.
 - **The qwen3 agent fails at tool use, not at the data.** It typically makes one call with an invented id (`BD-123`) or a feature name instead of an id, gets nothing back, and answers "I don't know".
 - **Retrieval into the same model needs no tool calls, so a small model does better there.**
 
@@ -254,13 +266,7 @@ How these work: [`docs/EXPLAIN.md`](docs/EXPLAIN.md).
 
 ## Run on a real Slack workspace
 
-> **TODO: not run yet.** Everything to do it is in [`docs/REAL_RUN.md`](docs/REAL_RUN.md):
-> - the app, scopes and tokens;
-> - `check_setup`, which names any missing scope;
-> - seeding, `build --live` (Slack only is enough);
-> - triggering a live alert.
->
-> The screenshots of a real thread with the bot's reply will go here. Until then, the connectors are only tested against fake Slack, Discord and GitHub APIs ([`tests/test_connectors.py`](tests/test_connectors.py)).
+**Not done.** No real Slack, Discord or GitHub workspace has been connected; the connectors are tested only against fake APIs ([`tests/test_connectors.py`](tests/test_connectors.py)). The steps are in [`docs/REAL_RUN.md`](docs/REAL_RUN.md): app scopes and tokens, `check_setup` (names any missing scope), `build --live` (Slack alone is enough), and triggering a live alert.
 
 ## Architecture
 
@@ -375,14 +381,17 @@ LLM_API_KEY=ollama
 LLM_REASONING_EFFORT=none   # skip qwen3's thinking phase, about 15x faster
 ```
 
-Unset, it uses DeepSeek (`DEEPSEEK_*`). Every call is cached by (model, prompt) in `data/llm_cache/`, which is committed, so the qwen3 numbers reproduce without a GPU. When no LLM answers, everything falls back instead of failing.
+Unset, it uses DeepSeek (`DEEPSEEK_*`). Every extraction call is cached by (model, prompt) in `data/llm_cache/`, which is committed, so the qwen3 **extraction** numbers (resolution, noise, real data) reproduce without a GPU. The qwen3 **Q&A** numbers don't: the agent's calls aren't cached, so re-running them needs Ollama. When no LLM answers, everything falls back instead of failing.
 
 **Real Slack, Discord and GitHub:** see [`docs/REAL_RUN.md`](docs/REAL_RUN.md). `build --live` reads each configured source from its API, falls back to the scenario files for the rest, and prints which is which.
 
 ### Tests and CI
 
-`python -m pytest -q` runs 91 tests, none of which need an LLM or API keys. They include:
-- human actions surviving rebuilds;
+`python -m pytest -q` runs 107 tests, none of which need an LLM or API keys. They include:
+- the README's headline numbers against the committed result files ([`tests/test_readme_numbers.py`](tests/test_readme_numbers.py));
+- human actions surviving rebuilds, and live updates (a write-back survives a live recompute; an unverified candidate never supersedes the owner's decision);
+- auth on every endpoint that changes the graph, GitHub webhook signatures and replayed deliveries, and per-org event isolation;
+- router paraphrases outside the benchmark: unknown ids, loose PR ids, ticket-scoped answers;
 - the IMPLEMENTS fallback;
 - one stale-PR rule everywhere: for BD-103 / PR #5 and BD-101 / PR #6, the card's count, the PR label, the evidence path and the Q&A answer agree ([`tests/test_stale_pr_consistency.py`](tests/test_stale_pr_consistency.py));
 - unverified candidates;
@@ -406,7 +415,9 @@ FalkorDB is pinned to `v4.22.1`.
 - **Small-model agents fail at tool calling.** Use the rules agent, or retrieval, with qwen3:8b-class models.
 - **No burial means more alerts with rules.** Misread messages surface as alerts instead of hiding real drift.
 - **Decision rights is coarse.** Unverified candidates keep non-owner changes visible, but here they only caught noise.
-- **The Q&A grader is keyword-based, and the router was tuned on the benchmark questions.** Cross-feature questions use F1 over named ids, which is stricter.
+- **The Q&A grader is keyword-based** (whole-word), so a list of the right words passes; the router was tuned on the benchmark questions. Cross-feature questions use F1 over named ids, which is stricter.
+- **A reversal under rules reports both decisions.** With the rules extractor, chat never supersedes chat, so "change to 100" then "back to 10" leaves two open drifts, the second of them false. An LLM extractor's `replaces()` judgment handles this; the rules don't.
+- **Multi-org is selection, not security.** The org comes from a header or `?org=`; one `INGEST_TOKEN` guards writes for every org, and a GitHub signature doesn't cover the org parameter.
 - **Same-ticket scope.** A PR on a sibling ticket isn't flagged as stale.
 - **Single-version issues.** Each GitHub issue is one version in the real-data run.
 
@@ -415,14 +426,21 @@ FalkorDB is pinned to `v4.22.1`.
 - **Dismissals and write-backs now survive a rebuild.** They were deleted by every `resolve()` and every full build.
 - **A missed IMPLEMENTS judgment no longer means a false drift.** There's a time-aware fallback, and PRs are labelled as merged before or after the decision.
 - **New SQL baseline.** It matches the graph on drift given the same chain, so the headline no longer rests on the 3-question retrieval comparison.
-- **The rules router scores intents, fails loudly, and sends PR ids to a PR lookup.** The q03 and stress-test misroutes are fixed (and disclosed as tuned).
+- **The rules router scores intents and sends PR ids to a PR lookup.** The q03 and stress-test misroutes are fixed (and disclosed as tuned).
 - **`resolve()` is split into stages.** Outputs are byte-identical on every benchmark; constants and weights live in `config.py`.
 - **qwen3:8b measured on the noise set and in LLM-agent Q&A.** The agent result is negative and reported as such.
 - **Real Slack run prepared but not done:** scope-aware `check_setup`, per-source `--live`, `docs/REAL_RUN.md`.
 - **Hygiene:** MIT license, pinned FalkorDB, ruff and mypy in CI, and an ablation that fails CI on regression.
 - **One stale-PR rule across the product.** The Q&A answer used to say "PRs that shipped the old version: none" while its own evidence path showed PR #5 implementing the older requirement. PRs merged after the decision that implement the old version are now stale everywhere; only PRs with no link either way are "unmatched".
 - **"Days open" no longer grows with the real clock.** On the synthetic company it counts from a fixed reference date in [`data/scenario/config.json`](data/scenario/config.json) (2026-10-10, the morning after the last message); live builds use today.
-- **Dashboard.** Q&A drift answers list one fact per line, with the graph paths behind a toggle; drift cards dropped duplicated text; sections after the hero have their own colour, numbered headers and lit panels. Rules-agent Q&A is unchanged at 15/15.
+- **Dashboard.** Q&A drift answers list one fact per line, with the graph paths behind a toggle; drift cards dropped duplicated text; sections after the hero have their own colour, numbered headers and lit panels. Rules-agent Q&A was unchanged by this.
+- **Review fixes (judge-style audit).**
+  - The Q&A grader is whole-word, which drops the rules agent from 1.00 to 0.86.
+  - README numbers were re-run against the current code: ablation stale PRs, qwen3 stale PRs and SQL timings.
+  - The live path no longer undoes write-backs or lets unverified candidates into the version chain.
+  - Simulate, write-to-ticket and dismiss need the token when one is set.
+  - Failed LLM calls are counted and shown instead of reading as "no change".
+  - The router says when an id doesn't exist.
 
 ## AI assistant disclosure
 
