@@ -6,6 +6,8 @@ python -m agent.agent "What did we decide about export and did we ship it?"
 import json
 import sys
 
+from openai import BadRequestError
+
 from agent import tools
 from config import settings
 from pipeline.llm import _client, _extra
@@ -38,14 +40,29 @@ def ask(question: str) -> dict:
     messages = [{"role": "system", "content": SYSTEM}, {"role": "user", "content": question}]
     trace, paths = [], []
     for _ in range(MAX_STEPS):
-        resp = client.chat.completions.create(model=settings.llm_model, messages=messages, tools=tools.openai_schema(), temperature=0, **_extra())
+        try:
+            resp = client.chat.completions.create(model=settings.llm_model, messages=messages, tools=tools.openai_schema(), temperature=0, **_extra())
+        except BadRequestError as e:
+            # Some providers (Groq) validate tool calls server-side and reject a malformed one with a 400, e.g. a null
+            # where the schema wants a string. Tell the model what was wrong and let it try again (uses up a step).
+            if "tool" not in str(e).lower():
+                raise
+            trace.append({"tool": "(rejected tool call)", "args": {}, "rows": 0})
+            messages.append(
+                {
+                    "role": "user",
+                    "content": f"Your last tool call was rejected: {str(e)[:400]}. Call a tool with valid arguments (feature ids come from list_features), or answer.",
+                }
+            )
+            continue
         msg = resp.choices[0].message
         if not msg.tool_calls:
             return {"answer": msg.content, "tool_calls": trace, "paths": paths, "engine": f"llm:{settings.llm_model}"}
         messages.append({"role": "assistant", "content": msg.content or "", "tool_calls": [tc.model_dump() for tc in msg.tool_calls]})
         for tc in msg.tool_calls:
-            args = json.loads(tc.function.arguments or "{}")
+            args: dict = {}
             try:
+                args = json.loads(tc.function.arguments or "{}")
                 result = tools.call(tc.function.name, args)
             except Exception as e:  # noqa: BLE001 - report tool errors back to the model
                 result = {"error": str(e), "rows": [], "paths": []}

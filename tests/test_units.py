@@ -178,3 +178,30 @@ def test_slack_check_names_missing_scopes(monkeypatch):
     name, ok, detail = cs.results[-1]
     assert not ok and "channels:history" in detail and "users:read" in detail and "Bot Token Scopes" in detail
     assert "chat:write (" not in detail  # granted scopes are not reported
+
+
+def test_agent_recovers_when_the_provider_rejects_a_tool_call(monkeypatch):
+    """Groq validates tool calls server-side: gpt-oss-120b once sent `feature: null`, got a 400, and the whole
+    benchmark aborted. The agent must report the rejection to the model and carry on."""
+    from types import SimpleNamespace
+
+    from openai import BadRequestError
+
+    from agent import agent
+    from pipeline import llm
+
+    calls = {"n": 0}
+
+    def create(**kw):
+        calls["n"] += 1
+        if calls["n"] == 1:
+            resp = SimpleNamespace(status_code=400, headers={}, request=None)
+            raise BadRequestError("Tool call validation failed: /feature expected string, got null", response=resp, body=None)
+        assert "rejected" in kw["messages"][-1]["content"]  # the model is told what went wrong
+        return SimpleNamespace(choices=[SimpleNamespace(message=SimpleNamespace(tool_calls=None, content="ok"))])
+
+    fake = SimpleNamespace(chat=SimpleNamespace(completions=SimpleNamespace(create=create)))
+    monkeypatch.setattr(llm, "available", lambda *a, **k: True)
+    monkeypatch.setattr(agent, "_client", lambda: fake)
+    out = agent.ask("anything")
+    assert out["answer"] == "ok" and out["tool_calls"][0]["tool"] == "(rejected tool call)"
