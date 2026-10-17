@@ -30,13 +30,16 @@
 .sec__bar > span:last-child .sq { display: none; }
 .sec__bar::after { content: ""; flex: 1; height: 1px; background: linear-gradient(90deg, rgb(var(--sh, 167 139 250) / .5), transparent); }
 
-/* large outlined index numeral above the title; the title overlaps its lower edge */
-.sec__num { display: block; pointer-events: none; user-select: none; margin: -.12em 0 -.34em -.04em;
-  font: 200 clamp(96px, 9vw, 150px)/1 var(--font); letter-spacing: -.06em; font-variant-numeric: tabular-nums;
+/* outlined index numeral above the title, clear of it */
+.sec__num { display: block; pointer-events: none; user-select: none; margin: -.1em 0 .08em -.04em;
+  font: 200 clamp(72px, 6.4vw, 108px)/.9 var(--font); letter-spacing: -.06em; font-variant-numeric: tabular-nums;
   color: transparent; -webkit-text-stroke: 1px rgb(var(--sh, 167 139 250) / .55);
   -webkit-mask-image: linear-gradient(180deg, #000 30%, transparent 92%); mask-image: linear-gradient(180deg, #000 30%, transparent 92%); }
-.sec__label h2 { position: relative; }
+.sec__label h2 { position: relative; margin-bottom: 26px !important; }
+.sec__head > p { margin-bottom: 34px !important; line-height: 1.7; }
 .sec--wide .sec__num { flex-basis: 100%; }
+.sec--wide .sec__label { row-gap: 0; }
+.sec--wide .sec__head > p { margin-bottom: 0 !important; }
 .sec__label h2 { background: linear-gradient(180deg, var(--ink) 35%, color-mix(in srgb, var(--ink) 60%, var(--sh-c)));
   -webkit-background-clip: text; background-clip: text; color: transparent; padding-bottom: .06em; }
 .sec__head > p { padding-left: 14px; border-left: 2px solid rgb(var(--sh, 167 139 250) / .5); }
