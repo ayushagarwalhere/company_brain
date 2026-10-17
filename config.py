@@ -66,6 +66,11 @@ PR_SIM_THRESHOLD = 0.25  # PR -> ticket, among tickets its author owned around t
 IMPL_SIM_THRESHOLD = 0.25  # time-aware IMPLEMENTS fallback: PR text vs. the new chat requirement
 # Rules agent: minimum TF-IDF similarity between a question and a feature's name/titles to call it a match.
 ROUTER_FEATURE_MIN_SIM = 0.12
+# Below this the match is used but the answer says it is low-confidence and names the feature it picked, so a
+# question about something the graph doesn't know ("mobile app push notifications" -> SLA breach notifications,
+# 0.54) isn't answered silently about the wrong feature. Chosen after looking at the scores of the 15 demo
+# questions and ~10 paraphrases (well-matched questions score 0.6-0.93); it does not change any routing.
+ROUTER_FEATURE_WEAK_SIM = 0.6
 # Involvement weights for "who knows" and knowledge risk (bus factor): one source for both queries.
 # Making a decision says more about ownership than writing a PR, a PR more than a ticket, a ticket more than a message.
 INVOLVEMENT_WEIGHTS = {"Decision": 5, "PullRequest": 4, "Ticket": 3}

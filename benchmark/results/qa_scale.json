@@ -5,7 +5,7 @@
   "tickets": 600,
   "prs": 200,
   "drifted_features": 100,
-  "build_s": 5.4
+  "build_s": 5.6
  },
  "grader": "per-feature: required facts; cross-feature: F1 over ticket/PR ids named",
  "seed": 0,

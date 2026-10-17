@@ -14,7 +14,7 @@ import re
 from dataclasses import dataclass, field
 
 from agent import tools
-from config import ROUTER_FEATURE_MIN_SIM
+from config import ROUTER_FEATURE_MIN_SIM, ROUTER_FEATURE_WEAK_SIM
 from graph import queries as Q
 from graph.db import get_graph
 from pipeline.textsim import TfIdf, tokens
@@ -50,7 +50,9 @@ INTENT_RULES: dict[str, list[tuple[str, int]]] = {
     "overview": [(r"\boverview\b", 3), (r"\bsummar", 3), (r"\bwhat'?s (going on|new)\b", 3)],
 }
 PRIORITY = ["drift", "decided", "impact", "connect", "who", "history", "prs", "overview"]  # tie-break, first wins
-ENTITY = re.compile(r"\b(PR-\d+|BD-\d+)\b|(#\d+)", re.I)
+# Tickets: any PROJECT-123 id (BD-101, SC-30). PRs: "PR-6", "PR 6", "PR6", "pull request 6", "#6".
+TICKET_ID = re.compile(r"\b(?!PR-)([A-Z]{2,6}-\d+)\b", re.I)
+PR_ID = re.compile(r"\b(?:PR|pull request)\s*[-#]?\s*(\d+)\b|#(\d+)\b", re.I)
 EXAMPLES = ["Which features have drifted, and why?", "Who knows the most about ticket export?", "How is liam connected to PR-6?"]
 
 
@@ -67,12 +69,30 @@ def pick_intent(question: str) -> str | None:
 
 
 def entities(question: str) -> list[str]:
-    """BD-101 -> 'BD-101'; PR-6 and #6 -> 'PR-6'."""
-    out = []
-    for m in ENTITY.finditer(question):
-        raw = (m.group(1) or m.group(2)).upper()
-        out.append("PR-" + raw[1:] if raw.startswith("#") else raw)
+    """BD-101 -> 'BD-101'; PR-6, PR 6, pull request 6 and #6 -> 'PR-6'. In order of appearance."""
+    found = [(m.start(), m.group(1).upper()) for m in TICKET_ID.finditer(question)]
+    found += [(m.start(), f"PR-{m.group(1) or m.group(2)}") for m in PR_ID.finditer(question)]
+    out: list[str] = []
+    for _, e in sorted(found):
+        if e not in out:
+            out.append(e)
     return out
+
+
+def missing(g, ents: list[str]) -> list[str]:
+    """Named ticket / PR ids that aren't in the graph. A question about BD-999 must say so, not answer about
+    something else."""
+    if not ents:
+        return []
+    known = {r["id"] for r in Q.rows(g, "MATCH (n) WHERE (n:Ticket OR n:PullRequest) AND n.id IN $ids RETURN n.id AS id", ids=ents)}
+    return [e for e in ents if e not in known]
+
+
+def ids_in(g, question: str) -> list[str]:
+    """entities(), keeping a PROJECT-123 token only when PROJECT is a ticket prefix this graph uses, so
+    "GPT-4" or "UTF-8" in a question isn't treated as a missing ticket."""
+    prefixes = {r["p"] for r in Q.rows(g, "MATCH (t:Ticket) RETURN DISTINCT split(t.id, '-')[0] AS p")}
+    return [e for e in entities(question) if e.startswith("PR-") or e.split("-")[0] in prefixes]
 
 
 def _features(g):
@@ -83,15 +103,21 @@ def _features(g):
     )
 
 
-def feature_for(q: str, feats: list[dict]) -> dict | None:
+def feature_match(q: str, feats: list[dict]) -> tuple[dict | None, float]:
+    """(feature, similarity). A named ticket id is an exact match (1.0)."""
+    named = {e for e in entities(q) if not e.startswith("PR-")}
     for f in feats:
-        if any(t.lower() in q.lower() for t in f["tickets"]):
-            return f
+        if named & set(f["tickets"]):
+            return f, 1.0
     if not feats:
-        return None
+        return None, 0.0
     sim = TfIdf({f["id"]: f"{f['name']} {f['name']} {' '.join(f['titles'])}" for f in feats})
     best, score = sim.best(q)
-    return next((f for f in feats if f["id"] == best), None) if score >= ROUTER_FEATURE_MIN_SIM else None
+    return (next((f for f in feats if f["id"] == best), None), score) if score >= ROUTER_FEATURE_MIN_SIM else (None, score)
+
+
+def feature_for(q: str, feats: list[dict]) -> dict | None:
+    return feature_match(q, feats)[0]
 
 
 def _people(g):
@@ -230,6 +256,11 @@ def stale_pr_list(d: dict) -> str:
 
 def drift_lines(ctx: Ctx) -> list[str]:
     drift = ctx.run("drift_for_feature", **({"feature": ctx.feature["id"]} if ctx.feature else {}))
+    tickets = [e for e in ctx.ents if not e.startswith("PR-")]
+    if tickets:  # "is BD-102 up to date": answer about BD-102, not about its feature's other tickets
+        drift = [d for d in drift if d["ticket"] in tickets]
+        if not drift:
+            return [f"No open drift on {', '.join(tickets)}: the ticket matches the latest decision."]
     lines = []
     for d in drift:
         # one fact per line, so the answer reads as a short list rather than a paragraph
@@ -249,11 +280,39 @@ def drift_lines(ctx: Ctx) -> list[str]:
 
 
 def answer_drift(ctx: Ctx) -> list[str]:
-    return drift_lines(ctx)
+    prs = [e for e in ctx.ents if e.startswith("PR-")]
+    return pr_lines(ctx, prs) if prs else drift_lines(ctx)
+
+
+def pr_lines(ctx: Ctx, prs: list[str]) -> list[str]:
+    """For a named PR: is it on an open drift, and in which role (stale, or unmatched)."""
+    drift = ctx.run("drift_for_feature", **({"feature": ctx.feature["id"]} if ctx.feature else {}))
+    lines = []
+    for pid in prs:
+        n = int(pid.split("-")[1])
+        hits = [(d, p) for d in drift for p in d["stale_prs"] + (d.get("unmatched_prs") or []) if p["pr"] == n]
+        for d, p in hits:
+            lines.append(
+                f"PR #{n} {p['label']} on {d['ticket']} ({d['feature_name']}): {d['ticket']} still says \"{d['ticket_text']}\", "
+                f"but {d['changed_by']} decided \"{d['requirement_text']}\" on {d['changed_at'][:10]}."
+            )
+        if not hits:
+            lines.append(f"PR #{n} is not on any open drift: nothing newer was decided for what it shipped.")
+    return lines
 
 
 def answer_decided(ctx: Ctx) -> list[str]:
     """What was decided, whether it shipped, and which PR shipped what (history + drift with the shipping PRs)."""
+    prs = [e for e in ctx.ents if e.startswith("PR-")]
+    if prs:  # "did PR #6 ship the right thing?"
+        return pr_lines(ctx, prs)
+    tickets = [e for e in ctx.ents if not e.startswith("PR-")]
+    if tickets:  # "is BD-102 up to date?": that ticket's text, its own chat changes, its own drift
+        said = Q.rows(ctx.g, "MATCH (t:Ticket) WHERE t.id IN $ids RETURN t.id AS id, t.title AS title, t.description AS text", ids=tickets)
+        own = [line for line in history_lines(ctx) if any(f"on {t}:" in line for t in tickets)] if ctx.feature else []
+        return (
+            [f"{r['id']} ({r['title']}) says: \"{r['text']}\"" for r in said] + (own or [f"No chat decision changed {', '.join(tickets)}."]) + drift_lines(ctx)
+        )
     if not ctx.feature:
         return drift_lines(ctx)
     return history_lines(ctx) + drift_lines(ctx)
@@ -297,9 +356,15 @@ def route(question: str, feature: dict | None, ents: list[str]) -> str:
 def ask(question: str) -> dict:
     g = get_graph()
     feats, people = _features(g), _people(g)
-    ctx = Ctx(g, question, feature_for(question, feats), people, entities(question))
+    feature, sim = feature_match(question, feats)
+    ctx = Ctx(g, question, feature, people, ids_in(g, question))
+    gone = missing(g, ctx.ents)
+    if gone:  # an id the graph doesn't have: say so instead of answering about something else
+        return {"answer": f"I couldn't find {', '.join(gone)} in the graph.", "tool_calls": [], "paths": [], "engine": "rules", "intent": "unmatched"}
     intent = route(question, ctx.feature, ctx.ents)
     lines = unmatched(ctx) if intent == "unmatched" else HANDLERS[intent](ctx)
+    if feature and sim < ROUTER_FEATURE_WEAK_SIM and intent != "unmatched":
+        lines = [f"(Low-confidence match: I read this as being about {feature['name']}.)"] + lines
     answer = "\n".join(lines)
     if ctx.paths:
         answer += "\n\nEvidence:\n" + "\n".join(ctx.paths[:3])
