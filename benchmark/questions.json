@@ -20,7 +20,7 @@
   {"id": "q10", "q": "Who knows the most about the ticket export feature?",
    "must": [["maya", "sofia"]]},
   {"id": "q11", "q": "Was XLSX export agreed as a requirement?",
-   "must": [["no", "not", "rejected", "parked"]]},
+   "must": [["xlsx"], ["no", "not", "rejected", "parked"]]},
   {"id": "q12", "q": "What changed in the export requirements on 15 September, and was it shipped?",
    "must": [["assignee"], ["#6", "PR 6", "shipped", "yes"]]},
   {"id": "q13", "q": "Who owns BD-101 and which decision makes their shipped work stale?",

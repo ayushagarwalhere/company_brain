@@ -72,14 +72,31 @@ def baseline_extractive(q: str, index: TfIdf, docs: dict[str, str], k: int) -> d
     return {"answer": "\n".join(docs[d] for d, _ in ranked), "retrieved": [d for d, _ in ranked]}
 
 
+def mentions(text: str, term: str) -> bool:
+    """Whole-word (or whole-phrase) match, case-insensitive, plural "s" allowed: "sla" does not match inside "slack",
+    "#6" does not match "#60", "custom field" matches "custom fields". A plain substring test used to pass q01 on
+    "slack #support-escalations" without the answer ever naming the SLA feature."""
+    import re
+
+    return re.search(rf"(?<![a-z0-9]){re.escape(term.lower())}s?(?![a-z0-9])", text) is not None
+
+
 def grade(answer: str, item: dict) -> dict:
     a = (answer or "").lower()
-    hits = [any(s.lower() in a for s in group) for group in item["must"]]
-    bad = [any(s.lower() in a for s in group) for group in item.get("must_not", [])]
+    hits = [any(mentions(a, s) for s in group) for group in item["must"]]
+    bad = [any(mentions(a, s) for s in group) for group in item.get("must_not", [])]
     score = sum(hits) / len(hits) if hits else 1.0
     if any(bad):
         score = 0.0
     return {"score": round(score, 3), "hits": hits, "forbidden": bad}
+
+
+def _build_extractor() -> str | None:
+    """Which extractor built the graph being questioned (rules, llm, oracle), so a result file says what it measured."""
+    from graph.db import get_graph
+
+    rows = get_graph().query("MATCH (b:Build {id: 'latest'}) RETURN b.extractor").result_set
+    return rows[0][0] if rows else None
 
 
 def main():
@@ -132,7 +149,13 @@ def main():
         for s, rs in results.items()
     }
     print("\n" + json.dumps(summary, indent=1))
-    payload = {"mode": mode, "grader": "keyword facts per question (benchmark/questions.json); lenient, see README", "summary": summary, "results": results}
+    payload = {
+        "mode": mode,
+        "grader": "required facts per question (benchmark/questions.json), whole-word match; a keyword list still passes, see README",
+        "extractor": _build_extractor(),
+        "summary": summary,
+        "results": results,
+    }
     out_dir = HERE / "results"
     out_dir.mkdir(exist_ok=True)
     stamp = datetime.now(UTC).strftime("%Y%m%dT%H%M%SZ")

@@ -1,16 +1,17 @@
 {
  "mode": "no-llm",
- "grader": "keyword facts per question (benchmark/questions.json); lenient, see README",
+ "grader": "required facts per question (benchmark/questions.json), whole-word match; a keyword list still passes, see README",
+ "extractor": "heuristic",
  "summary": {
   "graph (rules agent, no LLM)": {
-   "mean_score": 1.0,
-   "passed": 15,
+   "mean_score": 0.856,
+   "passed": 10,
    "questions": 15,
    "mean_answer_chars": 912
   },
   "baseline (extractive top-3, no LLM)": {
-   "mean_score": 0.6,
-   "passed": 6,
+   "mean_score": 0.522,
+   "passed": 4,
    "questions": 15,
    "mean_answer_chars": 700
   },
@@ -27,17 +28,17 @@
     "id": "q01",
     "q": "Which features have a requirement that was changed in chat but never reflected in the ticket?",
     "answer": "DRIFT on Ticket export to CSV.\nDecided: \"the export must support any custom date range up to 12 months (not a fixed 30 days), and it must include all custom fields as extra columns.\" (maya, 2026-09-22, slack #support-escalations).\nBD-101 still says: \"Admins can export tickets created in the last 30 days as a CSV file. Columns: id, subject, status, created_at, assignee.\"\nPRs that shipped the old version: #6 (after the decision).\nDocs still describing the old version: PRD — Ticket export.\n\nEvidence:\n(Person maya)-[:POSTED]->(Message m_exp_12 @ slack#support-escalations, 2026-09-22T09:40:00Z)-[:CHANGES]->(Requirement \"the export must support any custom date range up to 12 months (not a fixed 30 days), and it must include all custom fields as extra columns.\")-[:AMENDS]->(Ticket BD-101)-[:ABOUT]->(Feature feat_ticket_export_to_csv) ; (PullRequest #6)-[:REFERENCES]->(Ticket BD-101), shipped the old version after the decision, IMPLEMENTS older \"Admins can export tickets created in the last 30 days as a CSV file. Columns: id, subject, status, created_at, assignee.\" ; (Document DOC-1 \"PRD — Ticket export\", updated 2026-09-15)-[:MENTIONS]->(Ticket BD-101), older than the change",
-    "score": 1.0,
+    "score": 0.5,
     "hits": [
      true,
-     true
+     false
     ],
     "forbidden": [
      false
     ],
-    "passed": true,
+    "passed": false,
     "chars": 1186,
-    "seconds": 0.24,
+    "seconds": 0.25,
     "tools": [
      {
       "tool": "drift_for_feature",
@@ -82,16 +83,16 @@
     "id": "q03",
     "q": "Does the export that shipped match what was decided? Which PR shipped it?",
     "answer": "2026-09-15: chat change on BD-101: \"Let's add an assignee column to the export. I'm updating BD-101 now.\" (written into BD-101 (v2), shipped in #6).\n2026-09-22: chat change on BD-101: \"the export must support any custom date range up to 12 months (not a fixed 30 days), and it must include all custom fields as extra columns.\" (never written into the ticket, not implemented).\nDRIFT on Ticket export to CSV.\nDecided: \"the export must support any custom date range up to 12 months (not a fixed 30 days), and it must include all custom fields as extra columns.\" (maya, 2026-09-22, slack #support-escalations).\nBD-101 still says: \"Admins can export tickets created in the last 30 days as a CSV file. Columns: id, subject, status, created_at, assignee.\"\nPRs that shipped the old version: #6 (after the decision).\nDocs still describing the old version: PRD — Ticket export.\n\nEvidence:\n(Ticket BD-101)-[:STATES]->(Requirement req:BD-101:v1 @ 2026-09-14T04:50:00Z)\n(Decision dec:m_exp_06)-[:CHANGES]->(Requirement req:m_exp_06 @ 2026-09-15T08:40:00Z)-[:SUPERSEDES]->(Requirement req:BD-101:v1)\n(Message m_exp_06)-[:CHANGES]->(Requirement req:m_exp_06 @ 2026-09-15T08:40:00Z)-[:SUPERSEDES]->(Requirement req:BD-101:v1)",
-    "score": 1.0,
+    "score": 0.667,
     "hits": [
      true,
      true,
-     true
+     false
     ],
     "forbidden": [],
-    "passed": true,
+    "passed": false,
     "chars": 1210,
-    "seconds": 0.0,
+    "seconds": 0.01,
     "tools": [
      {
       "tool": "decision_history",
@@ -121,7 +122,7 @@
     "forbidden": [],
     "passed": true,
     "chars": 1122,
-    "seconds": 0.0,
+    "seconds": 0.01,
     "tools": [
      {
       "tool": "decision_history",
@@ -143,14 +144,14 @@
     "id": "q05",
     "q": "What does BD-103 say and is it still accurate?",
     "answer": "DRIFT on SLA breach notifications.\nDecided: \"Let's change it: send the warning 15 minutes BEFORE the breach, and post it to the team's Slack channel instead of email. We drop email notifications for this entirely.\" (maya, 2026-09-17, discord #engineering).\nBD-103 still says: \"When a ticket breaches its SLA, send an email notification to the ticket's assignee.\"\nPRs that shipped the old version: #5 (after the decision).\nDocs still describing the old version: Design note — SLA breach notifications.\n\nEvidence:\n(Person maya)-[:POSTED]->(Message m_sla_05 @ discord#engineering, 2026-09-17T05:31:00Z)-[:CHANGES]->(Requirement \"Let's change it: send the warning 15 minutes BEFORE the breach, and post it to the team's Slack channel instead of email. We drop email notifications for this entirely.\")-[:AMENDS]->(Ticket BD-103)-[:ABOUT]->(Feature feat_sla_breach_notifications) ; (PullRequest #5)-[:REFERENCES]->(Ticket BD-103), shipped the old version after the decision, IMPLEMENTS older \"When a ticket breaches its SLA, send an email notification to the ticket's assignee.\" ; (Document DOC-2 \"Design note — SLA breach notifications\", updated 2026-09-14)-[:MENTIONS]->(Ticket BD-103), older than the change",
-    "score": 1.0,
+    "score": 0.667,
     "hits": [
      true,
      true,
-     true
+     false
     ],
     "forbidden": [],
-    "passed": true,
+    "passed": false,
     "chars": 1204,
     "seconds": 0.0,
     "tools": [
@@ -176,7 +177,7 @@
     "forbidden": [],
     "passed": true,
     "chars": 1122,
-    "seconds": 0.0,
+    "seconds": 0.01,
     "tools": [
      {
       "tool": "decision_history",
@@ -295,12 +296,13 @@
     "id": "q11",
     "q": "Was XLSX export agreed as a requirement?",
     "answer": "2026-09-15: chat change on BD-101: \"Let's add an assignee column to the export. I'm updating BD-101 now.\" (written into BD-101 (v2), shipped in #6).\n2026-09-22: chat change on BD-101: \"the export must support any custom date range up to 12 months (not a fixed 30 days), and it must include all custom fields as extra columns.\" (never written into the ticket, not implemented).\nDRIFT on Ticket export to CSV.\nDecided: \"the export must support any custom date range up to 12 months (not a fixed 30 days), and it must include all custom fields as extra columns.\" (maya, 2026-09-22, slack #support-escalations).\nBD-101 still says: \"Admins can export tickets created in the last 30 days as a CSV file. Columns: id, subject, status, created_at, assignee.\"\nPRs that shipped the old version: #6 (after the decision).\nDocs still describing the old version: PRD — Ticket export.\n\nEvidence:\n(Ticket BD-101)-[:STATES]->(Requirement req:BD-101:v1 @ 2026-09-14T04:50:00Z)\n(Decision dec:m_exp_06)-[:CHANGES]->(Requirement req:m_exp_06 @ 2026-09-15T08:40:00Z)-[:SUPERSEDES]->(Requirement req:BD-101:v1)\n(Message m_exp_06)-[:CHANGES]->(Requirement req:m_exp_06 @ 2026-09-15T08:40:00Z)-[:SUPERSEDES]->(Requirement req:BD-101:v1)",
-    "score": 1.0,
+    "score": 0.5,
     "hits": [
+     false,
      true
     ],
     "forbidden": [],
-    "passed": true,
+    "passed": false,
     "chars": 1210,
     "seconds": 0.01,
     "tools": [
@@ -332,7 +334,7 @@
     "forbidden": [],
     "passed": true,
     "chars": 1210,
-    "seconds": 0.0,
+    "seconds": 0.01,
     "tools": [
      {
       "tool": "decision_history",
@@ -377,17 +379,17 @@
     "id": "q14",
     "q": "List the decisions made in Sprint 1 that are not shipped.",
     "answer": "2026-09-15: chat change on BD-101: \"Let's add an assignee column to the export. I'm updating BD-101 now.\" (written into BD-101 (v2), shipped in #6).\n2026-09-22: chat change on BD-101: \"the export must support any custom date range up to 12 months (not a fixed 30 days), and it must include all custom fields as extra columns.\" (never written into the ticket, not implemented).\nDRIFT on Ticket export to CSV.\nDecided: \"the export must support any custom date range up to 12 months (not a fixed 30 days), and it must include all custom fields as extra columns.\" (maya, 2026-09-22, slack #support-escalations).\nBD-101 still says: \"Admins can export tickets created in the last 30 days as a CSV file. Columns: id, subject, status, created_at, assignee.\"\nPRs that shipped the old version: #6 (after the decision).\nDocs still describing the old version: PRD — Ticket export.\n\nEvidence:\n(Ticket BD-101)-[:STATES]->(Requirement req:BD-101:v1 @ 2026-09-14T04:50:00Z)\n(Decision dec:m_exp_06)-[:CHANGES]->(Requirement req:m_exp_06 @ 2026-09-15T08:40:00Z)-[:SUPERSEDES]->(Requirement req:BD-101:v1)\n(Message m_exp_06)-[:CHANGES]->(Requirement req:m_exp_06 @ 2026-09-15T08:40:00Z)-[:SUPERSEDES]->(Requirement req:BD-101:v1)",
-    "score": 1.0,
+    "score": 0.5,
     "hits": [
-     true,
+     false,
      true
     ],
     "forbidden": [
      false
     ],
-    "passed": true,
+    "passed": false,
     "chars": 1210,
-    "seconds": 0.0,
+    "seconds": 0.01,
     "tools": [
      {
       "tool": "decision_history",
@@ -473,11 +475,11 @@
     "id": "q03",
     "q": "Does the export that shipped match what was decided? Which PR shipped it?",
     "answer": "[PR #7 by kenji, created 2026-09-30T08:25:00Z, merged 2026-10-01T09:00:00Z] Add export button to ticket list\n\nAdds a toolbar button that downloads the CSV from /api/tickets/export. Only visible to admins.\n[ticket BD-102, state Done, assignee kenji, sprint s2] Export button in ticket list view: Add an 'Export' button to the ticket list toolbar that downloads the CSV from the export endpoint (see BD-101). Admin only. (history: 2026-09-14T05:00:00Z: Add an 'Export' button to the ticket list toolbar that downloads the CSV from the export endpoint (see BD-101). Admin only.)\n[2026-09-30T08:20:00Z slack#engineering] kenji: Export button is wired into the ticket list now, calls Sofia's endpoint. Opening a PR.",
-    "score": 0.333,
+    "score": 0.0,
     "hits": [
      false,
      false,
-     true
+     false
     ],
     "forbidden": [],
     "passed": false,
@@ -520,14 +522,14 @@
     "id": "q06",
     "q": "Which pull request implemented the SLA notifications, and did it follow the latest decision?",
     "answer": "[ticket BD-103, state Done, assignee dev, sprint s1] SLA breach notifications: When a ticket breaches its SLA, send an email notification to the ticket's assignee. (history: 2026-09-14T06:20:00Z: When a ticket breaches its SLA, send an email notification to the ticket's assignee.)\n[PR #1 by arjun, created 2026-09-14T04:20:00Z, merged 2026-09-14T05:00:00Z] Set up CI with GitHub Actions\n\nRuns lint and unit tests on every push and pull request.\n[PR #5 by dev, created 2026-09-23T09:10:00Z, merged 2026-09-24T11:00:00Z] SLA breach email notifications\n\nCloses BD-103. A periodic job finds tickets past their SLA deadline and emails the assignee using the existing mailer.",
-    "score": 1.0,
+    "score": 0.667,
     "hits": [
      true,
      true,
-     true
+     false
     ],
     "forbidden": [],
-    "passed": true,
+    "passed": false,
     "chars": 670,
     "seconds": 0.0,
     "tools": null
@@ -596,6 +598,7 @@
     "answer": "[2026-09-23T06:15:00Z slack#product] kenji: While we're on export, should we also offer XLSX? Some users open CSVs in Excel and complain about encoding.\n[2026-10-06T07:10:00Z slack#support-escalations] liam: Acme tried the new export and it only gives them 30 days, and no custom fields. I thought we agreed on 12 months?\n[2026-09-17T05:36:00Z discord#engineering] arjun: ok, agreed. Dev, that changes your job a bit.",
     "score": 1.0,
     "hits": [
+     true,
      true
     ],
     "forbidden": [],
@@ -638,15 +641,15 @@
     "id": "q14",
     "q": "List the decisions made in Sprint 1 that are not shipped.",
     "answer": "[ticket BD-102, state Done, assignee kenji, sprint s2] Export button in ticket list view: Add an 'Export' button to the ticket list toolbar that downloads the CSV from the export endpoint (see BD-101). Admin only. (history: 2026-09-14T05:00:00Z: Add an 'Export' button to the ticket list toolbar that downloads the CSV from the export endpoint (see BD-101). Admin only.)\n[2026-09-14T05:22:00Z slack#product] maya: Yes, that's what's in the ticket. Kenji, can you do the button in the list view (BD-102)?\n[2026-09-15T10:31:00Z slack#support-escalations] maya: Done, BD-101 now lists assignee as a required column.",
-    "score": 1.0,
+    "score": 0.5,
     "hits": [
-     true,
+     false,
      true
     ],
     "forbidden": [
      false
     ],
-    "passed": true,
+    "passed": false,
     "chars": 612,
     "seconds": 0.0,
     "tools": null
@@ -827,6 +830,7 @@
     "answer": "[2026-09-23T06:15:00Z slack#product] kenji: While we're on export, should we also offer XLSX? Some users open CSVs in Excel and complain about encoding.\n[2026-10-06T07:10:00Z slack#support-escalations] liam: Acme tried the new export and it only gives them 30 days, and no custom fields. I thought we agreed on 12 months?\n[2026-09-17T05:36:00Z discord#engineering] arjun: ok, agreed. Dev, that changes your job a bit.\n[ticket BD-102, state Done, assignee kenji, sprint s2] Export button in ticket list view: Add an 'Export' button to the ticket list toolbar that downloads the CSV from the export endpoint (see BD-101). Admin only. (history: 2026-09-14T05:00:00Z: Add an 'Export' button to the ticket list toolbar that downloads the CSV from the export endpoint (see BD-101). Admin only.)\n[2026-09-23T06:31:00Z slack#product] maya: Not this quarter. CSV with UTF-8 BOM should fix the Excel encoding issue. Let's park XLSX.\n[PR #7 by kenji, created 2026-09-30T08:25:00Z, merged 2026-10-01T09:00:00Z] Add export button to ticket list\n\nAdds a toolbar button that downloads the CSV from /api/tickets/export. Only visible to admins.\n[2026-09-17T05:31:00Z discord#engineering] maya: Agreed. Let's change it: send the warning 15 minutes BEFORE the breach, and post it to the team's Slack channel instead of email. We drop email notifications for this entirely.\n[ticket BD-108, state Backlog, assignee sofia, sprint s2] Export performance for large accounts: Profile the export endpoint for accounts with >100k tickets; consider background job + emailed link. (history: 2026-09-26T04:00:00Z: Profile the export endpoint for accounts with >100k tickets; consider background job + emailed link.)\n[PR #6 by sofia, created 2026-09-24T10:00:00Z, merged 2026-09-25T05:44:00Z] BD-101: CSV export endpoint\n\nFixes BD-101. GET /api/tickets/export streams tickets created in the last 30 days as CSV with columns id, subject, status, created_at, assignee.\n[ticket BD-101, state Done, assignee sofia, sprint s1] Ticket export to CSV: Admins can export tickets created in the last 30 days as a CSV file. Columns: id, subject, status, created_at, assignee. (history: 2026-09-14T04:50:00Z: Admins can export tickets created in the last 30 days as a CSV file. Columns: id, subject, status, created_at. | 2026-09-15T10:30:00Z: Admins can export tickets created in the last 30 days as a CSV file. Columns: id, subject, status, created_at, assignee.)\n[2026-09-15T08:40:00Z slack#support-escalations] maya: Good call. Let's add an assignee column to the export. I'm updating BD-101 now.\n[2026-09-14T05:30:00Z slack#product] kenji: Sure, I'll pick up the export button once Sofia's endpoint shape is settled.\n[2026-09-30T08:20:00Z slack#engineering] kenji: Export button is wired into the ticket list now, calls Sofia's endpoint. Opening a PR.\n[2026-09-24T10:05:00Z slack#engineering] sofia: PR for the export endpoint is up: last 30 days, CSV, id/subject/status/created_at/assignee. Reviews welcome.\n[2026-09-16T06:12:00Z slack#engineering] sofia: Export endpoint skeleton is up locally. Streaming the CSV so big accounts don't time out.\n[2026-09-15T08:02:00Z slack#support-escalations] liam: Acme Corp asked whether the export will include who each ticket is assigned to. Without that they can't do per-agent reporting.\n[2026-09-14T05:10:00Z slack#product] maya: Kicking off Sprint 1. Top item for me is ticket export (BD-101): admins should be able to download the last 30 days of tickets as CSV. Customers keep asking for it.\n[2026-09-22T07:05:00Z slack#support-escalations] liam: Just came off calls with Acme and Globex about the export. Both said 30 days is useless for quarterly business reviews, and they need their custom fields in the file too, not just the standard columns.\n[2026-09-22T09:40:00Z slack#support-escalations] maya: Decision: the export must support any custom date range up to 12 months (not a fixed 30 days), and it must include all custom fields as extra columns. Arjun, can you make sure the team knows?\n[2026-09-14T03:36:00Z slack#engineering] zara: happy friday!\n[2026-09-14T03:43:00Z slack#product] arjun: nice 🎉\n[2026-09-14T05:18:00Z slack#product] sofia: I can take the backend for BD-101. Columns id, subject, status, created_at to start?\n[2026-09-14T05:22:00Z slack#product] maya: Yes, that's what's in the ticket. Kenji, can you do the button in the list view (BD-102)?\n[2026-09-14T06:10:00Z slack#product] maya: Standup: yesterday reviews, today release notes, no blockers.\n[2026-09-14T06:30:00Z discord#engineering] maya: Second big item for Sprint 1 is SLA alerts, BD-103: when a ticket breaches its SLA we email the assignee. BD-104 covers the settings page where admins set SLA hours per priority.",
     "score": 1.0,
     "hits": [
+     true,
      true
     ],
     "forbidden": [],

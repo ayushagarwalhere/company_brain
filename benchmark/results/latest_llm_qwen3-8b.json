@@ -1,15 +1,15 @@
 {
  "mode": "llm",
- "grader": "keyword facts per question (benchmark/questions.json); lenient, see README",
+ "grader": "required facts per question (benchmark/questions.json), whole-word match; a keyword list still passes, see README. Re-graded offline from the stored answers (answers unchanged)",
  "summary": {
   "graph (LLM agent, qwen3:8b)": {
-   "mean_score": 0.356,
-   "passed": 5,
+   "mean_score": 0.333,
+   "passed": 4,
    "questions": 15,
    "mean_answer_chars": 308
   },
   "baseline (TF-IDF top-25 -> qwen3:8b)": {
-   "mean_score": 0.844,
+   "mean_score": 0.822,
    "passed": 11,
    "questions": 15,
    "mean_answer_chars": 241
@@ -150,14 +150,14 @@
     "id": "q06",
     "q": "Which pull request implemented the SLA notifications, and did it follow the latest decision?",
     "answer": "The pull request that implemented the SLA notifications is PR-5 titled \"SLA breach email notifications,\" which was merged on 2026-09-24. It implements the requirement from ticket BD-103:v1.\n\nEvidence:\n1. \"(Feature feat_sla_breach_notifications) <-[:ABOUT]- tickets ['BD-115', 'BD-109', 'BD-104', 'BD-103']\"\n2. \"(PullRequest #5)-[:REFERENCES {via: hard}]->(Ticket BD-103)\"",
-    "score": 1.0,
+    "score": 0.667,
     "hits": [
      true,
      true,
-     true
+     false
     ],
     "forbidden": [],
-    "passed": true,
+    "passed": false,
     "chars": 371,
     "seconds": 14.03,
     "tools": [
@@ -271,6 +271,7 @@
     "answer": "The XLSX export requirement is not explicitly mentioned in the provided features. The available features include \"Ticket export to CSV\" (BD-108, BD-102, BD-101), but there is no feature specifically for XLSX export.\n\nEvidence:\n- Feature \"Ticket export to CSV\" is linked to tickets BD-108, BD-102, BD-101.",
     "score": 1.0,
     "hits": [
+     true,
      true
     ],
     "forbidden": [],
@@ -460,11 +461,11 @@
     "id": "q05",
     "q": "What does BD-103 say and is it still accurate?",
     "answer": "BD-103 says: \"SLA breach notifications: When a ticket breaches its SLA, send an email notification to the ticket's assignee.\" It is still accurate, as the PR #5 (merged 2026-09-24) closes BD-103 and implements this functionality.",
-    "score": 0.667,
+    "score": 0.333,
     "hits": [
      true,
      false,
-     true
+     false
     ],
     "forbidden": [],
     "passed": false,
@@ -552,6 +553,7 @@
     "answer": "No, XLSX export was not agreed as a requirement. The team decided to focus on CSV with UTF-8 BOM to address encoding issues in Excel, and XLSX was parked for this quarter.",
     "score": 1.0,
     "hits": [
+     true,
      true
     ],
     "forbidden": [],
