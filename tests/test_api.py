@@ -212,3 +212,49 @@ def test_doc_webhook_clears_stale_doc(client):
     out = client.post("/api/ingest/doc", json={"doc": "DOC-1", "text": "Export any date range up to 12 months, with custom fields. BD-101"}).json()
     assert out["no_longer_stale"] is True
     assert "DOC-1" not in {x["id"] for d in client.get("/api/drift").json() for x in d["stale_docs"]}
+
+
+def test_state_changing_endpoints_require_token_when_configured(client, monkeypatch):
+    """simulate, write-to-ticket and dismiss change the graph and used to be open even with INGEST_TOKEN set."""
+    monkeypatch.setenv("INGEST_TOKEN", "t0ken")
+    req = next(d["requirement"] for d in client.get("/api/drift").json())
+    calls = [
+        ("/api/simulate", {"text": "Decision: BD-102 export button also offers JSON.", "author": "maya"}),
+        ("/api/drift/write-to-ticket", {"requirement": req, "actor": "maya"}),
+        ("/api/drift/dismiss", {"requirement": req, "actor": "maya"}),
+    ]
+    for path, body in calls:
+        assert client.post(path, json=body).status_code == 401, path
+    assert client.post("/api/drift/dismiss", json={"requirement": req, "actor": "maya"}, headers={"X-Ingest-Token": "t0ken"}).status_code == 200
+
+
+def test_github_webhook_signature_is_enough_with_token_set_and_replays_are_ignored(client, monkeypatch):
+    """GitHub can't send X-Ingest-Token: with a webhook secret configured the signature authenticates the delivery."""
+    monkeypatch.setenv("INGEST_TOKEN", "t0ken")
+    monkeypatch.setenv("GITHUB_WEBHOOK_SECRET", "s3cret")
+    payload = {
+        "action": "opened",
+        "pull_request": {
+            "number": 98,
+            "title": "BD-110: copy fix",
+            "body": "Fixes BD-110.",
+            "html_url": "",
+            "state": "open",
+            "user": {"login": "arjun"},
+            "created_at": "2026-10-10T08:00:00Z",
+            "merged_at": None,
+        },
+    }
+    raw = json.dumps(payload).encode()
+    sig = "sha256=" + hmac.new(b"s3cret", raw, hashlib.sha256).hexdigest()
+    headers = {"X-GitHub-Event": "pull_request", "X-Hub-Signature-256": sig, "X-GitHub-Delivery": "d-1"}
+    assert client.post("/api/ingest/github", content=raw, headers=headers).status_code == 200
+    assert client.post("/api/ingest/github", content=raw, headers=headers).json()["status"] == "duplicate"
+
+
+def test_recent_events_are_scoped_to_the_org(client):
+    from api import bus
+
+    bus.recent.append({"type": "message", "org": "someone-else", "text": "private"})
+    assert all(e.get("org") != "someone-else" for e in client.get("/api/events/recent").json())
+    assert any(e.get("org") == "someone-else" for e in client.get("/api/events/recent", headers={"X-Org": "someone-else"}).json())

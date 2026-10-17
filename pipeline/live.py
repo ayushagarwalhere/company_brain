@@ -26,7 +26,7 @@ from pipeline.resolve import has_decision_rights
 from pipeline.textsim import TfIdf
 
 TICKET_COOLDOWN_S = 300
-_last_alert: dict[str, float] = {}
+_last_alert: dict[tuple[str, str], float] = {}  # (org, ticket) -> last alert time
 
 
 def _extractor():
@@ -145,12 +145,15 @@ def process_message(event: Event, g=None, extractor=None) -> dict:
         return {**result, "status": "change-reflected", "ticket": ticket}
     d = found[0]
     now = time.time()
-    if now - _last_alert.get(ticket, 0) < TICKET_COOLDOWN_S:
+    from graph.db import current_org
+
+    key = (current_org(), ticket)
+    if now - _last_alert.get(key, 0) < TICKET_COOLDOWN_S:
         return {**result, "status": "cooldown", "ticket": ticket}
     existing = Q.rows(g, "MATCH (a:Alert {id: $id}) RETURN a.id AS id", id=f"alert:{rid}")
     if existing:
         return {**result, "status": "already-alerted", "ticket": ticket}
-    _last_alert[ticket] = now
+    _last_alert[key] = now
     g.query(
         """MATCH (q:Requirement {id: $rid})
                MERGE (a:Alert {id: $aid}) SET a.at_ms = $at, a.status = 'open'

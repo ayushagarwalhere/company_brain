@@ -82,7 +82,8 @@ async def org_scope(request: Request, call_next):
         _org.reset(token)
 
 
-LIMITED = {"/api/ask", "/api/simulate", "/api/spec"}  # expensive POSTs (LLM / graph writes)
+# expensive or state-changing POSTs (LLM calls / graph writes)
+LIMITED = {"/api/ask", "/api/simulate", "/api/spec", "/api/drift/write-to-ticket", "/api/drift/dismiss"}
 limiter = RateLimiter(rate=int(__import__("os").getenv("RATE_LIMIT_PER_MIN", "30")), per=60.0)
 
 
@@ -91,7 +92,9 @@ async def timing(request: Request, call_next):
     """Rate limit for expensive POSTs; Server-Timing header; per-route metrics; slow-request log."""
     path = request.url.path
     if request.method == "POST" and path in LIMITED:
-        client = request.headers.get("x-forwarded-for", "").split(",")[0].strip() or (request.client.host if request.client else "?")
+        # X-Forwarded-For is client-controlled; only trust it behind a proxy that sets it (TRUST_PROXY=1)
+        fwd = request.headers.get("x-forwarded-for", "").split(",")[0].strip() if __import__("os").getenv("TRUST_PROXY") else ""
+        client = fwd or (request.client.host if request.client else "?")
         if not limiter.allow(client, path):
             from fastapi.responses import JSONResponse
 
@@ -109,7 +112,8 @@ async def timing(request: Request, call_next):
 
 
 def require_ingest_token(authorization: str | None = Header(default=None), x_ingest_token: str | None = Header(default=None)):
-    """Write endpoints (webhooks, reset) need INGEST_TOKEN when it's set. Open when unset (local demo)."""
+    """Every endpoint that changes the graph (webhooks, reset, simulate, write-to-ticket, dismiss) needs INGEST_TOKEN
+    when it's set. Open when unset (local demo). The dashboard sends the token from a ?token= link."""
     import hmac
     import os
 
@@ -401,7 +405,7 @@ def spec(body: SpecIn):
     return {k: out[k] for k in ("feature", "markdown", "engine")}
 
 
-@app.post("/api/simulate")
+@app.post("/api/simulate", dependencies=[Depends(require_ingest_token)])
 def simulate(body: SimulateIn):
     """Inject a chat message as if it arrived from Slack/Discord, and run the live drift monitor."""
     from pipeline.live import process_message
@@ -437,7 +441,7 @@ class DriftActionIn(BaseModel):
     reason: str = "keep the old scope"
 
 
-@app.post("/api/drift/write-to-ticket")
+@app.post("/api/drift/write-to-ticket", dependencies=[Depends(require_ingest_token)])
 def drift_write(body: DriftActionIn):
     from pipeline.actions import write_to_ticket
 
@@ -449,7 +453,7 @@ def drift_write(body: DriftActionIn):
     return out
 
 
-@app.post("/api/drift/dismiss")
+@app.post("/api/drift/dismiss", dependencies=[Depends(require_ingest_token)])
 def drift_dismiss(body: DriftActionIn):
     from pipeline.actions import dismiss
 
@@ -552,7 +556,9 @@ def cache_info():
 
 @app.get("/api/events/recent")
 def recent_events():
-    return list(bus.recent)
+    from graph.db import current_org
+
+    return [e for e in bus.recent if e.get("org") == current_org()]  # tenants never see each other's events
 
 
 @app.get("/api/tickets")
@@ -605,19 +611,40 @@ def ingest_doc(body: DocUpdateIn):
     return out
 
 
-@app.post("/api/ingest/github", dependencies=[Depends(require_ingest_token)])
-async def ingest_github(request: Request, x_github_event: str | None = Header(default=None), x_hub_signature_256: str | None = Header(default=None)):
-    """GitHub webhook (pull_request events). Verified with GITHUB_WEBHOOK_SECRET when it is set."""
+_seen_deliveries: dict[str, None] = {}  # recent X-GitHub-Delivery ids (insertion-ordered, capped): replays are ignored
+
+
+@app.post("/api/ingest/github")
+async def ingest_github(
+    request: Request,
+    x_github_event: str | None = Header(default=None),
+    x_hub_signature_256: str | None = Header(default=None),
+    x_github_delivery: str | None = Header(default=None),
+    authorization: str | None = Header(default=None),
+    x_ingest_token: str | None = Header(default=None),
+):
+    """GitHub webhook (pull_request events). With GITHUB_WEBHOOK_SECRET set, the signature is the authentication
+    (GitHub can't send our token header); without it, the usual INGEST_TOKEN check applies. A delivery id seen
+    before is ignored, so a replayed payload can't roll a PR back."""
     import os
 
     from pipeline.webhooks import pr_event, verify_github_signature
 
     raw = await request.body()
     secret = os.getenv("GITHUB_WEBHOOK_SECRET", "")
-    if secret and not verify_github_signature(secret, raw, x_hub_signature_256):
-        raise HTTPException(401, "bad signature")
+    if secret:
+        if not verify_github_signature(secret, raw, x_hub_signature_256):
+            raise HTTPException(401, "bad signature")
+    else:
+        require_ingest_token(authorization, x_ingest_token)
     if x_github_event and x_github_event != "pull_request":
         return {"status": "ignored", "event": x_github_event}
+    if x_github_delivery:
+        if x_github_delivery in _seen_deliveries:
+            return {"status": "duplicate", "delivery": x_github_delivery}
+        _seen_deliveries[x_github_delivery] = None
+        while len(_seen_deliveries) > 1000:
+            _seen_deliveries.pop(next(iter(_seen_deliveries)))
     import json
 
     from starlette.concurrency import run_in_threadpool

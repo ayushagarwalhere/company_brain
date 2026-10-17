@@ -69,11 +69,24 @@ export type LiveEvent = { type: "drift" | "message" | "resolved" | "ticket" | "p
 /** Multi-tenancy: ?org=acme in the page URL scopes every request to that org's graph. */
 export const ORG = typeof window !== "undefined" ? new URLSearchParams(window.location.search).get("org") : null;
 
+/** Write token: when the server sets INGEST_TOKEN, actions (resolve, dismiss, simulate) need it. Opening the page
+    once with ?token=... keeps it for this tab. */
+const TOKEN = (() => {
+  const fromUrl = typeof window !== "undefined" ? new URLSearchParams(window.location.search).get("token") : null;
+  try {
+    if (fromUrl) sessionStorage.setItem("drift-token", fromUrl);
+    return fromUrl || sessionStorage.getItem("drift-token");
+  } catch {
+    return fromUrl;
+  }
+})();
+
 async function req<T>(path: string, body?: unknown): Promise<T> {
   const headers: Record<string, string> = ORG ? { "X-Org": ORG } : {};
   const res = await fetch(path, body === undefined ? { headers } : {
-    method: "POST", headers: { ...headers, "Content-Type": "application/json" }, body: JSON.stringify(body),
+    method: "POST", headers: { ...headers, ...(TOKEN ? { "X-Ingest-Token": TOKEN } : {}), "Content-Type": "application/json" }, body: JSON.stringify(body),
   });
+  if (res.status === 401) throw new Error("This action needs the demo's write token: open the page with ?token=…");
   if (!res.ok) {
     const detail = await res.json().then((j) => j.detail).catch(() => null);
     throw new Error(detail || res.statusText);
