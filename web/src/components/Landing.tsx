@@ -7,16 +7,16 @@ import { DEMO_HREF } from "../lib/routes";
 import { plural } from "../lib/ui";
 import { AnswerGraph } from "./AnswerGraph";
 import { Footer } from "./Chrome";
+import { Connect } from "./Connect";
 import { Features } from "./Features";
-import { gsap, moving, revealHeading, scrambleIn, SplitText, useGSAP, WIDE } from "../lib/gsap";
+import { fadeIn, gsap, moving, revealHeading, scrambleIn, SplitText, useGSAP } from "../lib/gsap";
 import { CountUp, EASE } from "./Motion";
 import { Sources } from "./Panels";
-import { TOUR_HREF } from "./Tour";
 
 /* The overview at "/": the pain, the idea, the product working live on the demo graph, what it's worth and what
    it's built on. Every "Open the demo" goes to the app on a private sandbox company. */
 
-const CHAPTERS = [["pain", "The pain"], ["vision", "The graph"], ["demo", "Live demo"], ["features", "Features"], ["value", "Value"], ["stack", "Stack"]];
+const CHAPTERS = [["pain", "The pain"], ["vision", "The graph"], ["demo", "Live demo"], ["features", "Features"], ["value", "Value"], ["stack", "Stack"], ["connect", "Connect"]];
 
 function LandingNav() {
   const [line, setLine] = useState(false);
@@ -35,7 +35,10 @@ function LandingNav() {
       <div className="nav__links mono">
         {CHAPTERS.map(([id, label]) => <a key={id} href={`#${id}`} className={active === id ? "active" : ""}>{label}</a>)}
       </div>
-      <div className="nav__right"><a className="btn btn--sm" href={DEMO_HREF}>Open the demo →</a></div>
+      <div className="nav__right">
+        <a className="btn btn--ghost btn--sm" href="#connect">Connect Slack / Discord</a>
+        <a className="btn btn--sm" href={DEMO_HREF}>Open the demo →</a>
+      </div>
     </nav>
   );
 }
@@ -75,12 +78,8 @@ function LandingHero() {
     if (!el || !moving()) return;
     const h1 = el.querySelector("h1")!, lines = h1.querySelectorAll(".line");
     const split = SplitText.create(lines, { type: "words,chars", mask: "words" });
-    gsap.from(split.chars, { yPercent: 120, rotationX: -95, opacity: 0, transformOrigin: "50% 100% -40px", stagger: 0.028, duration: 1.3, ease: "expo.out", delay: 0.1 });
+    gsap.from(split.chars, { yPercent: 110, opacity: 0, stagger: 0.022, duration: 1, ease: "power3.out", delay: 0.1 });
     gsap.from(el.querySelectorAll(".eyebrow, .lede, .hero__cta, .hero__stats"), { opacity: 0, y: 26, stagger: 0.08, delay: 0.65 });
-    const tl = gsap.timeline({ scrollTrigger: { trigger: el, start: "top top", end: "bottom top", scrub: true } });
-    tl.to(el.querySelector(".hero__3d"), { rotationX: 30, z: -260, y: -40, opacity: 0, transformPerspective: 1100, transformOrigin: "50% 100%", ease: "none" }, 0)
-      .to(lines[0], { xPercent: -7, ease: "none" }, 0)
-      .to(lines[1], { xPercent: 9, ease: "none" }, 0);
     if (matchMedia("(pointer: fine)").matches) {
       const rx = gsap.quickTo(h1, "rotationX", { duration: 0.8, ease: "power3" }), ry = gsap.quickTo(h1, "rotationY", { duration: 0.8, ease: "power3" });
       gsap.set(h1, { transformPerspective: 900 });
@@ -106,7 +105,7 @@ function LandingHero() {
         <div className="hero__cta">
           <a className="btn" href={DEMO_HREF}>Open the demo →</a>
           <a className="btn btn--ghost" href="#pain">How it works ↓</a>
-          <a className="btn btn--ghost" href={TOUR_HREF}>Guided tour</a>
+          <a className="btn btn--ghost" href="#connect">Connect Slack or Discord</a>
         </div>
       </div>
       <dl className="hero__stats">
@@ -133,21 +132,8 @@ function Pain() {
   useGSAP(() => {
     const el = ref.current;
     if (!el || !moving()) return;
-    const wrap = el.querySelector<HTMLElement>(".silos")!, cards = gsap.utils.toArray<HTMLElement>(".silo", wrap);
-    const mm = gsap.matchMedia();
-    mm.add(WIDE, () => {
-      // offsets come from layout (offsetLeft), not from the transformed boxes, so a refresh mid-scroll stays right
-      const toCentre = (i: number, c: HTMLElement) => wrap.offsetWidth / 2 - (c.offsetLeft + c.offsetWidth / 2) + (i - 1.5) * 22;
-      gsap.from(cards, {
-        x: (i, c) => toCentre(i, c as HTMLElement), y: (i) => 70 - i * 10, z: (i) => -i * 110, rotationY: (i) => -28 + i * 5, rotationZ: (i) => (1.5 - i) * 3,
-        scale: 0.94, ease: "none", stagger: 0,
-        scrollTrigger: { trigger: wrap, start: "top 92%", end: "top 28%", scrub: 1, invalidateOnRefresh: true },
-      });
-    });
-    mm.add("(max-width: 860px)", () => {
-      gsap.from(cards, { opacity: 0, y: 40, rotationX: -25, transformPerspective: 900, stagger: 0.12, scrollTrigger: { trigger: wrap, start: "top 85%", once: true } });
-    });
-    gsap.from(el.querySelectorAll(".costs > div"), { opacity: 0, y: 34, stagger: 0.1, scrollTrigger: { trigger: el.querySelector(".costs"), start: "top 90%", once: true } });
+    fadeIn(el.querySelectorAll(".silo"), el.querySelector(".silos"), { stagger: 0.1 });
+    fadeIn(el.querySelectorAll(".costs > div"), el.querySelector(".costs"));
   }, { scope: ref });
   return (
     <Chapter id="pain" n="01" k="The pain" title={<>Every tool holds a piece of the truth. <span className="muted">None holds all of it.</span></>}
@@ -257,12 +243,8 @@ function Vision() {
   useGSAP(() => {
     const el = ref.current;
     if (!el || !moving()) return;
-    gsap.fromTo(el.querySelector(".model"), { rotationX: 64, y: 80, scale: 0.84, opacity: 0.3 }, {
-      rotationX: 0, y: 0, scale: 1, opacity: 1, ease: "none",
-      scrollTrigger: { trigger: el, start: "top 98%", end: "top 30%", scrub: 1 },
-    });
-    gsap.from(el.querySelectorAll(".vision__notes > div"), { opacity: 0, y: 40, rotationX: -30, transformPerspective: 900, transformOrigin: "50% 0%", stagger: 0.12,
-      scrollTrigger: { trigger: el.querySelector(".vision__notes"), start: "top 90%", once: true } });
+    fadeIn(el.querySelector(".model"), el);
+    fadeIn(el.querySelectorAll(".vision__notes > div"), el.querySelector(".vision__notes"));
   }, { scope: ref });
   return (
     <Chapter id="vision" n="02" k="The graph" title={<>One graph connects them. <span className="muted">The links are the knowledge.</span></>}
@@ -305,10 +287,8 @@ function LiveDemo() {
   useGSAP(() => {
     const el = ref.current;
     if (!el || !moving()) return;
-    gsap.from(el.querySelectorAll(".case"), { rotationY: -75, x: -30, opacity: 0, transformPerspective: 1000, transformOrigin: "0% 50%", stagger: 0.1, duration: 1.1, ease: "expo.out",
-      clearProps: "transform", scrollTrigger: { trigger: el, start: "top 85%", once: true } });
-    gsap.from(el.querySelector(".ask"), { y: 80, rotationX: 12, opacity: 0, transformPerspective: 1400, transformOrigin: "50% 0%", duration: 1.2, ease: "expo.out",
-      clearProps: "transform,opacity", scrollTrigger: { trigger: el.querySelector(".ask"), start: "top 92%", once: true } });
+    fadeIn(el.querySelectorAll(".case"), el);
+    fadeIn(el.querySelector(".ask"), el.querySelector(".ask"));
   }, { scope: ref });
   // start the first case as the page opens, so its answer is usually ready by the time you scroll here
   useEffect(() => { void run(0); }, []);  // eslint-disable-line react-hooks/exhaustive-deps
@@ -367,10 +347,8 @@ function Value() {
   useGSAP(() => {
     const el = ref.current;
     if (!el || !moving()) return;
-    gsap.from(el.querySelectorAll(".value > div"), { rotationX: 80, y: 60, opacity: 0, transformOrigin: "50% 100%", transformPerspective: 1100, stagger: 0.14, duration: 1.2, ease: "expo.out",
-      scrollTrigger: { trigger: el.querySelector(".value"), start: "top 88%", once: true } });
-    gsap.from(el.querySelectorAll(".nums > div"), { rotationX: -90, opacity: 0, transformOrigin: "50% 0%", transformPerspective: 800, stagger: 0.12, duration: 0.9, ease: "back.out(1.4)",
-      scrollTrigger: { trigger: el.querySelector(".nums"), start: "top 90%", once: true } });
+    fadeIn(el.querySelectorAll(".value > div"), el.querySelector(".value"), { stagger: 0.1 });
+    fadeIn(el.querySelectorAll(".nums > div"), el.querySelector(".nums"));
   }, { scope: ref });
   return (
     <Chapter id="value" n="05" k="Business value" title={<>Less searching. <span className="muted">Fewer surprises. Faster fixes.</span></>}>
@@ -412,10 +390,7 @@ function Stack() {
   useGSAP(() => {
     const el = ref.current;
     if (!el || !moving()) return;
-    gsap.from(el.querySelectorAll(".stack > div"), {
-      z: (i) => -500 - i * 120, y: (i) => 140 + i * 50, rotationY: (i) => 26 - i * 4, rotationX: 14, opacity: 0, ease: "none", stagger: 0,
-      transformPerspective: 1300, scrollTrigger: { trigger: el, start: "top 95%", end: "top 40%", scrub: 1 },
-    });
+    fadeIn(el.querySelectorAll(".stack > div"), el, { stagger: 0.1 });
   }, { scope: ref });
   return (
     <Chapter id="stack" n="06" k="Tech stack" title={<>Built on a graph database. <span className="muted">Runs anywhere.</span></>}>
@@ -439,16 +414,14 @@ function FinalCta() {
     if (!el || !moving()) return;
     revealHeading(el.querySelector("h2"), { by: "chars", start: "top 80%" });
     gsap.from(el.querySelectorAll(".lede, .hero__cta"), { opacity: 0, y: 24, stagger: 0.1, delay: 0.4, scrollTrigger: { trigger: el, start: "top 80%", once: true } });
-    gsap.fromTo(el.querySelector(".spectrum"), { scaleX: 0 }, { scaleX: 1, ease: "none", scrollTrigger: { trigger: el, start: "top 85%", end: "top 35%", scrub: 1 } });
   }, { scope: ref });
   return (
     <section className="cta" ref={ref}>
       <div>
         <h2>See it on a real company's worth of data.</h2>
-        <p className="lede" style={{ margin: "18px auto 0" }}>The demo opens a private sandbox of Brightdesk, a synthetic software company: 8 people, 300 messages, tickets, PRs and docs. Every button does the real thing, and you can reset it any time.</p>
+        <p className="lede" style={{ margin: "18px auto 0" }}>The demo opens a fresh private sandbox of Brightdesk, a synthetic software company (8 people, 300 messages, tickets, PRs and docs), and walks you through it: every step does the real thing, and each answer is highlighted with where it came from.</p>
         <div className="hero__cta" style={{ justifyContent: "center" }}>
           <a className="btn" href={DEMO_HREF}>Open the demo →</a>
-          <a className="btn btn--ghost" href={TOUR_HREF}>Take the guided tour</a>
         </div>
         <div className="spectrum" aria-hidden />
       </div>
@@ -467,6 +440,7 @@ export function Landing() {
       <Features />
       <Value />
       <Stack />
+      <Connect />
       <FinalCta />
       <Footer />
     </>

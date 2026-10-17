@@ -122,7 +122,7 @@ Honest boundary: with the same extracted facts and version chain, a SQL anti-joi
 - **Real GitHub:** a merged PR, [brightdesk-demo#1](https://github.com/Dakshhhhh-ops/brightdesk-demo/pull/1), read through the GitHub API, closed the BD-103 drift via `IMPLEMENTS`.
 - **Real drift in a real repo:** in [golang/go#77441](https://github.com/golang/go/issues/77441) the accepted API (`HandleRequest(…) error`, amended in a comment) differs from the issue body, which still says `ServeHTTP` with no error. The extractor finds the change (after a fix to its evidence guard, so not held-out). Searching 289 FalkorDB and Excalidraw comments found no drift: their 2 real scope decisions had already reached a PR ([results §7](docs/RESULTS.md#7-looking-for-real-drift-in-real-repos)).
 - **Scale:** 100 of 100 planted drifts in a 22,940-node graph, 0 false; drift query p50 39 ms.
-- **Tested:** 141 tests, CI with ruff, mypy, the ablation gate and a query-plan check.
+- **Tested:** 146 tests, CI with ruff, mypy, the ablation gate and a query-plan check.
 
 ## Results at a glance
 
@@ -158,6 +158,8 @@ python -m pipeline.build                       # build the graph, print drift
 cd web && npm install && npm run build && cd ..
 uvicorn api.main:app --port 8000               # dashboard on http://localhost:8000
 ```
+
+**Connect your own team:** the overview page's *Add to Slack* and *Add to Discord* buttons install the bot through Slack's and Discord's own consent pages ([setup](docs/DETAILS.md#connect-slack-and-discord-from-the-website)).
 
 The LLM is optional (rules otherwise). LLM setup, real Slack/GitHub, Docker/Render and the test list: [`docs/DETAILS.md`](docs/DETAILS.md).
 

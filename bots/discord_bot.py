@@ -32,9 +32,28 @@ async def send_long(channel_or_msg, text: str, reply: bool = False):
             await target.send(c)
 
 
+def record_servers() -> None:
+    """The servers the bot is in: what the website shows as connected (connectors/installs.py)."""
+    from connectors.installs import save_discord_guilds
+
+    save_discord_guilds([{"id": g.id, "name": g.name} for g in client.guilds])
+
+
 @client.event
 async def on_ready():
-    log.info("logged in as %s", client.user)
+    log.info("logged in as %s, in %d servers", client.user, len(client.guilds))
+    record_servers()
+
+
+@client.event
+async def on_guild_join(guild):
+    log.info("added to %s", guild.name)
+    record_servers()
+
+
+@client.event
+async def on_guild_remove(guild):
+    record_servers()
 
 
 @client.event

@@ -141,6 +141,20 @@ Unset, it uses DeepSeek (`DEEPSEEK_*`). Every extraction call is cached by (mode
 
 **Real Slack, Discord and GitHub:** see [`docs/REAL_RUN.md`](REAL_RUN.md). `build --live` reads each configured source from its API, falls back to the scenario files for the rest, and prints which is which.
 
+## Connect Slack and Discord from the website
+
+The overview page has **Add to Slack** and **Add to Discord** buttons ([`api/integrations.py`](../api/integrations.py)). Until the server has the settings below, they are greyed out and say what's missing.
+
+**Slack** (any workspace, through Slack's OAuth consent page):
+1. In your Slack app: Basic Information → App Credentials → `SLACK_CLIENT_ID`, `SLACK_CLIENT_SECRET`.
+2. OAuth & Permissions → Redirect URLs → add `<PUBLIC_URL>/api/connect/slack/callback`. Slack wants HTTPS: use the deployed URL, or a tunnel (`cloudflared tunnel --url http://localhost:8010`) and set `PUBLIC_URL` to it.
+3. To let other workspaces install it: Manage Distribution → activate public distribution.
+4. After "Allow", the site lists the workspace's public channels; the ones you tick are joined (`channels:join`). The bot (`python -m bots.slack_bot`, Socket Mode) serves every installed workspace plus the one in `SLACK_BOT_TOKEN`. Tokens are kept server-side in `data/installs.json` (git-ignored); `/api/integrations` never returns them. In production that file belongs in a secret store.
+
+**Discord** (one bot, any server):
+1. Discord Developer Portal → New Application → Bot → token into `DISCORD_BOT_TOKEN`; switch on the Message Content intent.
+2. Run `python -m bots.discord_bot`. The "Add to Discord" button opens Discord's page for adding the bot to a server (the application id is read from the token, or `DISCORD_CLIENT_ID`). The running bot records the servers it's in, and the site shows them as connected.
+
 ## Deploy (Docker / Render)
 
 One image runs FalkorDB v4.22.1, the API and the built dashboard ([`Dockerfile`](../Dockerfile)); the graph is rebuilt from the synthetic company on every start.
@@ -186,7 +200,7 @@ The rules agent routes "delay / slip / push back / postpone" questions here and 
 
 ## Tests and CI
 
-`python -m pytest -q` runs 141 tests, none of which need an LLM or API keys. They include:
+`python -m pytest -q` runs 146 tests, none of which need an LLM or API keys. They include:
 - the published numbers in [`docs/RESULTS.md`](RESULTS.md) against the committed result files ([`tests/test_readme_numbers.py`](../tests/test_readme_numbers.py));
 - the fix-it agent: the plan's assignees, owners-only approval, follow-ups that survive a rebuild, the chat-thread commands, read-only tools and the post-generation id check ([`tests/test_work.py`](../tests/test_work.py));
 - human actions surviving rebuilds, and live updates (a write-back survives a live recompute; an unverified candidate never supersedes the owner's decision);

@@ -57,6 +57,10 @@ def _cors() -> None:
 
 _cors()
 
+from api.integrations import router as _integrations  # noqa: E402 - connect Slack and Discord from the website
+
+app.include_router(_integrations)
+
 
 log = logging.getLogger("api")
 SLOW_MS = 250.0

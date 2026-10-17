@@ -99,6 +99,11 @@ export type Impact = {
   drift: { ticket: string; text: string; by: string }[];
   paths: string[]; graph: CGraph;
 };
+export type Integrations = {
+  slack: { ready: boolean; bot_from_env: boolean; scopes: string[]; workspaces: { team_id: string; team: string; org: string | null; channels: { id: string; name: string }[]; installed_at: number }[] };
+  discord: { ready: boolean; bot_token_set: boolean; servers: { id: string; name: string; seen_at: number }[] };
+};
+export type SlackChannels = { team: string; channels: { id: string; name: string; members: number | null; watched: boolean }[] };
 export type WhoAmI = { viewer: string | null; grants: string[] };
 export type LiveEvent = { type: "drift" | "message" | "resolved" | "ticket" | "pr" | "doc" | "rebuild"; at: number; [k: string]: unknown };
 
@@ -149,6 +154,9 @@ export const api = {
   updateDoc: (doc: string, text: string, actor: string, acl?: string[]) => req<DocSync>("/api/ingest/doc", { doc, text, actor, acl }, actor),
   whoami: (as?: string | null) => req<WhoAmI>("/api/whoami", undefined, as),
   projects: () => req<Project[]>("/api/projects"),
+  integrations: () => req<Integrations>("/api/integrations"),
+  slackChannels: (team: string) => req<SlackChannels>(`/api/connect/slack/channels?team=${enc(team)}`),
+  watchSlack: (team: string, channels: string[]) => req<{ joined: { id: string; name: string }[]; failed: { id: string; error: string }[] }>("/api/connect/slack/channels", { team, channels }),
   impact: (target: string, days: number) => req<Impact>(`/api/impact?target=${enc(target)}&days=${days}`),
   featureMap: (feature: string) => req<CGraph>(`/api/features/${enc(feature)}/map`),
   spec: (feature: string) => req<SpecResult>("/api/spec", { feature }),

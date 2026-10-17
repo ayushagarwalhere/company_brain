@@ -1,14 +1,38 @@
 import { AnimatePresence, motion } from "framer-motion";
-import { useCallback, useEffect, useMemo, useState, type ReactNode } from "react";
+import { Children, cloneElement, isValidElement, useCallback, useEffect, useMemo, useRef, useState, type CSSProperties, type ReactElement, type ReactNode } from "react";
 import { api, ORG, type Drift } from "../lib/api";
 import { useBrain } from "../lib/brain";
 import { scrollToEl } from "../lib/fx";
+import { DEMO_HREF, DEMO_ORG, EXPLORE_HREF, tourOn } from "../lib/routes";
 
-/** The product tour: a guided walk through every feature on a private sandbox company (its own graph, `?org=tour`),
-    where each "Do it" button performs the real action through the real API. Opened from the hero with ?org=tour&tour=1. */
-export const TOUR_ORG = "tour";
-export const TOUR_HREF = `/?org=${TOUR_ORG}&tour=1`;
-export const tourActive = () => typeof window !== "undefined" && new URLSearchParams(window.location.search).has("tour") && ORG === TOUR_ORG;
+/** The product tour: a guided walk through every feature on a fresh private sandbox of the demo company, where each
+    button performs the real action through the real API and its answer is shown, highlighted, in the tour. Every
+    "Open the demo" starts it (?org=demo&tour=1); a #section in the link starts the tour at that section's step. */
+export const TOUR_HREF = DEMO_HREF;
+export const tourActive = () => tourOn() && (ORG === DEMO_ORG || ORG === "tour");
+
+/* ---- highlighting the answer: tickets, PRs, docs, tasks, people, dates, durations and verdicts stand out */
+const PEOPLE_RE = "maya|arjun|sofia|dev|kenji|priya|liam|zara|Maya Chen|Kenji Watanabe|Sofia Alvarez|Priya Nair|Liam O'Connor";
+const MONTHS = "Jan|Feb|Mar|Apr|May|Jun|Jul|Aug|Sep|Oct|Nov|Dec";
+const KEY = new RegExp(
+  `(\\bBD-\\d+\\b|\\bPR[ -]?#?\\d+\\b|#\\d+\\b|\\bDOC-\\d+\\b|\\bT-\\d+\\b|\\b\\d{4}-\\d{2}-\\d{2}\\b|\\b\\d{1,2} (?:${MONTHS})\\w*\\b|` +
+  `[−-]?\\b\\d+(?:\\.\\d+)? ?(?:d|days?|weeks?|ms)\\b|\\b(?:${PEOPLE_RE})\\b|\\b(?:misses|slips|drift|stale|resolved|refused|not in the graph)\\b|\\bProject \\w+)`, "gi");
+
+function Hl({ text }: { text: string }) {
+  const parts = text.split(KEY);
+  return <>{parts.map((t, k) => (k % 2 ? <mark key={k} className="hl">{t}</mark> : t))}</>;
+}
+
+/** Walk a step's output and highlight every piece of text in it, whatever the step built. */
+function highlight(node: ReactNode): ReactNode {
+  if (typeof node === "string") return <Hl text={node} />;
+  if (Array.isArray(node)) return Children.map(node, highlight);
+  if (isValidElement(node)) {
+    const el = node as ReactElement<{ children?: ReactNode }>;
+    return el.props.children === undefined ? el : cloneElement(el, undefined, highlight(el.props.children));
+  }
+  return node;
+}
 
 const DECISION = "Decision: the export button must also offer a JSON download, BD-102.";
 
@@ -23,18 +47,15 @@ type Step = {
 const latestDrift = (rows: Drift[], ticket: string) => rows.filter((d) => d.ticket === ticket).sort((a, b) => b.changed_ms - a.changed_ms)[0];
 
 export function Tour() {
-  const { refresh, focusOn, specFor, announce } = useBrain();
-  const [ready, setReady] = useState<"setting-up" | "ready" | "failed">("setting-up");
-  const [err, setErr] = useState<string | null>(null);
+  const { refresh, focusOn, specFor, announce, workspace, workspaceError: err } = useBrain();
+  const ready = workspace === "ready" ? "ready" : workspace === "failed" ? "failed" : "setting-up";
   const [i, setI] = useState(0);
   const [out, setOut] = useState<Out | null>(null);
+  const [outKey, setOutKey] = useState(0);
   const [busy, setBusy] = useState(false);
   const [min, setMin] = useState(false);
-
-  // a fresh sandbox company every time the tour starts
-  useEffect(() => {
-    api.bootstrap(TOUR_ORG).then(() => refresh()).then(() => setReady("ready")).catch((e) => { setErr((e as Error).message); setReady("failed"); });
-  }, [refresh]);
+  const [acc, setAcc] = useState("");
+  const answer = useRef<HTMLDivElement>(null);
 
   const steps: Step[] = useMemo(() => [
     {
@@ -227,6 +248,12 @@ export function Tour() {
   const step = steps[i];
   const go = useCallback((n: number) => { setOut(null); setI(Math.max(0, Math.min(steps.length - 1, n))); setMin(false); }, [steps.length]);
 
+  // a link like /?app&org=demo&tour=1#impact starts the tour at that section's step
+  useEffect(() => {
+    const at = steps.findIndex((s) => s.target === location.hash.slice(1));
+    if (at > 0) setI(at);
+  }, [steps]);
+
   // scroll to and highlight the step's section
   useEffect(() => {
     if (ready !== "ready" || !step.target) return;
@@ -234,25 +261,32 @@ export function Tour() {
     if (!el) return;
     scrollToEl(el, -90);
     el.classList.add("tour-focus");
+    setAcc(getComputedStyle(el).getPropertyValue("--acc").trim());
     return () => el.classList.remove("tour-focus");
   }, [i, ready, step.target]);
 
+  /** Run a step's action; its answer is shown highlighted in the tour, and the section it came from pulses. */
   const run = async (fn: () => Promise<Out>) => {
     setBusy(true);
     try { setOut(await fn()); } catch (e) { setOut({ tone: "warn", lines: [(e as Error).message] }); } finally { setBusy(false); }
+    setOutKey((k) => k + 1);
+    const el = step.target && document.getElementById(step.target);
+    if (el) { el.classList.remove("tour-hit"); void el.offsetWidth; el.classList.add("tour-hit"); setTimeout(() => el.classList.remove("tour-hit"), 2600); }
+    setTimeout(() => answer.current?.scrollIntoView({ block: "nearest", behavior: "smooth" }), 80);
   };
 
   return (
-    <motion.aside className={`tour ${min ? "tour--min" : ""}`} initial={{ opacity: 0, y: 24 }} animate={{ opacity: 1, y: 0 }} role="dialog" aria-label="Product tour">
+    <motion.aside className={`tour ${min ? "tour--min" : ""}`} style={acc ? ({ "--acc": acc } as CSSProperties) : undefined}
+      initial={{ opacity: 0, y: 24 }} animate={{ opacity: 1, y: 0 }} role="dialog" aria-label="Product tour">
       <header className="tour__head">
         <span className="mono tour__k">Product tour · {ready === "ready" ? `${i + 1} / ${steps.length}` : "sandbox"}</span>
         <span className="tour__ctl">
           <button onClick={() => setMin((m) => !m)} aria-label={min ? "Expand" : "Minimise"}>{min ? "▴" : "▾"}</button>
-          <a href="/" aria-label="Exit the tour">✕</a>
+          <a href={EXPLORE_HREF} aria-label="Leave the tour and explore the demo" title="Leave the tour (the sandbox stays)">✕</a>
         </span>
       </header>
       {!min && (ready === "setting-up" ? (
-        <p className="tour__body">Setting up a private sandbox company for you…</p>
+        <p className="tour__body">Setting up a fresh private copy of the demo company for your tour…</p>
       ) : ready === "failed" ? (
         <p className="tour__body">The sandbox couldn't be created: {err}</p>
       ) : (
@@ -267,7 +301,13 @@ export function Tour() {
                 {step.extra?.map((x) => <button key={x.label} className="btn btn--ghost btn--sm" disabled={busy} onClick={() => void run(x.run)}>{x.label}</button>)}
               </div>
             )}
-            {out && <div className={`tour__out tour__out--${out.tone || "info"}`}>{out.lines.map((l, k) => <div key={k}>{l}</div>)}</div>}
+            {out && (
+              <motion.div key={outKey} ref={answer} className={`tour__out tour__out--${out.tone || "info"}`} role="status"
+                initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.35 }}>
+                <span className="tour__ans mono">{out.tone === "ok" ? "Done · from the graph" : out.tone === "warn" ? "Answer · from the graph" : "Answer"}</span>
+                {out.lines.filter(Boolean).map((l, k) => <div key={k}>{highlight(l)}</div>)}
+              </motion.div>
+            )}
           </motion.div>
         </AnimatePresence>
       ))}
@@ -277,7 +317,7 @@ export function Tour() {
           <span className="tour__dots" aria-hidden>{steps.map((_, k) => <i key={k} className={k === i ? "on" : ""} onClick={() => go(k)} />)}</span>
           {i < steps.length - 1
             ? <button className="btn btn--sm" onClick={() => go(i + 1)}>Next →</button>
-            : <a className="btn btn--sm" href="/">Open the live app</a>}
+            : <a className="btn btn--sm" href={EXPLORE_HREF}>Explore on your own →</a>}
         </footer>
       )}
     </motion.aside>

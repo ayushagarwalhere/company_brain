@@ -26,5 +26,8 @@ node_modules/
 dist/
 *.tsbuildinfo
 
+# connected Slack workspaces (with their bot tokens) and Discord servers: api/integrations.py
+data/installs.json
+
 # per-workspace seed maps (written by scripts/seed_slack.py / seed_discord.py)
 data/seed_maps/

@@ -1,14 +1,17 @@
-// GSAP, registered once. Scroll-driven and 3D motion lives here; framer-motion keeps the small interactive bits
-// (panels opening, cards resolving). Every effect checks `moving()` so reduced motion and ?static get a still page.
-// Call these helpers inside useGSAP: its context reverts every tween, ScrollTrigger and SplitText on unmount.
+// GSAP, registered once. Motion here is deliberately quiet: content fades or rises in once when it first appears, and
+// nothing is tied to the scroll position (no scrubbing, no 3D scroll scenes). The one scroll behaviour is the feature
+// pages, which step one page per gesture (components/Features.tsx). framer-motion keeps the small interactive bits.
+// Every effect checks `moving()` so reduced motion and ?static get a still page. Call these helpers inside useGSAP:
+// its context reverts every tween, ScrollTrigger and SplitText on unmount.
 import { useGSAP } from "@gsap/react";
 import { gsap } from "gsap";
 import { ScrambleTextPlugin } from "gsap/ScrambleTextPlugin";
+import { ScrollToPlugin } from "gsap/ScrollToPlugin";
 import { ScrollTrigger } from "gsap/ScrollTrigger";
 import { SplitText } from "gsap/SplitText";
 
-gsap.registerPlugin(ScrollTrigger, SplitText, ScrambleTextPlugin, useGSAP);
-gsap.defaults({ ease: "power3.out", duration: 0.9 });
+gsap.registerPlugin(ScrollTrigger, ScrollToPlugin, SplitText, ScrambleTextPlugin, useGSAP);
+gsap.defaults({ ease: "power3.out", duration: 0.8 });
 
 export { gsap, ScrollTrigger, SplitText, useGSAP };
 
@@ -31,22 +34,38 @@ export function watchLayout() {
   }).observe(document.body);
 }
 
-/** Wide screens get the pinned / 3D scroll scenes; phones get simple entrances. */
+/** Wide screens get the paged feature section; phones get a simple stack. */
 export const WIDE = "(min-width: 861px)";
 
-/** Split a heading into masked lines, words or characters and raise them in, tipping forward in 3D, when it scrolls
-    into view. Only for headings whose text React won't change while mounted. */
+/** Scroll the window to `y` with GSAP. CSS smooth scrolling is paused meanwhile: the two fight each other. */
+export function scrollWindowTo(y: number, duration = 0.7, onComplete?: () => void) {
+  const html = document.documentElement;
+  html.style.scrollBehavior = "auto";
+  gsap.to(window, {
+    scrollTo: { y, autoKill: false }, duration: moving() ? duration : 0, ease: "power2.inOut", overwrite: true,
+    onComplete: () => { html.style.scrollBehavior = ""; onComplete?.(); },
+  });
+}
+
+/** Split a heading into masked lines, words or characters and raise them in once, when it first comes into view.
+    Only for headings whose text React won't change while mounted. */
 export function revealHeading(el: Element | null, opts: { by?: "lines" | "words" | "chars"; delay?: number; start?: string } = {}) {
   if (!el || !moving()) return;
   const by = opts.by || "words";
   SplitText.create(el, {
     type: by === "chars" ? "words,chars" : by, mask: by === "chars" ? "words" : by, autoSplit: by === "lines",
     onSplit: (self) => gsap.from(by === "lines" ? self.lines : by === "chars" ? self.chars : self.words, {
-      yPercent: 115, rotationX: -75, transformOrigin: "50% 100% -30px", opacity: 0, stagger: by === "chars" ? 0.02 : 0.07,
-      duration: 1.1, delay: opts.delay || 0, ease: "expo.out",
-      scrollTrigger: { trigger: el, start: opts.start || "top 86%", once: true },
+      yPercent: 105, opacity: 0, stagger: by === "chars" ? 0.018 : 0.05, duration: 0.8, delay: opts.delay || 0, ease: "power3.out",
+      scrollTrigger: { trigger: el, start: opts.start || "top 88%", once: true },
     }),
   });
+}
+
+/** Fade elements up a little, once, when they first come into view. The only entrance used across the pages. */
+export function fadeIn(targets: gsap.TweenTarget, trigger: Element | null, opts: { stagger?: number; delay?: number } = {}) {
+  if (!trigger || !moving()) return;
+  gsap.from(targets, { opacity: 0, y: 18, duration: 0.7, stagger: opts.stagger ?? 0.08, delay: opts.delay || 0, ease: "power2.out",
+    clearProps: "opacity,transform", scrollTrigger: { trigger, start: "top 90%", once: true } });
 }
 
 /** Decode a short static mono label ("The pain") from scrambled glyphs when it scrolls into view. */

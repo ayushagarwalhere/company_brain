@@ -16,11 +16,6 @@ export function AppHeader() {
     if (!el || !moving()) return;
     revealHeading(el.querySelector("h1 .apphead__name"), { by: "chars", start: "top 100%" });
     gsap.from(el.querySelectorAll(".eyebrow, .lede, .apphead__actions, .hero__stats > div"), { opacity: 0, y: 18, stagger: 0.05, delay: 0.25 });
-    // scrolling on, the header tips back into the page
-    gsap.to(el.querySelector(".hero__3d"), {
-      rotationX: 22, y: -30, z: -160, opacity: 0.15, transformPerspective: 1200, transformOrigin: "50% 100%", ease: "none",
-      scrollTrigger: { trigger: el, start: "top top", end: "bottom top", scrub: true },
-    });
   }, { scope: ref });
   const n = (l: string) => stats?.nodes.find((x) => x.label === l)?.n ?? 0;
   const demo = ORG === DEMO_ORG;
@@ -46,7 +41,7 @@ export function AppHeader() {
           </div>
           <div className="apphead__actions">
             <a className="btn btn--ghost btn--sm" href="/">← Overview</a>
-            <a className="btn btn--ghost btn--sm" href={TOUR_HREF}>Guided tour</a>
+            <a className="btn btn--ghost btn--sm" href={TOUR_HREF} title="A fresh sandbox, from the first step">Restart the tour</a>
             <button className="btn btn--sm" onClick={reset} disabled={busy || workspace !== "ready"} title="Rebuild this workspace from the demo data">
               {busy ? "Resetting…" : "Reset demo"}
             </button>

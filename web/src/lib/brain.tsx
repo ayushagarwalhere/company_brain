@@ -1,6 +1,9 @@
 import { createContext, useCallback, useContext, useEffect, useMemo, useRef, useState, type ReactNode } from "react";
 import { scrollToEl } from "./fx";
-import { DEMO_ORG } from "./routes";
+import { DEMO_ORG, tourOn } from "./routes";
+
+/** Sandboxes are built from the demo data: ?org=demo (the demo) and ?org=tour (older tour links). */
+const SANDBOX = ORG === DEMO_ORG || ORG === "tour";
 import { api, ORG, type Coverage, type Drift, type Feature, type LiveEvent, type SpecResult, type Sprint, type Stats } from "./api";
 
 /** App-wide graph state + cross-section actions (open a person, focus a feature, generate a spec). */
@@ -51,7 +54,7 @@ export function BrainProvider({ children }: { children: ReactNode }) {
   const [arrival, setArrival] = useState<Brain["arrival"]>(null);
   const [newDrift, setNewDrift] = useState(0);
   const total = 5;
-  const [workspace, setWorkspace] = useState<Brain["workspace"]>(ORG === DEMO_ORG ? "preparing" : "ready");
+  const [workspace, setWorkspace] = useState<Brain["workspace"]>(SANDBOX ? "preparing" : "ready");
   const [workspaceError, setWorkspaceError] = useState<string | null>(null);
 
   const lastArrival = useRef<Brain["arrival"]>(null);
@@ -79,12 +82,13 @@ export function BrainProvider({ children }: { children: ReactNode }) {
 
   useEffect(() => {
     void (async () => {
-      if (ORG === DEMO_ORG) {
-        // first visit (or a wiped server): build the sandbox from the demo data; later visits keep what you did in it
-        // a sandbox built before projects and doc chunks existed is rebuilt too, so every section has its data
-        const empty = await api.stats().then((s) => s.nodes.reduce((a, x) => a + x.n, 0) === 0 || !["Project", "Chunk"].every((l) => s.nodes.some((x) => x.label === l))).catch(() => true);
+      if (SANDBOX && ORG) {
+        // the guided tour always starts on a fresh sandbox (its steps take real actions). Without the tour: first visit
+        // (or a wiped server) builds it, later visits keep what was done in it; a sandbox built before projects and doc
+        // chunks existed is rebuilt too, so every section has its data
+        const empty = tourOn() || await api.stats().then((s) => s.nodes.reduce((a, x) => a + x.n, 0) === 0 || !["Project", "Chunk"].every((l) => s.nodes.some((x) => x.label === l))).catch(() => true);
         if (empty) {
-          try { await api.bootstrap(DEMO_ORG); } catch (e) { setWorkspaceError((e as Error).message); setWorkspace("failed"); return; }
+          try { await api.bootstrap(ORG); } catch (e) { setWorkspaceError((e as Error).message); setWorkspace("failed"); return; }
         }
         setWorkspace("ready");
       }
