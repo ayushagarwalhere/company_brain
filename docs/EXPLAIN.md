@@ -40,7 +40,7 @@ For each one it collects the evidence:
 - **The evidence is `OPTIONAL`.** A drift with no PR yet is still drift.
 - **`collect(DISTINCT …)`** stops one PR × two docs from becoming two rows.
 - **Doc staleness is a time comparison** (`doc.updated_ms < r.at_ms`). A doc edited after the decision isn't stale.
-- **`DRIFT_FOR_TICKET`** is the same query anchored on the `Requirement.ticket` index. The live monitor checks one ticket in about 1 ms instead of scanning every chat requirement (about 32 ms at 20k messages).
+- **`DRIFT_FOR_TICKET`** is the same query anchored on the `Requirement.ticket` index. The live monitor checks one ticket in about 1 ms instead of scanning every chat requirement (about 39 ms at 20k messages, `benchmark/results/scale_200x20000.json`).
 
 **What breaks without it.**
 - **Without the `SUPERSEDES` predicate,** every chat change that was later written into its ticket is still flagged. In the ablation that's half of all alerts (drift precision 0.50; [`benchmark/ablation.py`](../benchmark/ablation.py)).
@@ -49,6 +49,9 @@ For each one it collects the evidence:
 
 **Q: Why not store a `status: 'drift'` flag on the requirement and query that?**
 A: Drift depends on edges that arrive from different sources at different times: a ticket webhook adds a version, a GitHub webhook adds `IMPLEMENTS`, a person dismisses. A stored flag has to be recomputed by every writer, and one that forgets leaves it wrong. Deriving drift from the edges means each writer only adds the fact it knows. The flag would only be a cache, and the per-ticket query is already about 1 ms.
+
+**Q: Couldn't a relational database do this?**
+A: Yes, and I measured it ([`benchmark/sql_baseline.py`](../benchmark/sql_baseline.py)). Load the same extracted facts and the same supersession pairs into SQLite, and drift is a 6-line anti-join that finds exactly the same requirements, faster. Without the version chain ("newest requirement per ticket wins"), SQL falls for the same noise trap the first version of this project did. So the work is in building the chain correctly; the graph gives the evidence path, variable-depth connection queries and schema flexibility on top.
 
 **Q: Couldn't a vector search over messages and tickets find this?**
 A: Similarity tells you a message and a ticket are about the same thing. Drift is about order and coverage: is there a *newer* version, and did a PR implement *this* one. Vectors carry neither. In my no-LLM benchmark, retrieval found the right passages for most questions but couldn't say whether BD-103 is still accurate. The graph could (q05).
@@ -99,7 +102,7 @@ def supersession_pairs(chain, reflects, replaces=None):
 - **With no chain at all** (the ablation's `supersession` switch), every chat change looks current forever. Drift precision drops to 0.50.
 - **With the naive "any later edit supersedes" rule,** the `(typo fixed)` edit in [`tests/test_api.py`](../tests/test_api.py) would resolve the BD-101 drift. That test exists to stop exactly this.
 - **With "the latest chat message wins",** noise hides real drift (above).
-- **The cost of the current rule:** a misread message now shows up as its own false alert instead of hiding a real one. Under noise that's 17 false alerts instead of 6.
+- **The cost of the current rule:** a misread message now shows up as its own false alert instead of hiding a real one. Under noise, with the rule extractor, that's 14 noise-caused false alerts instead of 5 (`benchmark/results/noise.json`).
 
 **Q: Why not let the newest chat message win? It usually is the latest intent.**
 A: Because the extractor decides what counts as a "message that changes a requirement", and on real text it's often wrong. Under "newest wins", every extraction mistake silently deletes a real drift from the report. Under "replace only when judged to", the same mistake produces a visible alert someone can dismiss. Between a quiet miss and a noisy false positive, I chose the failure a human can see.
@@ -177,4 +180,4 @@ def _rows_paged(g, q, params=None, page=PAGE):
 A: It's a server setting I don't control on FalkorDB Cloud or someone else's deployment, and it exists to protect the server's memory. Paging works under any cap and never holds one huge reply. The cost is a few extra round-trips, which stay small next to resolution time.
 
 **Q: `SKIP` gets slower as the offset grows. Isn't this quadratic?**
-A: In principle each page re-scans up to its offset. At this size it's 5 pages, and resolve takes 2.0 s in total for the whole 20k graph. At much larger scale, keyset pagination (`WHERE (m.ts_ms, m.id) > (last_ts, last_id) … LIMIT n`) on the `Message.ts_ms` index would avoid re-scanning. It's a small change I haven't needed yet.
+A: In principle each page re-scans up to its offset. At this size it's 5 pages, and resolve takes about 3 s in total for the whole 20k graph. At much larger scale, keyset pagination (`WHERE (m.ts_ms, m.id) > (last_ts, last_id) … LIMIT n`) on the `Message.ts_ms` index would avoid re-scanning. It's a small change I haven't needed yet.
