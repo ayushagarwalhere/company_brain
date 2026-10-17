@@ -10,6 +10,8 @@
   - At **22,940 nodes** it finds **100 / 100** planted drifts.
   - With a small local LLM doing the extraction, 500 noise messages produce **1** noise-caused false alert, and both real drifts are found.
   - What the graph does **not** do: given the same extracted facts and version chain, a plain SQL join finds exactly the same drift (details under [Graph vs. a relational baseline](#2-graph-vs-a-relational-baseline)).
+- **Ran in a real Slack workspace:** a ticket owner's message in `#engineering` got an in-thread drift alert within seconds, with the graph path as evidence ([screenshots](#run-on-a-real-slack-workspace)). The messages were the synthetic company's, so this shows the integration works, not accuracy on real chat.
+- **Weakest point:** extraction on real-world text (Known weaknesses below).
 
 ![Demo: open drift, a live decision raising a new drift, a ticket edit resolving one, the evidence graph](docs/demo.gif)
 
