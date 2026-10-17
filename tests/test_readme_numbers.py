@@ -1,12 +1,12 @@
-"""The README's headline numbers must match the committed result files, so a code change that moves a number
-can't leave the README behind (the ablation stale-PR row and the qwen3 stale-PR cell once did)."""
+"""The published numbers (docs/RESULTS.md) must match the committed result files, so a code change that moves a number
+can't leave the write-up behind (the ablation stale-PR row and the qwen3 stale-PR cell once did)."""
 
 import json
 import re
 from pathlib import Path
 
 ROOT = Path(__file__).resolve().parents[1]
-README = (ROOT / "README.md").read_text(encoding="utf-8")
+README = (ROOT / "docs" / "RESULTS.md").read_text(encoding="utf-8")  # the full tables; the README summarises them
 
 
 def result(name):
