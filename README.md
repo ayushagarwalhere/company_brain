@@ -13,7 +13,7 @@
 
 ![Demo: open drift, a live decision raising a new drift, a ticket edit resolving one, the evidence graph](docs/demo.gif)
 
-<sub>Frames captured from the running app by stepping through [`scripts/demo_script.md`](scripts/demo_script.md); not a screen recording.</sub>
+<sub>Frames captured from the running app by stepping through [`scripts/demo_script.md`](scripts/demo_script.md); not a screen recording. The GIF predates the latest dashboard restyle (section colours and headers), so the sections below the hero look plainer in it than in the app.</sub>
 
 What one drift alert looks like. The graph path is the evidence:
 
@@ -44,7 +44,10 @@ Read these before the numbers. Each one is measured in [Results](#results).
 
 ## What it does
 
-1. **Live drift alerts.** When a chat message changes a requirement that the ticket and PRs don't reflect, the bot replies in Slack or Discord with the graph path as evidence. The reply names the PRs that shipped the old version and the docs that still describe it. Each PR is labelled as merged before the decision (it shipped the old version) or after it (not matched to it; check).
+1. **Live drift alerts.** When a chat message changes a requirement that the ticket and PRs don't reflect, the bot replies in Slack or Discord with the graph path as evidence. The reply names the PRs that shipped the old version and the docs that still describe it. One rule ([`graph/queries.py`](graph/queries.py) `classify_prs`) labels each PR on the drifted ticket, and the card, evidence chain, Q&A answer, Slack alert and retro all use it:
+   - merged **before** the decision → stale, "shipped the old version";
+   - merged **after** it but `IMPLEMENTS` the older requirement → stale, "shipped the old version after the decision";
+   - merged after it with no `IMPLEMENTS` link either way → **not** stale, shown separately as "unmatched, may implement the new scope".
 2. **Sprint retro.** Shows what was decided, what shipped and where the two diverge, with a source on every line.
 3. **Cited Q&A.** An agent answers from 9 graph tools and shows the graph paths it used. Without an LLM, a rules agent ([`agent/router.py`](agent/router.py)) answers from the same tools. It scores every intent and fails loudly when it can't resolve the feature, person or ticket.
 
@@ -378,9 +381,10 @@ Unset, it uses DeepSeek (`DEEPSEEK_*`). Every call is cached by (model, prompt) 
 
 ### Tests and CI
 
-`python -m pytest -q` runs 88 tests, none of which need an LLM or API keys. They include:
+`python -m pytest -q` runs 91 tests, none of which need an LLM or API keys. They include:
 - human actions surviving rebuilds;
 - the IMPLEMENTS fallback;
+- one stale-PR rule everywhere: for BD-103 / PR #5 and BD-101 / PR #6, the card's count, the PR label, the evidence path and the Q&A answer agree ([`tests/test_stale_pr_consistency.py`](tests/test_stale_pr_consistency.py));
 - unverified candidates;
 - routing per intent and the former misroutes;
 - the SQL baseline and the ablation guard;
@@ -416,6 +420,9 @@ FalkorDB is pinned to `v4.22.1`.
 - **qwen3:8b measured on the noise set and in LLM-agent Q&A.** The agent result is negative and reported as such.
 - **Real Slack run prepared but not done:** scope-aware `check_setup`, per-source `--live`, `docs/REAL_RUN.md`.
 - **Hygiene:** MIT license, pinned FalkorDB, ruff and mypy in CI, and an ablation that fails CI on regression.
+- **One stale-PR rule across the product.** The Q&A answer used to say "PRs that shipped the old version: none" while its own evidence path showed PR #5 implementing the older requirement. PRs merged after the decision that implement the old version are now stale everywhere; only PRs with no link either way are "unmatched".
+- **"Days open" no longer grows with the real clock.** On the synthetic company it counts from a fixed reference date in [`data/scenario/config.json`](data/scenario/config.json) (2026-10-10, the morning after the last message); live builds use today.
+- **Dashboard.** Q&A drift answers list one fact per line, with the graph paths behind a toggle; drift cards dropped duplicated text; sections after the hero have their own colour, numbered headers and lit panels. Rules-agent Q&A is unchanged at 15/15.
 
 ## AI assistant disclosure
 
