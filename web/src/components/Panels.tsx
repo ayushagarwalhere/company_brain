@@ -3,7 +3,7 @@ import { useEffect, useState } from "react";
 import { api, type AskResult, type Retro, type SimResult, type TicketRow, type TicketUpdate } from "../lib/api";
 import { useBrain } from "../lib/brain";
 import { useStill, useTilt } from "../lib/fx";
-import { day, isExternal, PEOPLE } from "../lib/ui";
+import { day, isExternal, PEOPLE, plural } from "../lib/ui";
 import { CountUp } from "./Motion";
 import { Avatar } from "./Evidence";
 import { PathChips } from "./PathChips";
@@ -125,10 +125,10 @@ export function RetroSection() {
       {r && (
         <motion.div key={r.sprint} initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.4 }}>
           <div className="rt-sum">
-            <div><CountUp value={r.decided.length} /><span className="mono">Decided in chat</span></div>
-            <div><CountUp value={shippedCount} delay={0.1} /><span className="mono">Decisions shipped</span></div>
+            <div><CountUp value={r.decided.length} /><span className="mono">{plural(r.decided.length, "Decision", "Decisions")} in chat</span></div>
+            <div><CountUp value={shippedCount} delay={0.1} /><span className="mono">{plural(shippedCount, "Decision", "Decisions")} shipped</span></div>
             <div className={r.diverged.length ? "warn rt-pulse" : ""}><CountUp value={r.diverged.length} delay={0.2} /><span className="mono">Diverged</span></div>
-            <div><CountUp value={r.shipped.length} delay={0.3} /><span className="mono">PRs merged</span></div>
+            <div><CountUp value={r.shipped.length} delay={0.3} /><span className="mono">{plural(r.shipped.length, "PR", "PRs")} merged</span></div>
           </div>
 
           <h3 className="rt-h mono">Decisions</h3>
@@ -377,8 +377,10 @@ export function CoverageSection() {
             items={c.done_without_pr.map((x) => <><span className="mono">{x.ticket}</span> {x.title}</>)} />
           <CovCard tone="msg" icon={COV_ICON.silent} title="Never discussed" sub="tickets no message mentions"
             items={c.undiscussed_tickets.map((x) => <><span className="mono">{x.ticket}</span> {x.title} <span className="muted">· {x.state}</span></>)} />
-          <CovCard tone="req" icon={COV_ICON.unverified} title="Unverified changes" sub="decisions by non-owners on a guessed ticket"
-            items={(c.unverified_changes || []).map((x) => <><span className="mono">{x.ticket}?</span> “{x.text}” <span className="muted">· {x.author}</span></>)} />
+          {(c.unverified_changes || []).length > 0 && (
+            <CovCard tone="req" icon={COV_ICON.unverified} title="Possible decisions by non-owners" sub="read like a decision, but the author doesn't own the ticket"
+              items={(c.unverified_changes || []).map((x) => <><span className="mono">{x.ticket}?</span> “{x.text}” <span className="muted">· {x.author}</span></>)} />
+          )}
         </div>
         <div className="mono kicker risk__h">Knowledge concentration · share of a feature's involvement held by one person</div>
         {c.knowledge_risk.map((r) => {

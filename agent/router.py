@@ -165,7 +165,7 @@ def answer_who_ticket(ctx: Ctx, tid: str) -> list[str]:
         lines.append(f"{tid} is owned by {owner[0]['name']} ({owner[0]['role']}).")
     for d in ctx.run("drift_for_feature", **({"feature": ctx.feature["id"]} if ctx.feature else {})):
         if d["ticket"] == tid:
-            stale = ", ".join(f"#{p['pr']}" for p in d["stale_prs"] if p["pr"] is not None)
+            stale = stale_pr_list(d)
             lines.append(
                 f"Their shipped work ({stale}) is stale because of {d['changed_by']}'s decision on " f"{d['changed_at'][:10]}: \"{d['requirement_text']}\"."
             )
@@ -223,18 +223,20 @@ def history_lines(ctx: Ctx) -> list[str]:
     return lines
 
 
+def stale_pr_list(d: dict) -> str:
+    """'#5 (after the decision), #4': every stale PR, in the wording of graph.queries.PR_STATUS_LABEL."""
+    return ", ".join(f"#{p['pr']}" + (" (after the decision)" if p["status"] == "old_after" else "") for p in d["stale_prs"]) or "none"
+
+
 def drift_lines(ctx: Ctx) -> list[str]:
     drift = ctx.run("drift_for_feature", **({"feature": ctx.feature["id"]} if ctx.feature else {}))
     lines = []
     for d in drift:
-        before = [p for p in d["stale_prs"] if p["pr"] is not None and not p.get("merged_after")]
-        after = [p for p in d["stale_prs"] if p["pr"] is not None and p.get("merged_after")]
-        stale = ", ".join(f"#{p['pr']}" for p in before) or "none"
         lines.append(
             f"DRIFT on {d['feature_name']}: {d['changed_by']} decided \"{d['requirement_text']}\" on "
             f"{d['changed_at'][:10]} ({d['source']} #{d['channel']}), but {d['ticket']} still says "
-            f"\"{d['ticket_text']}\". PRs that shipped the old version: {stale}."
-            + (f" Merged after the decision but not matched to it: {', '.join('#' + str(p['pr']) for p in after)}." if after else "")
+            f"\"{d['ticket_text']}\". PRs that shipped the old version: {stale_pr_list(d)}."
+            + (f" Unmatched, may implement the new scope: {', '.join('#' + str(p['pr']) for p in d['unmatched_prs'])}." if d.get("unmatched_prs") else "")
             + (f" Docs still describing the old version: {', '.join(x['title'] for x in d['stale_docs'])}." if d["stale_docs"] else "")
         )
     if not drift:

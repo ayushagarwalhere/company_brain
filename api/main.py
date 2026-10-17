@@ -153,7 +153,7 @@ def _stats():
     g = get_graph()
     nodes = Q.rows(g, "MATCH (n) RETURN labels(n)[0] AS label, count(*) AS n ORDER BY n DESC")
     rels = Q.rows(g, "MATCH ()-[r]->() RETURN type(r) AS type, count(*) AS n ORDER BY n DESC")
-    build = Q.rows(g, "MATCH (b:Build {id: 'latest'}) RETURN b.extractor AS extractor, b.model AS model, b.at AS at")
+    build = Q.rows(g, "MATCH (b:Build {id: 'latest'}) RETURN b.extractor AS extractor, b.model AS model, b.at AS at, b.reference_date AS reference_date")
     nodes = [n for n in nodes if n["label"] != "Build"]
     from config import settings
     from pipeline import llm

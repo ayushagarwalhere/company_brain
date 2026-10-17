@@ -121,10 +121,11 @@ function styleFor(): cytoscape.StylesheetStyle[] {
         "curve-style": "bezier", "font-family": "Geist Mono, monospace", "font-size": 9, color: c("--soft"), "text-rotation": "autorotate",
         "text-background-color": c("--card"), "text-background-opacity": 1, "text-background-padding": "2px",
         "transition-property": "opacity, line-color", "transition-duration": 0.35 } as cytoscape.Css.Edge },
+    { selector: "edge[bend]", style: { "curve-style": "unbundled-bezier", "control-point-distances": "data(bend)", "control-point-weights": 0.5 } as cytoscape.Css.Edge },
     { selector: "edge.path", style: { width: 2, "line-color": c("--accent"), "target-arrow-color": c("--accent"), "line-style": "dashed", "line-dash-pattern": [7, 5] } },
     { selector: "edge.hover, edge:selected", style: { label: "data(label)", "line-color": c("--violet-2"), "target-arrow-color": c("--violet-2"), width: 1.6 } },
     { selector: "edge.path.hover", style: { "line-color": c("--accent-ink"), "target-arrow-color": c("--accent-ink") } },
-    { selector: ".dim", style: { opacity: 0.22 } },
+    { selector: ".dim", style: { opacity: 0.3 } },
     { selector: "node:selected", style: { "border-width": 3, "border-color": c("--violet-2"), "border-opacity": 1 } },
   ];
 }
@@ -200,7 +201,14 @@ function GraphCanvas({ feature, focusNode, focusNonce }: { feature: string; focu
       const color = (n: GNode) => (n.drift ? cssVar("--accent") : cssVar(TYPE_VAR[n.type] || "--muted"));
       const els = [
         ...g.nodes.map((n) => ({ group: "nodes" as const, data: { ...n, short: shortLabel(n, g, when), color: color(n) }, position: pos[n.id] })),
-        ...g.edges.map((e) => ({ group: "edges" as const, data: { id: `${e.from}|${e.rel}|${e.to}`, source: e.from, target: e.to, label: e.rel } })),
+        ...g.edges.map((e, i) => {
+          // an edge that skips a column would run straight through the node between (PR #5 -> BD-103 v1 crosses BD-103):
+          // curve it, alternating sides so neighbouring long edges don't stack
+          const a = pos[e.from], z = pos[e.to];
+          const span = a && z ? Math.round(Math.abs(a.x - z.x) / DX) : 0;
+          const bend = span > 1 ? (i % 2 ? 1 : -1) * 64 * (span - 1) : undefined;
+          return { group: "edges" as const, data: { id: `${e.from}|${e.rel}|${e.to}`, source: e.from, target: e.to, label: e.rel, ...(bend ? { bend } : {}) } };
+        }),
       ];
       let c = cy.current;
       if (!c || c.destroyed()) {

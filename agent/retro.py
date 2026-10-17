@@ -59,6 +59,7 @@ def to_markdown(r: dict) -> str:
             f"- ⚠️ **{d['feature_name']}**: on {d['changed_at'][:10]} {d['changed_by']} decided "
             f"\"{d['requirement_text']}\" ([{d['source']}#{d['channel']}]({d['message_url']})), "
             f"but [{d['ticket']}]({d['ticket_url']}) still says \"{d['ticket_text']}\". Stale PRs: {stale}."
+            + (f" Unmatched, may implement the new scope: {', '.join('#' + str(x['pr']) for x in d['unmatched_prs'])}." if d.get("unmatched_prs") else "")
         )
         out.append(f"  - path: `{d['path']}`")
     return "\n".join(out)

@@ -1,0 +1,4 @@
+{
+  "_comment": "Scenario settings. reference_date is 'today' inside the synthetic company: the morning after its last message (2026-10-09 12:27Z). The dashboard counts 'days open' from it, so the demo numbers don't change as real time passes.",
+  "reference_date": "2026-10-10T09:00:00Z"
+}

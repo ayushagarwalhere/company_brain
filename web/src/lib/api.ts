@@ -4,17 +4,22 @@ export type Count = { label?: string; type?: string; n: number };
 export type Stats = {
   nodes: { label: string; n: number }[];
   relationships: { type: string; n: number }[];
-  build: { extractor: string; model?: string | null; at: string } | null;
+  build: { extractor: string; model?: string | null; at: string; reference_date?: string | null } | null;
   llm: { model: string; available: boolean; reason: string };
 };
-export type StalePR = { pr: number; title: string; url: string; merged: string | null; merged_after?: boolean; implements: string | null };
+/** status, from one backend rule (graph/queries.py PR_STATUS_LABEL): "old" = merged before the decision, "old_after" = merged after
+    it but implements an older requirement (both stale); "unmatched" = merged after with no IMPLEMENTS link (not stale). */
+export type StalePR = {
+  pr: number; title: string; url: string; merged: string | null; merged_after?: boolean; implements: string | null;
+  status: "old" | "old_after" | "unmatched"; label: string;
+};
 export type StaleDoc = { id: string; title: string; updated: string; url: string };
 export type Drift = {
   feature: string; feature_name: string; ticket: string; ticket_title: string; ticket_url: string; ticket_text: string;
   requirement: string; requirement_text: string; changed_at: string; changed_ms: number;
   message: string; message_text: string; message_url: string; source: string; channel: string; changed_by: string;
   decision: string | null; previous_requirement: string | null;
-  stale_prs: StalePR[]; stale_docs: StaleDoc[]; path: string;
+  stale_prs: StalePR[]; unmatched_prs?: StalePR[]; stale_docs: StaleDoc[]; path: string;
 };
 export type Feature = { id: string; name: string; tickets: string[]; prs: number[]; messages: number; drift: boolean };
 export type Sprint = { id: string; name: string; start: string; end: string };

@@ -12,6 +12,8 @@ export const PEOPLE = ["maya", "arjun", "sofia", "dev", "kenji", "priya", "liam"
 
 export const isExternal = (url?: string | null) => !!url && !url.startsWith("scenario://");
 
+export const plural = (n: number, one: string, many: string) => (n === 1 ? one : many);
+
 export const day = (iso?: string | null) => (iso || "").slice(0, 10);
 
 /** Graph path string "(Type id)-[:REL]->(Type id) ; …" -> tokens for rendering as chips. */

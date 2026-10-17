@@ -239,8 +239,39 @@ def connection(g, a: str, b: str) -> list[dict]:
     return rows(g, CONNECTION.replace("__LA__", la).replace("__LB__", lb), a=a, b=b)
 
 
+# One rule for every PR on a drifted ticket, used by the API, dashboard, agents, alerts and retro:
+#   merged BEFORE the decision                          -> "old"        shipped the old version (stale)
+#   merged AFTER it and IMPLEMENTS an older requirement -> "old_after"  shipped the old version after the decision (stale)
+#   merged AFTER it with no IMPLEMENTS link either way  -> "unmatched"  may implement the new scope (NOT stale)
+# (A PR that implements the decision itself would mean there is no drift.)
+PR_STATUS_LABEL = {
+    "old": "shipped the old version",
+    "old_after": "shipped the old version after the decision",
+    "unmatched": "unmatched, may implement the new scope",
+}
+
+
+def classify_prs(collected: list[dict]) -> tuple[list[dict], list[dict]]:
+    """Groups the DRIFT query's per-(PR, implemented requirement) rows by PR and applies the rule above.
+    Returns (stale PRs, unmatched PRs); each PR gets `status`, `label` and the older requirement it implements."""
+    by_pr: dict = {}
+    for x in collected:
+        if x.get("pr") is None:
+            continue
+        p = by_pr.setdefault(x["pr"], {**x, "implements": None})
+        p["implements"] = p["implements"] or x.get("implements")
+    stale: list[dict] = []
+    unmatched: list[dict] = []
+    for p in by_pr.values():
+        status = "unmatched" if p.get("merged_after") and not p["implements"] else "old_after" if p.get("merged_after") else "old"
+        p.update(status=status, label=PR_STATUS_LABEL[status])
+        (unmatched if status == "unmatched" else stale).append(p)
+    return stale, unmatched
+
+
 def drift(g, feature: str | None = None, ticket: str | None = None) -> list[dict]:
     out = rows(g, DRIFT_FOR_TICKET if ticket else DRIFT, feature=feature, ticket=ticket)
     for d in out:  # OPTIONAL MATCH with no hit collects a map of nulls
         d["stale_docs"] = [x for x in d["stale_docs"] if x["id"] is not None]
+        d["stale_prs"], d["unmatched_prs"] = classify_prs(d["stale_prs"])
     return out

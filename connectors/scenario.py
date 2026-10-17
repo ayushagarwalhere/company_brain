@@ -17,6 +17,11 @@ def _load(name: str):
     return json.loads((SCENARIO / name).read_text(encoding="utf-8"))
 
 
+def config() -> dict:
+    """Scenario settings (data/scenario/config.json), e.g. the reference date that counts as 'today'."""
+    return _load("config.json")
+
+
 def people() -> list[dict]:
     return _load("people.json")
 

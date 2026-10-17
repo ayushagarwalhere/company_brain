@@ -3,7 +3,7 @@ import { useEffect, useRef, useState } from "react";
 import { api, type Drift } from "../lib/api";
 import { useBrain } from "../lib/brain";
 import { scrollToEl, useStill } from "../lib/fx";
-import { day, isExternal } from "../lib/ui";
+import { day, isExternal, plural } from "../lib/ui";
 import { EASE } from "./Motion";
 import { Avatar, EvidenceChain } from "./Evidence";
 import { PathChips } from "./PathChips";
@@ -12,14 +12,17 @@ import { Section } from "./Section";
 const Link = ({ url, children }: { url?: string | null; children: React.ReactNode }) =>
   isExternal(url) ? <a href={url!} target="_blank" rel="noopener">{children}</a> : <>{children}</>;
 
-const daysOpen = (iso: string) => Math.max(0, Math.floor((Date.now() - new Date(iso).getTime()) / 86400000));
+/** Days since the decision, counted from the scenario's reference date when the graph was built from the scenario
+    (so demo numbers don't change as real time passes), otherwise from now. */
+const daysOpen = (iso: string, reference?: string | null) =>
+  Math.max(0, Math.floor(((reference ? new Date(reference).getTime() : Date.now()) - new Date(iso).getTime()) / 86400000));
 
 export const cardId = (requirement: string) => `drift-card-${requirement.replace(/[^a-zA-Z0-9_-]/g, "_")}`;
 
 type Phase = "open" | "resolving" | "resolved" | "dismissing" | "dismissed";
 
 function DriftCard({ d, i, flash }: { d: Drift; i: number; flash: boolean }) {
-  const { refresh, openPerson, focusOn, specFor, actor } = useBrain();
+  const { refresh, openPerson, focusOn, specFor, actor, stats } = useBrain();
   const still = useStill();
   const [phase, setPhase] = useState<Phase>("open");
   const [note, setNote] = useState<string | null>(null);
@@ -27,6 +30,7 @@ function DriftCard({ d, i, flash }: { d: Drift; i: number; flash: boolean }) {
   const ref = useRef<HTMLElement>(null);
   const seen = useInView(ref, { once: true, margin: "-80px" });
   const confidence = (d as Drift & { confidence?: number | null }).confidence;
+  const openDays = daysOpen(d.changed_at, stats?.build?.reference_date);
   const quote = d.message_text && d.message_text.trim() !== d.requirement_text.trim() ? d.message_text : null;
 
   const act = async (kind: "write-to-ticket" | "dismiss") => {
@@ -75,9 +79,9 @@ function DriftCard({ d, i, flash }: { d: Drift; i: number; flash: boolean }) {
                 <h3>{d.feature_name}</h3>
               </div>
               <div className="dc__stats">
-                <div><b>{daysOpen(d.changed_at)}</b><span className="mono">days open</span></div>
-                <div><b>{d.stale_prs.filter((p) => p.pr !== null).length}</b><span className="mono">stale PRs</span></div>
-                <div><b>{d.stale_docs.length}</b><span className="mono">stale docs</span></div>
+                <div><b>{openDays}</b><span className="mono">{plural(openDays, "day", "days")} open</span></div>
+                <div><b>{d.stale_prs.length}</b><span className="mono">stale {plural(d.stale_prs.length, "PR", "PRs")}</span></div>
+                <div><b>{d.stale_docs.length}</b><span className="mono">stale {plural(d.stale_docs.length, "doc", "docs")}</span></div>
               </div>
             </header>
 
@@ -104,7 +108,8 @@ function DriftCard({ d, i, flash }: { d: Drift; i: number; flash: boolean }) {
               nodes={[{ kind: "msg", title: "MESSAGE", sub: `${d.changed_by} · ${day(d.changed_at).slice(5)}` },
                       { kind: "req", title: "REQUIREMENT", sub: "newest · unshipped" },
                       { kind: "ticket", title: d.ticket, sub: "never updated" }]}
-              stale={[...d.stale_prs.filter((p) => p.pr !== null).map((p) => ({ kind: "pr" as const, label: `PR #${p.pr} · ${p.merged_after ? "after, unmatched" : "before"}` })),
+              stale={[...d.stale_prs.map((p) => ({ kind: "pr" as const, label: `PR #${p.pr}${p.status === "old_after" ? " · after decision" : ""}` })),
+                      ...(d.unmatched_prs || []).map((p) => ({ kind: "pr" as const, unmatched: true, label: `PR #${p.pr} · may implement new` })),
                       ...d.stale_docs.map((x) => ({ kind: "doc" as const, label: x.id }))]} />
 
             <footer className="dc__foot">

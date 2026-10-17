@@ -169,12 +169,13 @@ def format_alert(d: dict) -> str:
         f"But {d['ticket']} still says:",
         f"> {d['ticket_text']}",
     ]
-    before = [p for p in stale if not p.get("merged_after")]
-    after = [p for p in stale if p.get("merged_after")]
-    if before:
-        lines.append("Merged before the decision (shipped the old version): " + ", ".join(f"#{p['pr']} {p['title']}" for p in before))
-    if after:
-        lines.append("Merged after the decision but not matched to it (check): " + ", ".join(f"#{p['pr']} {p['title']}" for p in after))
+    if stale:
+        lines.append(
+            "PRs that shipped the old version: "
+            + ", ".join(f"#{p['pr']} {p['title']}" + (" (after the decision)" if p["status"] == "old_after" else "") for p in stale)
+        )
+    if d.get("unmatched_prs"):
+        lines.append("Unmatched, may implement the new scope: " + ", ".join(f"#{p['pr']} {p['title']}" for p in d["unmatched_prs"]))
     lines.append(
         f"Graph path: `Message -CHANGES-> Requirement -AMENDS-> Ticket {d['ticket']} -ABOUT-> Feature {d['feature']}`"
         + (f" ; `PR #{stale[0]['pr']} -IMPLEMENTS-> older requirement`" if stale else "")

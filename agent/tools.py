@@ -22,7 +22,7 @@ def drift_path(d: dict) -> str:
     if stale:
         p += " ; " + " ; ".join(
             f"(PullRequest #{x['pr']})-[:REFERENCES]->(Ticket {d['ticket']})"
-            + (", merged after the decision but not matched to it (check)" if x.get("merged_after") else ", merged before the decision")
+            + f", {x['label']}"
             + (f", IMPLEMENTS older \"{x['implements']}\"" if x.get("implements") else "")
             for x in stale
         )

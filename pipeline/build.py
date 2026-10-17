@@ -14,14 +14,22 @@ from pipeline.ingest import ingest
 from pipeline.resolve import resolve
 
 
-def mark_build(g, extractor: str) -> None:
-    """Records how the graph was built, so the dashboard can say whether extraction was an LLM (and which), rules or the oracle."""
+def mark_build(g, extractor: str, live: bool = False) -> None:
+    """Records how the graph was built, so the dashboard can say whether extraction was an LLM (and which), rules or the
+    oracle. A scenario build also records the scenario's reference date ('today' in the synthetic company), so
+    'days open' stays fixed; a live build leaves it empty and the dashboard uses the real clock."""
+    from connectors import scenario
     from pipeline.llm import model_name
 
     extractor = "llm" if extractor == "deepseek" else extractor
     g.query(
-        "MERGE (b:Build {id: 'latest'}) SET b.extractor = $e, b.model = $m, b.at = $at",
-        {"e": extractor, "m": model_name() if extractor == "llm" else None, "at": datetime.now(UTC).strftime("%Y-%m-%dT%H:%M:%SZ")},
+        "MERGE (b:Build {id: 'latest'}) SET b.extractor = $e, b.model = $m, b.at = $at, b.reference_date = $ref",
+        {
+            "e": extractor,
+            "m": model_name() if extractor == "llm" else None,
+            "at": datetime.now(UTC).strftime("%Y-%m-%dT%H:%M:%SZ"),
+            "ref": None if live else scenario.config().get("reference_date"),
+        },
     )
 
 
@@ -35,7 +43,7 @@ def build_graph(graph: str | None = None, extractor: str = "heuristic", semantic
     g = get_graph(graph)
     human.restore(g, kept)
     resolve(g, extractor, semantic, log=log)
-    mark_build(g, extractor)
+    mark_build(g, extractor, live)
     return g
 
 
