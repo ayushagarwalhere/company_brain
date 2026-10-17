@@ -258,3 +258,16 @@ def test_recent_events_are_scoped_to_the_org(client):
     bus.recent.append({"type": "message", "org": "someone-else", "text": "private"})
     assert all(e.get("org") != "someone-else" for e in client.get("/api/events/recent").json())
     assert any(e.get("org") == "someone-else" for e in client.get("/api/events/recent", headers={"X-Org": "someone-else"}).json())
+
+
+def test_plan_apply_and_follow_ups_over_the_api(client):
+    client.post("/api/demo/reset")  # earlier tests resolve drifts; start from the scenario's two
+    req = next(d["requirement"] for d in client.get("/api/drift").json() if d["ticket"] == "BD-103")
+    plan = client.post("/api/drift/plan", json={"requirement": req}).json()
+    assert [i["target"] for i in plan["items"]] == ["BD-103", "PR-5", "DOC-2"] and set(plan["can_apply"]) == {"maya", "dev"}
+    assert client.post("/api/drift/apply", json={"requirement": req, "actor": "zara"}).status_code == 403
+    out = client.post("/api/drift/apply", json={"requirement": req, "actor": "maya"}).json()
+    assert out["ticket"] == "BD-103" and len(out["tasks"]) == 2
+    num = client.get("/api/tasks", params={"person": "dev"}).json()[0]["num"]
+    assert client.post(f"/api/tasks/{num}/done", json={"actor": "zara"}).status_code == 403
+    assert client.post(f"/api/tasks/{num}/done", json={"actor": "dev"}).json()["status"] == "done"

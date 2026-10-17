@@ -83,7 +83,7 @@ async def org_scope(request: Request, call_next):
 
 
 # expensive or state-changing POSTs (LLM calls / graph writes)
-LIMITED = {"/api/ask", "/api/simulate", "/api/spec", "/api/drift/write-to-ticket", "/api/drift/dismiss"}
+LIMITED = {"/api/ask", "/api/simulate", "/api/spec", "/api/drift/write-to-ticket", "/api/drift/dismiss", "/api/drift/apply", "/api/drift/keep"}
 limiter = RateLimiter(rate=int(__import__("os").getenv("RATE_LIMIT_PER_MIN", "30")), per=60.0)
 
 
@@ -466,6 +466,77 @@ def drift_dismiss(body: DriftActionIn):
     except ValueError as e:
         raise HTTPException(409, str(e)) from e
     bus.publish("resolved", how="dismissed", requirement=body.requirement, by=body.actor)
+    return out
+
+
+class PlanIn(BaseModel):
+    requirement: str
+
+
+@app.post("/api/drift/plan")
+def drift_plan(body: PlanIn):
+    """What has to change to close this drift, and who owns each part (read-only)."""
+    from pipeline.work import plan
+
+    try:
+        p = plan(get_graph(), body.requirement)
+    except ValueError as e:
+        raise HTTPException(404, str(e)) from e
+    return {k: p[k] for k in ("owners", "decided_by", "items", "tell", "can_apply")}
+
+
+@app.post("/api/drift/apply", dependencies=[Depends(require_ingest_token)])
+def drift_apply(body: DriftActionIn):
+    """An owner approves the plan: the decision goes into the ticket, follow-ups are assigned."""
+    from pipeline.work import NotAllowed, apply
+
+    try:
+        out = apply(get_graph(), body.requirement, body.actor)
+    except NotAllowed as e:
+        raise HTTPException(403, str(e)) from e
+    except ValueError as e:
+        raise HTTPException(409, str(e)) from e
+    bus.publish("resolved", how="plan applied", ticket=out["ticket"], requirement=body.requirement, by=body.actor, tasks=len(out["tasks"]))
+    return out
+
+
+@app.post("/api/drift/keep", dependencies=[Depends(require_ingest_token)])
+def drift_keep(body: DriftActionIn):
+    """An owner keeps the old scope (same rights check as `apply`)."""
+    from pipeline.work import NotAllowed, keep_old_scope
+
+    try:
+        out = keep_old_scope(get_graph(), body.requirement, body.actor, body.reason)
+    except NotAllowed as e:
+        raise HTTPException(403, str(e)) from e
+    except ValueError as e:
+        raise HTTPException(409, str(e)) from e
+    bus.publish("resolved", how="dismissed", requirement=body.requirement, by=body.actor)
+    return out
+
+
+@app.get("/api/tasks")
+def list_tasks(person: str | None = None, status: str | None = "open"):
+    from pipeline.work import tasks
+
+    return tasks(get_graph(), person=person, status=status or None)
+
+
+class TaskDoneIn(BaseModel):
+    actor: str
+
+
+@app.post("/api/tasks/{num}/done", dependencies=[Depends(require_ingest_token)])
+def task_done(num: int, body: TaskDoneIn):
+    from pipeline.work import NotAllowed, complete
+
+    try:
+        out = complete(get_graph(), num, body.actor)
+    except NotAllowed as e:
+        raise HTTPException(403, str(e)) from e
+    except ValueError as e:
+        raise HTTPException(404, str(e)) from e
+    bus.publish("resolved", how="task done", task=out["task"], by=body.actor)
     return out
 
 

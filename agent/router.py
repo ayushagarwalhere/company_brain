@@ -48,8 +48,16 @@ INTENT_RULES: dict[str, list[tuple[str, int]]] = {
     "history": [(r"\bhistory\b", 3), (r"\btimeline\b", 3), (r"\bevolv", 2), (r"\bchanged?\b", 1), (r"\bwritten back\b", 2)],
     "prs": [(r"\b(which|what) (pr|pull request)s?\b", 2), (r"\bpull requests?\b", 1), (r"\bPRs?\b", 1)],
     "overview": [(r"\boverview\b", 3), (r"\bsummar", 3), (r"\bwhat'?s (going on|new)\b", 3)],
+    "plan": [
+        (r"\bwhat needs to (happen|change)\b", 4),
+        (r"\bhow (do|should|can) we fix\b", 4),
+        (r"\bwho (needs|has) to\b", 4),
+        (r"\bfix plan\b", 4),
+        (r"\bplan\b", 2),
+    ],
+    "tasks": [(r"\bfollow-?ups?\b", 4), (r"\b(open )?tasks?\b", 3), (r"\bto-?dos?\b", 3)],
 }
-PRIORITY = ["drift", "decided", "impact", "connect", "who", "history", "prs", "overview"]  # tie-break, first wins
+PRIORITY = ["plan", "tasks", "drift", "decided", "impact", "connect", "who", "history", "prs", "overview"]  # tie-break, first wins
 # Tickets: any PROJECT-123 id (BD-101, SC-30). PRs: "PR-6", "PR 6", "PR6", "pull request 6", "#6".
 TICKET_ID = re.compile(r"\b(?!PR-)([A-Z]{2,6}-\d+)\b", re.I)
 PR_ID = re.compile(r"\b(?:PR|pull request)\s*[-#]?\s*(\d+)\b|#(\d+)\b", re.I)
@@ -140,8 +148,12 @@ class Ctx:
     paths: list = field(default_factory=list)
 
     def run(self, name, **args):
+        import time
+
+        t0 = time.perf_counter()
         out = tools.call(name, args)
-        self.calls.append({"tool": name, "args": args, "rows": len(out["rows"])})
+        ms = round((time.perf_counter() - t0) * 1000, 1)
+        self.calls.append({"tool": name, "args": args, "rows": len(out["rows"]), "ms": ms})
         self.paths.extend(p for p in out["paths"] if p not in self.paths)
         return out["rows"]
 
@@ -336,7 +348,40 @@ def answer_overview(ctx: Ctx) -> list[str]:
     ]
 
 
+def answer_plan(ctx: Ctx) -> list[str]:
+    """What has to change to close a drift and who owns each part (pipeline.work.plan, read-only)."""
+    tickets = [e for e in ctx.ents if not e.startswith("PR-")]
+    if not tickets:
+        drift = ctx.run("drift_for_feature", **({"feature": ctx.feature["id"]} if ctx.feature else {}))
+        tickets = [d["ticket"] for d in drift][:1]
+    if not tickets:
+        return [f"No open drift on {ctx.feature['name']}, so nothing to fix." if ctx.feature else "No open drift, so nothing to fix."]
+    rows = ctx.run("plan_fix", ticket=tickets[0])
+    if not rows:
+        return [f"No open drift on {tickets[0]}, so nothing to fix."]
+    items = [r for r in rows if r.get("kind") != "tell"]
+    tell = next((r["people"] for r in rows if r.get("kind") == "tell"), [])
+    lines = [f"To close the drift on {tickets[0]} ({items[0]['decided_by']}'s decision):"]
+    for n, i in enumerate(items, 1):
+        who = "" if i["kind"] == "ticket" else f" → {i['assignee'] or 'unassigned'}"
+        lines.append(f"{n}. {i['what']}{who} ({i['why']})")
+    if tell:
+        lines.append("Also tell: " + ", ".join(tell) + ".")
+    lines.append(f"Who can approve: {', '.join(items[0]['can_approve'])}. In Slack, reply `fix it` in the alert thread.")
+    return lines
+
+
+def answer_tasks(ctx: Ctx) -> list[str]:
+    who = person_in(ctx.question, ctx.people)
+    rows = ctx.run("follow_ups", **({"person": who[0]} if who else {}))
+    if not rows:
+        return [f"No open follow-ups for {who[0]}." if who else "No open follow-ups."]
+    return [f"T-{r['num']}: {r['title']} → {r['assignee']} ({r['why']}; approved by {r['approved_by']})." for r in rows]
+
+
 HANDLERS = {
+    "plan": answer_plan,
+    "tasks": answer_tasks,
     "connect": answer_connect,
     "prs": answer_prs,
     "who": answer_who,

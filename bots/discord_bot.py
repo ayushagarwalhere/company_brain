@@ -44,7 +44,9 @@ async def on_message(msg: discord.Message):
     if msg.content.startswith(PREFIX):
         text = msg.content[len(PREFIX) :]
         try:
-            reply = await asyncio.to_thread(handle, text)
+            people = _people_by_name()
+            actor = people.get(msg.author.name, people.get(getattr(msg.author, "display_name", ""), f"discord:{msg.author.name}"))
+            reply = await asyncio.to_thread(handle, text, actor)
         except Exception as e:  # noqa: BLE001 - answer instead of going silent
             log.exception("command failed")
             reply = f"Sorry, that failed: {e}"

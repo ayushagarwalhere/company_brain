@@ -11,7 +11,7 @@ def apply_schema(g) -> None:
     # every MERGE/lookup is on id; the rest are the hot non-id lookups (verified with GRAPH.EXPLAIN,
     # see scripts/explain_queries.py): requirements of a ticket, messages by time, PRs by number
     for label, prop in [
-        (lab, "id") for lab in ("Person", "Message", "Ticket", "PullRequest", "Document", "Feature", "Requirement", "Decision", "Sprint")
+        (lab, "id") for lab in ("Person", "Message", "Ticket", "PullRequest", "Document", "Feature", "Requirement", "Decision", "Sprint", "Task")
     ] + EXTRA_INDEXES:
         try:
             g.query(f"CREATE INDEX FOR (n:{label}) ON (n.{prop})")

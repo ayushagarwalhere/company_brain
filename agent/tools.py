@@ -8,8 +8,22 @@ from graph.db import get_graph
 from pipeline.events import from_ms
 
 
+class _ReadOnly:
+    """The graph as the agent's tools see it: every query goes through FalkorDB's GRAPH.RO_QUERY, so a tool can't
+    write even if a query were wrong. Writes happen only through pipeline.work / pipeline.actions, after an owner says so."""
+
+    def __init__(self, g):
+        self._g = g
+
+    def query(self, q, params=None, **kw):
+        return self._g.ro_query(q, params, **kw)
+
+    def __getattr__(self, name):
+        return getattr(self._g, name)
+
+
 def _g():
-    return get_graph()
+    return _ReadOnly(get_graph())
 
 
 def drift_path(d: dict) -> str:
@@ -131,6 +145,34 @@ def feature_prs(feature: str) -> dict:
     }
 
 
+def plan_fix(ticket: str) -> dict:
+    """What has to change to close the open drift on a ticket, and who owns each part (read-only)."""
+    from pipeline.work import plan
+
+    g = _g()
+    on = sorted((d for d in Q.drift(g, ticket=ticket)), key=lambda d: -d["changed_ms"])
+    if not on:
+        return {"rows": [], "paths": []}
+    p = plan(g, on[0]["requirement"])
+    rows = [{**i, "decided_by": p["decided_by"], "can_approve": p["can_apply"]} for i in p["items"]]
+    paths = [drift_path(p["drift"])] + [f"(Person {i['assignee']})-[:AUTHORED]->({i['target']})" for i in p["items"] if i["kind"] != "ticket"]
+    return {"rows": rows + [{"kind": "tell", "people": p["tell"]}], "paths": paths}
+
+
+def follow_ups(person: str | None = None) -> dict:
+    """Open follow-up tasks (opened when an owner applied a fix plan), optionally for one person."""
+    from pipeline.work import tasks
+
+    rows = tasks(_g(), person=person)
+    return {
+        "rows": rows,
+        "paths": [
+            f"(Person {r['approved_by']})-[:APPROVED]->(Task T-{r['num']})-[:ASSIGNED_TO]->(Person {r['assignee']}) ; (Task T-{r['num']})-[:FIXES]->({r['target']})"
+            for r in rows
+        ],
+    }
+
+
 TOOLS = {
     "list_features": (list_features, "List all features with their tickets. Call first to find feature ids.", {}),
     "drift_for_feature": (
@@ -164,6 +206,16 @@ TOOLS = {
         decision_impact,
         "Downstream impact of a decision: ticket, owner, PRs, related tickets.",
         {"decision": {"type": "string", "description": "decision id like dec:m_exp_12"}},
+    ),
+    "plan_fix": (
+        plan_fix,
+        "What has to change to close the drift on a ticket and who owns each part: the ticket, each PR that shipped the old version (its author), each stale doc (its author), who else to tell, and who can approve.",
+        {"ticket": {"type": "string", "description": "ticket id like BD-103"}},
+    ),
+    "follow_ups": (
+        follow_ups,
+        "Open follow-up tasks created when an owner approved a fix, with assignee, approver and the PR or doc each one fixes.",
+        {"person": {"type": "string", "description": "person id, optional"}},
     ),
 }
 

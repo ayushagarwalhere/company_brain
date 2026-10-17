@@ -35,11 +35,44 @@ One graph, built from chat, tickets, PRs and docs, answers the questions a team 
 | **How are these two connected?** | Shortest causal path between any two things (`algo.SPpaths`), e.g. a support agent and a PR | Q&A ("How is liam connected to PR #6?") |
 | **What did this sprint decide, ship, and leave diverged?** | Decisions, merged PRs and drift per sprint, each with its source | Sprint retro |
 | **What has no paper trail?** | PRs with no ticket, closed tickets with no PR, tickets nobody ever discussed | Coverage & risk |
+| **What has to happen now, and who does it?** | A fix plan read from the graph: the ticket, every stale PR and doc, each assigned to its author | Slack / Discord thread, dashboard, Q&A |
 | **What should the next agent build?** | The current requirement per ticket with its evidence, as a spec | Agent-ready spec |
 
-Two ways to fix a drift from the dashboard, both kept as human-made graph nodes that survive every rebuild: **Write to ticket** (the decision becomes the ticket's next version) or **Keep old scope** (a recorded dismissal).
+## The agent gets work done
 
-The Q&A agent answers from 9 graph tools and shows the tool calls and graph paths it used. Without an LLM, a rules agent answers from the same tools; it says so when a named ticket or PR doesn't exist, and flags a weak match instead of answering about the wrong thing.
+Finding drift is half the job. The agent also closes it, in the thread where the alert was raised ([`pipeline/work.py`](pipeline/work.py)):
+
+```
+maya:  Decision: the export button must also offer a JSON download, BD-102.
+bot:   ⚠️ Requirement drift on Ticket export to CSV … PRs that shipped the old version: #7 Add export button to ticket list …
+       Reply in this thread: `@Drift Monitor plan`, `fix it` or `keep the old scope`.
+zara:  @Drift Monitor fix it
+bot:   🔒 Only BD-102's owners can decide this: Maya Chen (created it) or Kenji Watanabe (assigned). zara can't.
+maya:  @Drift Monitor plan
+bot:   Plan for BD-102 (Ticket export to CSV): maya decided "the export button must also offer a JSON download, BD-102."
+       1. Write the decision into BD-102 (done by me when an owner approves) (it still says: "Add an 'Export' button …")
+       2. Change PR #7 "Add export button to ticket list" to the new requirement → kenji (it shipped the old version)
+       3. Update DOC-1 "PRD — Ticket export" → maya (it still describes the old version)
+       Also tell: sofia, arjun, liam (most involved in this feature).
+       Who can approve: Maya Chen (created it) or Kenji Watanabe (assigned).
+maya:  @Drift Monitor fix it
+bot:   ✅ Done. BD-102 now carries the decision (v2), approved by maya.
+       Follow-ups opened: T-1 Change PR #7 … → kenji · T-2 Update DOC-1 … → maya
+kenji: @Drift Monitor done T-1
+```
+
+The refusal and plan above are the agent's actual replies for BD-102 on the live-Slack graph; the `fix it` and `done` replies are in the format [`tests/test_work.py`](tests/test_work.py) checks on the BD-103 drift.
+
+- **The plan is a graph read.** Who wrote each stale PR and doc (`AUTHORED`), who owns the ticket (creator `AUTHORED`, assignee `ASSIGNED_TO`), and who else is most involved in the feature.
+- **Only owners decide.** The ticket's creator or assignee can approve or keep the old scope. Anyone else is told who can, by name.
+- **Approving does the work.** The decision becomes the ticket's next version, and each stale PR and doc gets a follow-up `Task` assigned to its author: `(approver)-[:APPROVED]->(Task)-[:ASSIGNED_TO]->(person)`, `(Task)-[:FIXES]->(PR or doc)`, `(Task)-[:FOR]->(decision)`. Tasks, dismissals and write-backs are human-made nodes that survive every rebuild.
+- **Same actions everywhere.** Slack and Discord threads, the dashboard ("Fix plan", "Approve fix", "Open follow-ups"), the API, and Q&A ("What needs to happen to fix BD-103?").
+
+**The Q&A agent** answers from 11 graph tools and shows the tool calls (with latency) and the graph paths it used. Without an LLM, a rules agent answers from the same tools. Guardrails:
+- the tools run on FalkorDB's read-only `GRAPH.RO_QUERY`, so the agent can't write; only an owner's approval does;
+- an LLM answer that names a ticket or PR no tool returned is discarded for the grounded answer;
+- a named ticket or PR that doesn't exist gets "I couldn't find BD-999 in the graph";
+- a weak feature match is flagged instead of answered silently.
 
 ## Why it needs a graph
 
@@ -60,6 +93,22 @@ What the graph does in this project:
 - **Switch the version reasoning off and half the alerts become false** (precision 1.00 → 0.50, and no stale PR is found). The ablation runs in CI and fails the build on regression.
 - **New sources without migrations.** Slack, Discord, GitHub, tickets and docs all become nodes and edges of one model; unverified candidates, alerts and human decisions were added later as new node types and properties, with no migration.
 
+### What FalkorDB does here
+
+| FalkorDB feature | Used for | Where |
+|---|---|---|
+| Cypher pattern + anti-patterns (`NOT (r)<-[:SUPERSEDES]-()`) | Drift: the newest chat requirement nothing replaced, shipped or dismissed, with its evidence collected in the same query | [`graph/queries.py`](graph/queries.py) `DRIFT` |
+| `algo.SPpaths` (shortest path, both directions, up to 7 hops) | "How is X connected to Y?" answered with the path itself | [`graph/queries.py`](graph/queries.py) `CONNECTION` |
+| Variable-length paths (`[:REPLY_TO*1..5]`) | The live monitor inherits a message's feature and decision context from its thread | [`pipeline/live.py`](pipeline/live.py) |
+| Full-text indexes (`db.idx.fulltext`) | Dashboard search across messages, tickets, PRs and people | [`graph/writer.py`](graph/writer.py), [`graph/explore.py`](graph/explore.py) |
+| Range indexes, checked with `GRAPH.EXPLAIN` | Every hot lookup uses an index; CI fails on any label scan | [`scripts/explain_queries.py`](scripts/explain_queries.py) |
+| Batched `UNWIND … MERGE` | Idempotent ingest: re-running a source never duplicates a node | [`graph/writer.py`](graph/writer.py) |
+| One graph per tenant (`select_graph`) | `?org=acme` gets its own isolated graph | [`graph/db.py`](graph/db.py) |
+| `GRAPH.RO_QUERY` | Every agent tool runs read-only, so the agent can't write; changes happen only when a ticket owner approves | [`agent/tools.py`](agent/tools.py) |
+| `SKIP`/`LIMIT` paging | Reads past FalkorDB's default result-set cap without silent truncation (found by the 22,940-node stress test) | [`pipeline/resolve.py`](pipeline/resolve.py) |
+
+Every query is listed with its purpose in [`docs/QUERIES.md`](docs/QUERIES.md), generated from the code and checked in CI.
+
 The honest boundary: given the same extracted facts and the same version chain, a SQL anti-join finds the same drift, faster. The graph's job here is the model, the evidence and the traversal, not a faster join ([Results §2](docs/RESULTS.md#2-graph-vs-a-relational-baseline)).
 
 ## Proof it runs
@@ -68,8 +117,16 @@ The honest boundary: given the same extracted facts and the same version chain, 
 
   ![Dashboard: DRIFT 03, BD-102, decided in Slack #engineering](docs/real-slack-dashboard.png)
 
+- **Real GitHub, 2026-10-17.** A real pull request in a public test repo, [Dakshhhhh-ops/brightdesk-demo#1](https://github.com/Dakshhhhh-ops/brightdesk-demo/pull/1) ("BD-103: warn 15 minutes before SLA breach in the team's Slack channel"), was opened and merged. `build --live` then read **both** Slack and GitHub from their APIs (`slack: live API; github: live API`). The extractor linked the PR to maya's chat decision with `IMPLEMENTS`, and the BD-103 drift closed, while BD-101 and BD-102 stayed open. Ask the graph:
+
+  ```
+  2026-09-17: chat change on BD-103: "send the warning 15 minutes BEFORE the breach … instead of email" (implemented by #1).
+  No open drift on SLA breach notifications: its tickets and PRs match the latest decision.
+  Evidence: (Message m_sla_05)-[:CHANGES]->(Requirement req:m_sla_05)-[:SUPERSEDES]->(Requirement req:BD-103:v1) <-[:IMPLEMENTS]- PR [1]
+  ```
+
 - **At scale.** 22,940 nodes, 27,700 relationships, 20,800 messages: 100 of 100 planted drifts found, 0 false; drift query p50 39 ms for the whole graph, 2.4 ms for one ticket; one live message p50 38 ms.
-- **Tested.** 109 tests (no LLM or API keys needed) and CI with ruff, mypy, the ablation gate, a query-plan index check and a stress test.
+- **Tested.** 119 tests (no LLM or API keys needed) and CI with ruff, mypy, the ablation gate, a query-plan index check and a stress test.
 
 ## Results at a glance
 
@@ -96,7 +153,7 @@ The full list, with numbers, is in [`docs/RESULTS.md`](docs/RESULTS.md#limitatio
 - **The demo is small.** Two real drifts; the ablation's "half are false" is 2 of 4 alerts.
 - **A small LLM can't drive the tools.** The qwen3:8b agent scores 0.33 on the demo Q&A. A strong model (gpt-oss-120b) scores 0.84 and beats retrieval into the same model, but only 15 questions were run, on the free tier.
 - **The graph is not the source of the accuracy** (see above).
-- **The real-Slack run used the synthetic company's messages,** in a one-person workspace; Discord and GitHub have not been run live.
+- **The real-Slack and real-GitHub runs used the synthetic company's messages** and one PR I wrote, in a one-person workspace; Discord has not been run live.
 
 ## Architecture
 
@@ -227,8 +284,9 @@ Unset, it uses DeepSeek (`DEEPSEEK_*`). Every extraction call is cached by (mode
 
 ### Tests and CI
 
-`python -m pytest -q` runs 109 tests, none of which need an LLM or API keys. They include:
+`python -m pytest -q` runs 119 tests, none of which need an LLM or API keys. They include:
 - the published numbers in [`docs/RESULTS.md`](docs/RESULTS.md) against the committed result files ([`tests/test_readme_numbers.py`](tests/test_readme_numbers.py));
+- the fix-it agent: the plan's assignees, owners-only approval, follow-ups that survive a rebuild, the chat-thread commands, read-only tools and the post-generation id check ([`tests/test_work.py`](tests/test_work.py));
 - human actions surviving rebuilds, and live updates (a write-back survives a live recompute; an unverified candidate never supersedes the owner's decision);
 - auth on every endpoint that changes the graph, GitHub webhook signatures and replayed deliveries, and per-org event isolation;
 - router paraphrases outside the benchmark: unknown ids, loose PR ids, ticket-scoped answers;

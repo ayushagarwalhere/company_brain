@@ -1,9 +1,9 @@
 import { AnimatePresence, motion, useInView } from "framer-motion";
 import { useEffect, useRef, useState } from "react";
-import { api, type Drift } from "../lib/api";
+import { api, type Drift, type FixPlan, type Task } from "../lib/api";
 import { useBrain } from "../lib/brain";
 import { scrollToEl, useStill } from "../lib/fx";
-import { day, isExternal, plural } from "../lib/ui";
+import { day, isExternal, PEOPLE, plural } from "../lib/ui";
 import { EASE } from "./Motion";
 import { Avatar, EvidenceChain } from "./Evidence";
 import { PathChips } from "./PathChips";
@@ -22,29 +22,51 @@ export const cardId = (requirement: string) => `drift-card-${requirement.replace
 type Phase = "open" | "resolving" | "resolved" | "dismissing" | "dismissed";
 
 function DriftCard({ d, i, flash }: { d: Drift; i: number; flash: boolean }) {
-  const { refresh, openPerson, focusOn, specFor, actor, stats } = useBrain();
+  const { refresh, openPerson, focusOn, specFor, actor, setActor, stats } = useBrain();
   const still = useStill();
   const [phase, setPhase] = useState<Phase>("open");
   const [note, setNote] = useState<string | null>(null);
   const [open, setOpen] = useState(false);
+  const [plan, setPlan] = useState<FixPlan | null>(null);
+  const [planOpen, setPlanOpen] = useState(false);
+  const [err, setErr] = useState<string | null>(null);
+  const [made, setMade] = useState<Task[]>([]);
   const ref = useRef<HTMLElement>(null);
   const seen = useInView(ref, { once: true, margin: "-80px" });
   const confidence = (d as Drift & { confidence?: number | null }).confidence;
   const openDays = daysOpen(d.changed_at, stats?.build?.reference_date);
   const quote = d.message_text && d.message_text.trim() !== d.requirement_text.trim() ? d.message_text : null;
 
-  const act = async (kind: "write-to-ticket" | "dismiss") => {
-    setPhase(kind === "dismiss" ? "dismissing" : "resolving");  // optimistic: the card starts resolving at once
+  const togglePlan = async () => {
+    setPlanOpen((o) => !o);
+    if (!plan) {
+      try { setPlan(await api.plan(d.requirement)); } catch (e) { setErr((e as Error).message); }
+    }
+  };
+
+  /** Approve the fix plan, or keep the old scope. Both check decision rights on the server (pipeline.work):
+      only the ticket's creator or assignee may decide, and a refusal names who can. */
+  const act = async (kind: "apply" | "keep") => {
+    setErr(null);
+    setPhase(kind === "keep" ? "dismissing" : "resolving");  // optimistic: the card starts resolving at once
     try {
-      const r = await api.driftAction(kind, d.requirement, actor);
-      setNote(kind === "dismiss"
-        ? `Kept the old scope · ${r.by} -[:MADE]-> Decision -[:DISMISSES]-> requirement`
-        : `${r.ticket} now carries the decision as ${r.version} · Ticket -[:STATES]-> new version -[:SUPERSEDES]-> chat requirement`);
-      setPhase(kind === "dismiss" ? "dismissed" : "resolved");
-      setTimeout(() => void refresh(), still ? 400 : 2200);
+      if (kind === "keep") {
+        const r = await api.keepScope(d.requirement, actor);
+        setNote(`Kept the old scope · ${r.by} -[:MADE]-> Decision -[:DISMISSES]-> requirement`);
+        setPhase("dismissed");
+      } else {
+        const r = await api.applyPlan(d.requirement, actor);
+        setMade(r.tasks);
+        setNote(`${r.ticket} now carries the decision (${r.version.split(":").pop()}) · approved by ${r.by}`
+          + (r.tasks.length ? ` · ${r.tasks.length} ${plural(r.tasks.length, "follow-up", "follow-ups")} assigned` : ""));
+        setPhase("resolved");
+      }
+      setTimeout(() => void refresh(), still ? 600 : 3200);
     } catch (e) {
       setPhase("open");
-      alert((e as Error).message);
+      setErr((e as Error).message);
+      setPlanOpen(true);
+      if (!plan) api.plan(d.requirement).then(setPlan).catch(() => undefined);
     }
   };
 
@@ -67,6 +89,11 @@ function DriftCard({ d, i, flash }: { d: Drift; i: number; flash: boolean }) {
             <div>
               <b>{d.feature_name} · {d.ticket}</b>
               <p className="mono">{phase === "resolved" ? "Resolved" : "Dismissed"} · {note}</p>
+              {made.length > 0 && (
+                <ul className="dc__made">
+                  {made.map((t) => <li key={t.id}><b className="mono">T-{t.num}</b> {t.title} <span className="mono">→ {t.assignee}</span></li>)}
+                </ul>
+              )}
             </div>
           </motion.div>
         ) : (
@@ -111,19 +138,47 @@ function DriftCard({ d, i, flash }: { d: Drift; i: number; flash: boolean }) {
 
             <footer className="dc__foot">
               <div className="dc__actions">
-                <button className="btn btn--sm" disabled={phase !== "open"} onClick={() => act("write-to-ticket")} title="Make the decided requirement the ticket's next version">
-                  {phase === "resolving" ? "Writing…" : `Write to ${d.ticket}`}
+                <button className="btn btn--sm" disabled={phase !== "open"} onClick={() => act("apply")}
+                  title="Write the decision into the ticket and assign follow-ups for the stale PRs and docs (owners only)">
+                  {phase === "resolving" ? "Applying…" : `Approve fix as ${actor}`}
                 </button>
-                <button className="btn btn--ghost btn--sm" disabled={phase !== "open"} onClick={() => act("dismiss")} title="Record a decision to keep the old scope">
+                <button className="btn btn--ghost btn--sm" disabled={phase !== "open"} onClick={() => act("keep")} title="Record a decision to keep the old scope (owners only)">
                   {phase === "dismissing" ? "Recording…" : "Keep old scope"}
                 </button>
               </div>
               <div className="dc__links mono">
+                <button onClick={() => void togglePlan()} aria-expanded={planOpen}>Fix plan {planOpen ? "▴" : "▾"}</button>
                 <button onClick={() => focusOn(d.feature)}>Graph ↗</button>
                 <button onClick={() => void specFor(d.feature)}>Spec ↗</button>
                 <button onClick={() => setOpen((o) => !o)} aria-expanded={open}>{open ? "Hide path" : "Graph path"} {open ? "▴" : "▾"}</button>
               </div>
             </footer>
+            {err && <p className="dc__err" role="alert">🔒 {err}</p>}
+            <AnimatePresence initial={false}>
+              {planOpen && plan && (
+                <motion.div className="dc__plan" initial={{ height: 0, opacity: 0 }} animate={{ height: "auto", opacity: 1 }} exit={{ height: 0, opacity: 0 }} transition={{ duration: 0.3 }}>
+                  <span className="mono kicker">Fix plan · from the graph</span>
+                  <ol>
+                    {plan.items.map((it) => (
+                      <li key={it.target}>
+                        <span className={`dc__pk mono dc__pk--${it.kind}`}>{it.kind === "pr" ? "PR" : it.kind}</span>
+                        <span>{it.what} <em>({it.why})</em></span>
+                        {it.kind !== "ticket" && it.assignee && (
+                          <button className="dc__who" onClick={() => openPerson(it.assignee!)}><Avatar name={it.assignee} size={22} />{it.assignee}</button>
+                        )}
+                      </li>
+                    ))}
+                  </ol>
+                  {plan.tell.length > 0 && <p className="mono dc__tell">Also tell: {plan.tell.join(", ")}</p>}
+                  <p className="mono dc__tell">
+                    Who can approve: {plan.can_apply.join(", ")} · approve as{" "}
+                    <select className="composer__sel mono" value={actor} onChange={(e) => setActor(e.target.value)} aria-label="Approve as">
+                      {PEOPLE.map((x) => <option key={x}>{x}</option>)}
+                    </select>
+                  </p>
+                </motion.div>
+              )}
+            </AnimatePresence>
             <AnimatePresence initial={false}>
               {open && (
                 <motion.div className="dc__path" initial={{ height: 0, opacity: 0 }} animate={{ height: "auto", opacity: 1 }} exit={{ height: 0, opacity: 0 }} transition={{ duration: 0.3 }}>
@@ -135,6 +190,27 @@ function DriftCard({ d, i, flash }: { d: Drift; i: number; flash: boolean }) {
         )}
       </AnimatePresence>
     </motion.article>
+  );
+}
+
+/** Follow-ups the fix-it agent opened when an owner approved a plan (pipeline/work.py), kept as Task nodes. */
+function FollowUps() {
+  const { version, openPerson } = useBrain();
+  const [rows, setRows] = useState<Task[]>([]);
+  useEffect(() => { api.tasks().then(setRows).catch(() => setRows([])); }, [version]);
+  if (!rows.length) return null;
+  return (
+    <div className="followups">
+      <span className="mono kicker">Open follow-ups · assigned by the graph</span>
+      {rows.map((t) => (
+        <div key={t.id} className="followups__row">
+          <b className="mono">T-{t.num}</b>
+          <span>{t.title} <em>({t.why})</em></span>
+          <button className="dc__who" onClick={() => t.assignee && openPerson(t.assignee)}><Avatar name={t.assignee || "?"} size={22} />{t.assignee}</button>
+          <span className="mono followups__by">approved by {t.approved_by}</span>
+        </div>
+      ))}
+    </div>
   );
 }
 
@@ -161,6 +237,7 @@ export function DriftSection() {
       <AnimatePresence mode="popLayout">
         {drift.map((d, i) => <DriftCard key={d.requirement} d={d} i={i} flash={flash === d.requirement} />)}
       </AnimatePresence>
+      <FollowUps />
     </Section>
   );
 }

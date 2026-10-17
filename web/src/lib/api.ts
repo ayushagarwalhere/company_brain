@@ -64,6 +64,10 @@ export type Person = {
 export type SpecResult = { feature: string; markdown: string; engine: string };
 export type TicketRow = { id: string; title: string; description: string; state: string; feature: string | null };
 export type TicketUpdate = { status: string; ticket: string; version?: string; resolved?: string[]; still_drifting?: string[]; new_drift?: string[] };
+export type PlanItem = { kind: "ticket" | "pr" | "doc"; target: string; assignee: string | null; what: string; why: string };
+export type FixPlan = { owners: Record<string, string | null>; decided_by: string; items: PlanItem[]; tell: string[]; can_apply: string[] };
+export type Task = { id: string; num: number; kind: string; title: string; why: string; status: string; assignee: string | null; approved_by: string; target: string; created: string };
+export type Applied = { status: string; ticket: string; version: string; tasks: Task[]; tell: string[]; by: string };
 export type LiveEvent = { type: "drift" | "message" | "resolved" | "ticket" | "pr" | "doc" | "rebuild"; at: number; [k: string]: unknown };
 
 /** Multi-tenancy: ?org=acme in the page URL scopes every request to that org's graph. */
@@ -87,6 +91,7 @@ async function req<T>(path: string, body?: unknown): Promise<T> {
     method: "POST", headers: { ...headers, ...(TOKEN ? { "X-Ingest-Token": TOKEN } : {}), "Content-Type": "application/json" }, body: JSON.stringify(body),
   });
   if (res.status === 401) throw new Error("This action needs the demo's write token: open the page with ?token=…");
+  if (res.status === 403) throw new Error((await res.json().then((j) => j.detail).catch(() => null)) || "Not allowed");
   if (!res.ok) {
     const detail = await res.json().then((j) => j.detail).catch(() => null);
     throw new Error(detail || res.statusText);
@@ -112,6 +117,10 @@ export const api = {
   person: (id: string) => req<Person>(`/api/people/${enc(id)}`),
   driftAction: (act: "write-to-ticket" | "dismiss", requirement: string, actor: string) =>
     req<{ status: string; ticket?: string; version?: string; by?: string }>(`/api/drift/${act}`, { requirement, actor }),
+  plan: (requirement: string) => req<FixPlan>("/api/drift/plan", { requirement }),
+  applyPlan: (requirement: string, actor: string) => req<Applied>("/api/drift/apply", { requirement, actor }),
+  keepScope: (requirement: string, actor: string) => req<{ status: string; by: string }>("/api/drift/keep", { requirement, actor }),
+  tasks: (person?: string) => req<Task[]>(`/api/tasks${person ? `?person=${enc(person)}` : ""}`),
   resetDemo: () => req<{ rebuilt_with: string }>("/api/demo/reset", {}),
   tickets: () => req<TicketRow[]>("/api/tickets"),
   updateTicket: (ticket: string, description: string, actor: string) => req<TicketUpdate>("/api/ingest/ticket", { ticket, description, actor }),

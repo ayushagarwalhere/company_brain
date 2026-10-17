@@ -7,6 +7,8 @@ are not derivable from the sources, so they carry `origin: 'human'` and the stab
   dismissal   (Person)-[:MADE]->(Decision {origin: 'human', kind: 'dismissal', target})-[:DISMISSES]->(Requirement)
   write-back  the ticket's new description version, recorded on the Ticket as parallel lists
               wb_versions / wb_targets / wb_actors, plus SUPERSEDES from that version to the chat requirement
+  follow-up   (Task {origin: 'human'}) opened when an owner applies a fix plan (pipeline.work), assigned to the
+              author of a stale PR or doc
 
 resolve() keeps human Decisions and calls relink() at the end. A full build wipes the graph, so it takes a
 snapshot() first and restore()s it after ingest (pipeline.build.build_graph).
@@ -32,7 +34,8 @@ def snapshot(g) -> dict:
                                 t.wb_versions AS wb_versions, t.wb_targets AS wb_targets, t.wb_actors AS wb_actors,
                                 t.description AS description, t.desc_updated_ms AS desc_ms, t.updated AS updated,
                                 t.updated_ms AS updated_ms""")
-    return {"dismissals": dismissals, "writebacks": writebacks}
+    task_rows = rows("MATCH (t:Task) RETURN properties(t) AS props")
+    return {"dismissals": dismissals, "writebacks": writebacks, "tasks": [r["props"] for r in task_rows]}
 
 
 def restore(g, snap: dict) -> None:
@@ -46,6 +49,8 @@ def restore(g, snap: dict) -> None:
                        t.wb_versions = $wb_versions, t.wb_targets = $wb_targets, t.wb_actors = $wb_actors""",
             w,
         )
+    for t in snap.get("tasks", []):
+        g.query("MERGE (t:Task {id: $id}) SET t += $props", {"id": t["id"], "props": t})
     for d in snap.get("dismissals", []):
         g.query(
             """MERGE (d:Decision {id: $id})
@@ -64,4 +69,6 @@ def relink(g) -> dict:
                     MATCH (v:Requirement {id: t.wb_versions[i]}), (chat:Requirement {id: t.wb_targets[i]})
                     SET v.written_by = t.wb_actors[i]
                     MERGE (v)-[:SUPERSEDES]->(chat) RETURN count(v)""").result_set[0][0]
-    return {"dismissals": dis, "writebacks": wb}
+    from pipeline.work import relink_tasks
+
+    return {"dismissals": dis, "writebacks": wb, "tasks": relink_tasks(g)}
