@@ -17,8 +17,11 @@ export function styleFor(): cytoscape.StylesheetStyle[] {
   const c = (v: string) => cssVar(v);
   const coral = c("--c-coral"), blue = c("--c-blue"), amber = c("--c-amber"), violet = c("--c-violet");
   return [
-    { selector: "node", style: { "background-color": "data(color)", label: "data(short)", "font-family": "Geist Mono, monospace", "font-size": 10.5,
-        color: c("--soft"), "text-wrap": "ellipsis", "text-max-width": "120px", "text-valign": "bottom", "text-margin-y": 6, width: 13, height: 13,
+    // labels always readable: bright text on a dark chip with a dark halo, whether or not the node is selected or dimmed
+    { selector: "node", style: { "background-color": "data(color)", label: "data(short)", "font-family": "Geist Mono, monospace", "font-size": 11,
+        color: "#f4f4f4", "text-outline-color": "#000", "text-outline-width": 2, "text-outline-opacity": 0.9,
+        "text-background-color": "#050505", "text-background-opacity": 0.78, "text-background-padding": "3px", "text-background-shape": "roundrectangle",
+        "text-wrap": "ellipsis", "text-max-width": "130px", "text-valign": "bottom", "text-margin-y": 7, width: 13, height: 13,
         "border-width": 1, "border-color": "#000", "transition-property": "opacity, background-color, width, height, border-color", "transition-duration": 0.3 } as cytoscape.Css.Node },
     { selector: "node[type='Feature']", style: { width: 22, height: 22, "font-size": 12, color: c("--ink"), "font-family": "Geist, sans-serif", "text-valign": "top", "text-margin-y": -8, shape: "round-rectangle" } },
     { selector: "node[type='Ticket']", style: { shape: "rectangle", width: 18, height: 12 } },
@@ -32,7 +35,7 @@ export function styleFor(): cytoscape.StylesheetStyle[] {
         "underlay-color": coral, "underlay-padding": 6, "underlay-opacity": 0.18, "underlay-shape": "ellipse" } as unknown as cytoscape.Css.Node },
     { selector: "node[?stale]", style: { "border-width": 2, "border-color": coral, "border-style": "dashed" } },
     { selector: "edge", style: { width: 1, "line-color": c("--line-3"), "target-arrow-color": c("--line-3"), "target-arrow-shape": "triangle", "arrow-scale": 0.7,
-        "curve-style": "bezier", "font-family": "Geist Mono, monospace", "font-size": 9, color: c("--soft"), "text-rotation": "autorotate",
+        "curve-style": "bezier", "font-family": "Geist Mono, monospace", "font-size": 9.5, color: "#e6e6e6", "text-rotation": "autorotate",
         "text-background-color": "#000", "text-background-opacity": 1, "text-background-padding": "2px",
         "transition-property": "opacity, line-color, width", "transition-duration": 0.3 } as cytoscape.Css.Edge },
     { selector: "edge[bend]", style: { "curve-style": "unbundled-bezier", "control-point-distances": "data(bend)", "control-point-weights": 0.5 } as cytoscape.Css.Edge },
@@ -40,12 +43,16 @@ export function styleFor(): cytoscape.StylesheetStyle[] {
     { selector: "edge.lit", style: { width: 2.2, "line-color": violet, "target-arrow-color": violet, "line-style": "dashed", "line-dash-pattern": [7, 5], label: "data(label)", color: violet } },
     { selector: "edge.hover, edge:selected", style: { label: "data(label)", "line-color": "#fff", "target-arrow-color": "#fff", width: 1.6 } },
     { selector: "edge.path.hover", style: { "line-color": coral, "target-arrow-color": coral, color: coral } },
-    { selector: ".dim", style: { opacity: 0.22 } },
-    { selector: ".faded", style: { opacity: 0.12 } },
-    { selector: ".ghost", style: { opacity: 0.1 } },
+    { selector: "node.dim", style: { "background-opacity": 0.25, "border-opacity": 0.25, "text-opacity": 0.85 } },
+    { selector: "node.faded", style: { "background-opacity": 0.14, "border-opacity": 0.14, "text-opacity": 0.7 } },
+    { selector: "node.ghost", style: { "background-opacity": 0.1, "border-opacity": 0.1, "text-opacity": 0.6 } },
+    { selector: "edge.dim", style: { opacity: 0.22 } },
+    { selector: "edge.faded", style: { opacity: 0.12 } },
+    { selector: "edge.ghost", style: { opacity: 0.1 } },
     { selector: ".hidden", style: { display: "none" } },
-    { selector: "node.match", style: { "underlay-color": amber, "underlay-padding": 9, "underlay-opacity": 0.5, "underlay-shape": "ellipse", color: amber, "z-index": 9 } as unknown as cytoscape.Css.Node },
-    { selector: "node:selected", style: { "border-width": 3, "border-color": blue, "border-style": "solid", color: "#fff",
+    { selector: "node.match", style: { "underlay-color": amber, "underlay-padding": 9, "underlay-opacity": 0.5, "underlay-shape": "ellipse", color: amber, "text-opacity": 1, "z-index": 9 } as unknown as cytoscape.Css.Node },
+    { selector: "node:selected", style: { "border-width": 3, "border-color": blue, "border-style": "solid", color: "#fff", "text-opacity": 1, "font-weight": 600, "z-index": 10,
+        "text-background-color": blue, "text-background-opacity": 0.35,
         "underlay-color": blue, "underlay-padding": 9, "underlay-opacity": 0.35, "underlay-shape": "ellipse" } as unknown as cytoscape.Css.Node },
   ];
 }

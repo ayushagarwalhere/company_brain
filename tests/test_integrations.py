@@ -125,12 +125,17 @@ def test_only_the_installer_picks_channels_and_a_new_team_gets_a_welcome(client,
             posted.append((channel, text))
 
     monkeypatch.setattr(slack_sdk, "WebClient", FakeWeb)
+    from pipeline import teamsync
+
+    imports = []
+    monkeypatch.setattr(teamsync, "in_background", lambda fn, *a, **k: imports.append((fn.__name__, a)))  # history import: not here
     assert client.post("/api/connect/slack/channels", json={"team": "T1", "channels": ["C1"]}).status_code == 403  # no key
     assert client.get("/api/connect/slack/channels?team=T1&key=1.bad").status_code == 403
     r = client.post("/api/connect/slack/channels", json={"team": "T1", "key": key, "channels": ["C1", "C2"]}).json()
     assert joined == ["C1", "C2"] and [c["name"] for c in r["joined"]] == ["engineering", "product"] and r["private_graph"]
     org = installs.slack_install("T1")["org"]
     assert len(posted) == 1 and posted[0][0] == "C1" and f"https://brain.example.com/?app&org={org}" in posted[0][1]
+    assert imports and imports[0][0] == "import_slack_history" and imports[0][1][0] == org  # the picked channels' history is imported
     client.post("/api/connect/slack/channels", json={"team": "T1", "key": key, "channels": ["C1"]})
     assert len(posted) == 1  # one welcome, not one per change
 

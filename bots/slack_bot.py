@@ -17,7 +17,7 @@ from slack_bolt.authorization import AuthorizeResult
 from bots.commands import HELP, handle
 from config import settings
 from connectors import installs, seed_map
-from connectors.slack import PersonLookup, to_event
+from connectors.slack import PersonLookup, TeamPeople, to_event
 from pipeline.live import process_message
 
 log = logging.getLogger("slack_bot")
@@ -34,7 +34,7 @@ def authorize(enterprise_id, team_id, logger):
 
 
 app = App(authorize=authorize)
-_people: dict[str, PersonLookup] = {}
+_people: dict[str, PersonLookup | TeamPeople] = {}
 _channel_names: dict[str, str] = {}
 
 
@@ -50,9 +50,12 @@ def org_of(team_id: str | None):
         _org.reset(token)
 
 
-def people_for(team_id: str | None, client) -> PersonLookup:
+def people_for(team_id: str | None, client) -> PersonLookup | TeamPeople:
+    """Who wrote a message: the demo's hand-written people.json for the home workspace; for a connected team, its
+    Slack directory through pipeline.identity (names, titles, one Person across Slack, Discord and GitHub)."""
     if (team_id or "") not in _people:
-        _people[team_id or ""] = PersonLookup(client)
+        team = (installs.slack_install(team_id) or {}).get("org")
+        _people[team_id or ""] = TeamPeople(client) if team else PersonLookup(client)
     return _people[team_id or ""]
 
 
@@ -64,10 +67,51 @@ def channel_name(client, cid: str) -> str:
 
 @app.event("message")
 def on_message(event, client, say, context):
-    if event.get("bot_id") or event.get("subtype"):
-        return  # ignore bots (including ourselves), edits, joins
+    sub = event.get("subtype")
+    if sub in ("message_changed", "message_deleted"):
+        with org_of(context.team_id):
+            _on_change(event, client, context.team_id)
+        return
+    if event.get("bot_id") or sub:
+        return  # ignore bots (including ourselves), joins and other system messages
     with org_of(context.team_id):
         _on_message(event, client, say, context.team_id)
+
+
+def _on_change(event, client, team_id):
+    """An edited message is checked again with its new text; a deleted one leaves the graph (pipeline.live)."""
+    from pipeline.live import delete_message, edit_message
+
+    cid = event["channel"]
+    if event["subtype"] == "message_deleted":
+        prev = event.get("previous_message") or {}
+        delete_message(f"slack:{cid}:{prev.get('ts') or event.get('deleted_ts')}")
+        return
+    msg = event.get("message") or {}
+    if msg.get("bot_id") or not msg.get("text") or (event.get("previous_message") or {}).get("text") == msg.get("text"):
+        return  # a bot's edit, or only an unfurl/attachment changed
+    try:
+        edit_message(to_event(msg, channel_name(client, cid), cid, people_for(team_id, client), seed_map.load("slack")))
+    except Exception:  # noqa: BLE001 - never crash the socket loop
+        log.exception("edit failed")
+
+
+@app.event("user_change")
+@app.event("team_join")
+def on_member(event, context):
+    """Someone joined or changed their profile (name, title): their Person follows (connected teams only)."""
+    if not (installs.slack_install(context.team_id) or {}).get("org"):
+        return
+    from connectors.slack import _slack_identity
+    from graph.db import get_graph
+
+    with org_of(context.team_id):
+        u = event.get("user") or {}
+        if u.get("id") and not u.get("is_bot") and not u.get("deleted"):
+            _slack_identity(get_graph(), u)
+            p = _people.get(context.team_id or "")
+            if isinstance(p, TeamPeople):
+                p.forget(u["id"])
 
 
 def _on_message(event, client, say, team_id):

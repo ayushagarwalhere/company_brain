@@ -10,7 +10,7 @@ export const EXPLORE_HREF = `/?app&org=${DEMO_ORG}`;
 
 const APP_PARAMS = ["app", "org", "tour", "q", "person", "view"];
 /** Section ids that exist only in the app; overview chapter anchors (#pain, #vision, …) stay on the overview. */
-const APP_SECTIONS = ["drift", "graph-sec", "map-sec", "impact", "simulate", "stream", "ask", "docs-sec", "who-sees", "retro-sec", "coverage", "spec-sec"];
+const APP_SECTIONS = ["setup", "drift", "graph-sec", "map-sec", "impact", "simulate", "stream", "ask", "docs-sec", "who-sees", "retro-sec", "coverage", "spec-sec"];
 
 /** The app view: any app deep link (?app, ?org=, ?tour, ?q=, ?person=, ?view=) or an app section anchor. */
 export function isAppMode() {
@@ -21,3 +21,6 @@ export function isAppMode() {
 
 /** The guided tour is running (?tour). */
 export const tourOn = () => typeof window !== "undefined" && new URLSearchParams(window.location.search).has("tour");
+
+/** A connected team's own graph (?org=slack-… / discord-…): real people and work, no demo-only sections. */
+export const isTeamOrg = (org: string | null | undefined) => !!org && /^(slack|discord)-/.test(org);

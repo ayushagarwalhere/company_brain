@@ -27,9 +27,9 @@ def _path() -> Path:
 def _load() -> dict:
     p = _path()
     if not p.exists():
-        return {"slack": {}, "discord": {}}
+        return {"slack": {}, "discord": {}, "teams": {}}
     data = json.loads(p.read_text(encoding="utf-8") or "{}")
-    return {"slack": data.get("slack", {}), "discord": data.get("discord", {})}
+    return {"slack": data.get("slack", {}), "discord": data.get("discord", {}), "teams": data.get("teams", {})}
 
 
 def _save(data: dict) -> None:
@@ -111,4 +111,53 @@ def status() -> dict:
     return {
         "slack_workspaces": len(data["slack"]),
         "discord_servers": sum(1 for g in data["discord"].values() if g.get("active")),
+    }
+
+
+# ---------------------------------------------------------------- a connected team's own settings (by org)
+
+
+def team(org: str) -> dict:
+    """A team's settings and sync status: {"github": {"repo", "token", "since"}, "status": {...}}."""
+    return _load()["teams"].get(org, {})
+
+
+def set_team(org: str, **fields) -> dict:
+    """Merges fields into a team's settings (a nested dict merges one level deep)."""
+    with _lock:
+        data = _load()
+        t = data["teams"].setdefault(org, {})
+        for k, v in fields.items():
+            t[k] = {**t.get(k, {}), **v} if isinstance(v, dict) and isinstance(t.get(k), dict) else v
+        _save(data)
+        return t
+
+
+def team_slack(org: str) -> dict | None:
+    """The Slack install that feeds this org's graph (with its bot token), if any."""
+    return next((i for i in _load()["slack"].values() if i.get("org") == org), None)
+
+
+def team_orgs() -> list[str]:
+    """Every connected team's org: from Slack installs, Discord servers and teams with settings."""
+    data = _load()
+    orgs = {i.get("org") for i in data["slack"].values()} | {g.get("org") for g in data["discord"].values()} | set(data["teams"])
+    return sorted(o for o in orgs if o)
+
+
+def public_team(org: str) -> dict:
+    """What a team's own dashboard may show about its connections: never a token."""
+    data = _load()
+    slack = team_slack(org)
+    discord = [g for g in data["discord"].values() if g.get("org") == org]
+    t = data["teams"].get(org, {})
+    gh = t.get("github") or {}
+    return {
+        "org": org,
+        "slack": {"team": slack["team"], "channels": slack.get("channels", [])} if slack else None,
+        "discord": {"server": discord[0]["name"]} if discord else None,
+        "github": {"repo": gh["repo"], "token_set": bool(gh.get("token")), "since": gh.get("since")} if gh.get("repo") else None,
+        "jira": {k: (t.get("jira") or {}).get(k) for k in ("site", "project", "email", "since")} if (t.get("jira") or {}).get("project") else None,
+        "linear": {k: (t.get("linear") or {}).get(k) for k in ("team", "since")} if (t.get("linear") or {}).get("team") else None,
+        "status": t.get("status", {}),
     }

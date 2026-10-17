@@ -197,3 +197,29 @@ def format_alert(d: dict) -> str:
     )
     lines.append(f"Suggested fix: update {d['ticket']} or confirm the old scope.")
     return "\n".join(lines)
+
+
+# ---------------------------------------------------------------- edits and deletions (keeping the graph current)
+
+
+def mark_dirty(g) -> None:
+    """Something changed that the next full resolve must take into account (an edited or deleted message): the team
+    sync (pipeline/teamsync.py) re-derives features, requirements and drift when it sees this flag."""
+    g.query("MERGE (s:SyncState {id: 'resolve'}) SET s.dirty = true")
+
+
+def edit_message(event: Event, g=None, extractor=None) -> dict:
+    """A message was edited: its new text replaces the old one and is checked like a new message (the edit may be the
+    decision); whatever the old text implied is re-derived at the next resolve."""
+    g = g or get_graph()
+    out = process_message(event, g, extractor)
+    mark_dirty(g)
+    return out
+
+
+def delete_message(message_id: str, g=None) -> bool:
+    """A message was deleted: it leaves the graph, and with the next resolve so does any requirement it created."""
+    g = g or get_graph()
+    gone = g.query("MATCH (m:Message {id: $id}) DETACH DELETE m RETURN count(*)", {"id": message_id}).result_set
+    mark_dirty(g)
+    return bool(gone and gone[0][0])

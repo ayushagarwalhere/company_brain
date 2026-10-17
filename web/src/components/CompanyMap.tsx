@@ -49,7 +49,7 @@ function mapStyle(): cytoscape.StylesheetStyle[] {
     ...styleFor(),
     ...TYPES.map((t) => ({ selector: `node[type='${t.type}']`, style: { shape: t.shape, width: t.size, height: t.size, "background-color": c(t.color), "border-width": 2, "border-color": "#000" } }) as cytoscape.StylesheetStyle),
     { selector: "node[type='Project'], node[type='Team']", style: { "font-size": 12, color: c("--ink"), "font-family": "Geist, sans-serif" } },
-    { selector: "node[?inactive]", style: { opacity: 0.45, "border-style": "dashed", "border-color": c("--c-coral"), "border-width": 2 } },
+    { selector: "node[?inactive]", style: { "background-opacity": 0.45, "text-opacity": 0.9, "border-style": "dashed", "border-color": c("--c-coral"), "border-width": 2 } },
     { selector: "node[?away]", style: { "border-style": "dashed", "border-color": c("--c-amber"), "border-width": 3 } },
     { selector: "edge", style: { width: 1.1, opacity: 0.75 } },
     { selector: "edge.layer", style: { width: 2.4, opacity: 1, "line-color": c("--c-cyan"), "target-arrow-color": c("--c-cyan"), label: "data(label)", color: c("--c-cyan"), "z-index": 5 } },

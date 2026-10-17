@@ -22,6 +22,9 @@ PREFIX = "!brain"
 
 intents = discord.Intents.default()
 intents.message_content = True
+# member joins and role changes reach on_member_update only with the privileged Server Members intent, which must also
+# be switched on in the Developer Portal (Bot page); off by default so the bot still connects without it
+intents.members = __import__("os").getenv("DISCORD_MEMBERS_INTENT") == "1"
 client = discord.Client(intents=intents)
 
 
@@ -91,7 +94,19 @@ async def on_message(msg: discord.Message):
         _org.reset(token)
 
 
-async def _on_message(msg: discord.Message):
+def author_of(msg: discord.Message, people: dict) -> str:
+    """The demo's people.json for the home server; a connected team's member directory (pipeline.identity) otherwise."""
+    from graph.db import current_org, get_graph
+
+    if current_org() != "default" and isinstance(msg.author, discord.Member):
+        from connectors.discord import team_author
+
+        return team_author(get_graph(), msg.author)
+    name = msg.author.name
+    return people.get(name, people.get(getattr(msg.author, "display_name", ""), f"discord:{name}"))
+
+
+async def _on_message(msg: discord.Message, edited: bool = False):
     if msg.content.startswith(PREFIX):
         text = msg.content[len(PREFIX) :]
         try:
@@ -104,8 +119,12 @@ async def _on_message(msg: discord.Message):
         await send_long(msg, reply or HELP, reply=True)
         return
     ev = to_event(msg, seed_map.load("discord"), _people_by_name())
+    if str(msg.id) not in seed_map.load("discord"):
+        ev.author = await asyncio.to_thread(author_of, msg, _people_by_name())
     try:
-        result = await asyncio.to_thread(process_message, ev)
+        from pipeline.live import edit_message
+
+        result = await asyncio.to_thread(edit_message if edited else process_message, ev)
     except Exception:  # noqa: BLE001 - keep the bot alive
         log.exception("drift check failed")
         return
@@ -115,6 +134,55 @@ async def _on_message(msg: discord.Message):
 
         bus.publish("drift", status="drift", feature=result.get("feature"), ticket=result.get("ticket"), author=ev.author, text=ev.text[:160])
         await send_long(msg, result["alert"].replace(":warning:", "⚠️"), reply=True)
+
+
+@client.event
+async def on_message_edit(before: discord.Message, after: discord.Message):
+    """An edited message is checked again with its new text (pipeline.live.edit_message)."""
+    if after.author.bot or after.guild is None or before.content == after.content or not after.content:
+        return
+    from connectors.installs import discord_org
+    from graph.db import _org, set_org
+
+    token = set_org(discord_org(after.guild.id, after.guild.name))
+    try:
+        if not after.content.startswith(PREFIX):
+            await _on_message(after, edited=True)
+    finally:
+        _org.reset(token)
+
+
+@client.event
+async def on_raw_message_delete(payload):
+    """A deleted message leaves the graph (pipeline.live.delete_message)."""
+    if payload.guild_id is None:
+        return
+    from connectors.installs import discord_org
+    from graph.db import _org, set_org
+    from pipeline.live import delete_message
+
+    token = set_org(discord_org(payload.guild_id))
+    try:
+        await asyncio.to_thread(delete_message, f"discord:{payload.message_id}")
+    finally:
+        _org.reset(token)
+
+
+@client.event
+async def on_member_update(before: discord.Member, after: discord.Member):
+    """A member's roles or name changed: their Person follows (connected teams' servers only)."""
+    from connectors.discord import team_author
+    from connectors.installs import discord_org
+    from graph.db import _org, get_graph, set_org
+
+    org = discord_org(after.guild.id, after.guild.name)
+    if not org or (before.roles == after.roles and before.display_name == after.display_name):
+        return
+    token = set_org(org)
+    try:
+        await asyncio.to_thread(team_author, get_graph(), after)
+    finally:
+        _org.reset(token)
 
 
 def main():

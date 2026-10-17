@@ -124,7 +124,12 @@ class LLMExtractor:
     def group_tickets(self, tickets: list[dict]) -> list[dict]:
         lines = "\n".join(f"{t['id']}: {t['title']} - {t['description']}" for t in tickets)
         out = llm.chat_json(GROUP_SYSTEM, lines)
-        return [{"id": slug(f["name"]), "name": f["name"], "tickets": f["tickets"]} for f in out.get("features", [])]
+        # a model sometimes returns a group without its ticket list (seen on a real repo's 65 issues): skip what's malformed
+        return [
+            {"id": slug(f["name"]), "name": f["name"], "tickets": [t for t in f.get("tickets") or [] if isinstance(t, str)]}
+            for f in out.get("features", [])
+            if isinstance(f, dict) and f.get("name")
+        ]
 
     def classify(self, items: list[dict], features: list[dict]) -> dict[str, dict]:
         """items: [{"id", "author", "ts", "text", "thread": [{"author","text"}]}]"""

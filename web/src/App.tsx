@@ -1,7 +1,8 @@
 import { useEffect } from "react";
 import { BrainProvider, useBrain } from "./lib/brain";
 import { scrollToEl } from "./lib/fx";
-import { isAppMode } from "./lib/routes";
+import { ORG } from "./lib/api";
+import { isAppMode, isTeamOrg } from "./lib/routes";
 import { Footer, Nav } from "./components/Chrome";
 import { CompanyMapSection } from "./components/CompanyMap";
 import { DriftSection } from "./components/DriftSection";
@@ -13,6 +14,7 @@ import { Landing } from "./components/Landing";
 import { CommandPalette, PersonDrawer } from "./components/Overlays";
 import { AskSection, CoverageSection, RetroSection, SimulateSection, SpecSection } from "./components/Panels";
 import { StreamSection } from "./components/Stream";
+import { TeamSetup } from "./components/TeamSetup";
 import { Toasts } from "./components/Toasts";
 import { Tour, tourActive } from "./components/Tour";
 
@@ -28,20 +30,22 @@ function ScrollToHash() {
 
 /** The working app: every feature on the live graph (the demo sandbox when opened from the overview). */
 function Workspace() {
+  const team = isTeamOrg(ORG);  // a real team: its setup first; the demo-only sections (personas, projects, sample docs) are left out
   return (
     <>
       <a className="skip" href="#drift">Skip to open drift</a>
       <Nav />
       <AppHeader />
       <main>
+        {team && <TeamSetup />}
         <DriftSection />
         <GraphSection />
         <CompanyMapSection />
-        <ImpactSection />
-        <SimulateSection />
+        {!team && <ImpactSection />}
+        {!team && <SimulateSection />}
         <StreamSection />
         <AskSection />
-        <DocsSection />
+        {!team && <DocsSection />}
         <RetroSection />
         <CoverageSection />
         <SpecSection />

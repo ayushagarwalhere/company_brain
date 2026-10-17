@@ -90,3 +90,15 @@ async def _fetch(limit: int) -> list[Event]:
 
 def fetch_history(limit: int = 2000) -> list[Event]:
     return asyncio.run(_fetch(limit))
+
+
+def team_author(g, member) -> str:
+    """A Discord member of a connected team's server -> their Person (pipeline.identity), with their top role as
+    role and their roles as groups."""
+    from pipeline import identity
+
+    roles = [r for r in getattr(member, "roles", []) if getattr(r, "name", "@everyone") != "@everyone"]
+    top = max(roles, key=lambda r: r.position).name if roles else None
+    return identity.resolve(
+        g, "discord", f"discord:{member.id}", member.name, getattr(member, "display_name", None) or member.name, None, top, [r.name for r in roles]
+    )

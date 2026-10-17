@@ -116,6 +116,24 @@ export type Integrations = {
   discord: { ready: boolean; bot_token_set: boolean; servers: number };
 };
 export type SlackChannels = { team: string; channels: { id: string; name: string; members: number | null; watched: boolean }[] };
+export type SourcePass = { tickets: number; new_versions: number; comments: number; prs: number; people: number };
+export type TeamStatus = {
+  org: string; people: number;
+  slack: { team: string; channels: { id: string; name: string }[] } | null;
+  discord: { server: string } | null;
+  github: { repo: string; token_set: boolean; since: string | null } | null;
+  jira: { site: string; project: string; email: string; since: string | null } | null;
+  linear: { team: string; since: string | null } | null;
+  status: {
+    at?: string; errors?: string[]; people_from_slack?: number; open_drift?: number; graph?: Record<string, number>;
+    github?: SourcePass; jira?: SourcePass; linear?: SourcePass;
+    history?: { messages: number; channels: string[]; at: string };
+  };
+};
+export type TeamPerson = {
+  id: string; name: string | null; role: string | null; email: string | null; groups: string[]; activity: number;
+  accounts: { platform: string; handle: string; name: string | null; title: string | null; via: string }[];
+};
 export type WhoAmI = { viewer: string | null; grants: string[] };
 export type LiveEvent = { type: "drift" | "message" | "resolved" | "ticket" | "pr" | "doc" | "rebuild" | "project"; at: number; [k: string]: unknown };
 
@@ -173,6 +191,14 @@ export const api = {
   whoami: (as?: string | null) => req<WhoAmI>("/api/whoami", undefined, as),
   projects: () => req<Project[]>("/api/projects"),
   integrations: () => req<Integrations>("/api/integrations"),
+  team: () => req<TeamStatus>("/api/team"),
+  teamPeople: () => req<TeamPerson[]>("/api/team/people"),
+  teamSync: () => req<{ syncing: boolean }>("/api/team/sync", {}),
+  connectGithub: (repo: string, token: string) => req<{ repo: string; private: boolean }>("/api/team/github", { repo, token }),
+  connectJira: (site: string, email: string, token: string, project: string) => req<{ project: string; name: string }>("/api/team/jira", { site, email, token, project }),
+  connectLinear: (token: string, team: string) => req<{ team: string; name: string }>("/api/team/linear", { token, team }),
+  mergePeople: (keep: string, drop: string) => req<{ kept: string; merged: string }>("/api/team/people/merge", { keep, drop }),
+  editPerson: (id: string, role: string, groups: string[]) => req<{ id: string }>(`/api/team/people/${enc(id)}`, { role, groups }),
   /** `key`: the setup key Slack's redirect handed to the person who just installed */
   slackChannels: (team: string, key: string) => req<SlackChannels>(`/api/connect/slack/channels?team=${enc(team)}&key=${enc(key)}`),
   watchSlack: (team: string, key: string, channels: string[]) =>

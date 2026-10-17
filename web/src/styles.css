@@ -879,7 +879,31 @@ mark.hl { background: color-mix(in srgb, var(--acc, #fff) 22%, transparent); col
   background: linear-gradient(90deg, var(--c-coral), var(--c-amber), var(--c-yellow), var(--c-green), var(--c-cyan), var(--c-blue), var(--c-violet), var(--c-pink)); }
 
 /* ---------------------------------------------------------------- connect slack / discord (overview) */
-#connect, .nav__links a[href="#connect"] { --acc: var(--c-green); }
+#connect, #setup, .nav__links a[href="#connect"] { --acc: var(--c-green); }
+/* a team's own setup (TeamSetup.tsx) */
+.setup__form { display: grid; gap: 12px; }
+.setup__form label { display: grid; gap: 6px; color: var(--muted); }
+.setup__form .field { width: 100%; }
+.setup__facts { display: grid; gap: 10px; }
+.setup__facts > div { display: grid; gap: 2px; }
+.setup__facts b { font-weight: 500; }
+.setup__facts .link { justify-self: start; }
+.setup__status { display: flex; gap: 18px; flex-wrap: wrap; margin-top: 14px; padding: 12px 16px; border: 1px solid var(--line-2); border-radius: var(--r); color: var(--soft); }
+.setup__hot { color: var(--acc); }
+.setup__err { color: var(--c-coral); }
+.who { display: grid; }
+.who li { display: grid; grid-template-columns: minmax(0, 1.2fr) minmax(0, 1fr) minmax(0, 1.4fr) auto; gap: 16px; align-items: center; padding: 14px 0; border-top: 1px solid var(--line); }
+.who li:last-child { border-bottom: 1px solid var(--line); }
+.who__main { display: grid; gap: 2px; min-width: 0; }
+.who__main b { font-weight: 500; }
+.who__main .mono { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.who__role { display: grid; gap: 6px; font-size: 14px; color: var(--soft); }
+.who__groups { display: flex; gap: 4px; flex-wrap: wrap; }
+.who__accounts { display: flex; gap: 6px; flex-wrap: wrap; }
+.who__act { display: flex; gap: 12px; align-items: center; justify-content: flex-end; flex-wrap: wrap; }
+.who__edit { display: flex; gap: 8px; flex-wrap: wrap; align-items: center; }
+.who__edit .field { height: 32px; min-width: 0; flex: 1 1 120px; }
+@media (max-width: 900px) { .who li { grid-template-columns: 1fr; gap: 8px; } .who__act { justify-content: flex-start; } }
 .connect { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 12px; }
 @media (max-width: 900px) { .connect { grid-template-columns: minmax(0, 1fr); } }
 @media (max-width: 520px) { .connect__top { grid-template-columns: 44px minmax(0, 1fr); } .connect__top .tag { grid-column: 1 / -1; justify-self: start; } }

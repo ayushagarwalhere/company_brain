@@ -147,14 +147,26 @@ def has_decision_rights(author: str | None, ticket: dict) -> bool:
 # ---------------------------------------------------------------- stages
 
 
-def group_features(g, ex, tickets: list[dict], tix: dict, log=print) -> tuple[list[dict], dict]:
-    """1. Features from tickets. Returns (features, feature id per ticket)."""
+def group_features(g, ex, tickets: list[dict], tix: dict, log=print, ungrouped: bool = False) -> tuple[list[dict], dict]:
+    """1. Features from tickets. Returns (features, feature id per ticket). With `ungrouped`, a ticket no group took
+    becomes a feature of its own (a real team's repo is mostly one-off issues; the demo keeps its grouping as is)."""
+    from pipeline.extract import slug
+
     features = ex.group_tickets([{"id": t["id"], "title": t["title"], "description": t["description"], "labels": t["labels"] or []} for t in tickets])
     feat_of_ticket = {}
     for f in features:
         f["tickets"] = [t for t in f["tickets"] if t in tix]
         for t in f["tickets"]:
             feat_of_ticket[t] = f["id"]
+    if ungrouped:
+        taken = {f["id"] for f in features}
+        for t in tickets:
+            if t["id"] not in feat_of_ticket:
+                fid = slug(t["title"] or t["id"])
+                fid = fid if fid not in taken else f"{fid}_{t['id'].lower().replace('-', '_')}"
+                taken.add(fid)
+                features.append({"id": fid, "name": t["title"] or t["id"], "tickets": [t["id"]]})
+                feat_of_ticket[t["id"]] = fid
     g.query("UNWIND $fs AS f MERGE (x:Feature {id: f.id}) SET x.name = f.name", {"fs": features})
     g.query(
         """UNWIND $pairs AS p MATCH (t:Ticket {id: p.t}), (f:Feature {id: p.f})
@@ -501,6 +513,7 @@ def resolve(
     latest_wins: bool = False,
     keep_candidates: bool = True,
     min_confidence: float = MIN_CONFIDENCE,
+    ungrouped_features: bool = False,
 ) -> dict:
     """Runs every stage in order. `ablate` switches off graph capabilities one at a time (benchmark/ablation.py):
     threads (REPLY_TO), pr_proximity (author + time window), semantic, supersession (SUPERSEDES/IMPLEMENTS),
@@ -514,7 +527,7 @@ def resolve(
     tickets = load_tickets(g)
     tix = {t["id"]: t for t in tickets}
 
-    features, feat_of_ticket = group_features(g, ex, tickets, tix, log)
+    features, feat_of_ticket = group_features(g, ex, tickets, tix, log, ungrouped_features)
     write_ticket_requirements(g, tickets, feat_of_ticket)
     prs = load_prs(g)
     ticket_sim = TfIdf({t["id"]: f"{t['title']} {t['description']}" for t in tickets})

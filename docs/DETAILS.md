@@ -156,7 +156,38 @@ The overview page has **Add to Slack** and **Add to Discord** buttons ([`api/int
 2. Run `python -m bots.discord_bot`. The "Add to Discord" button opens Discord's page for adding the bot to a server (the application id is read from the token, or `DISCORD_CLIENT_ID`). The running bot records the servers it's in, and the site shows them as connected.
 
 **Every team gets its own graph** ([`connectors/installs.py`](../connectors/installs.py)). Only the home workspace (the one in `SLACK_BOT_TOKEN`) and the home server (`DISCORD_GUILD_ID`) feed the demo company's graph. Any other workspace or server gets a private org with a random id (`slack-3f9a1c7e2b`), so its messages go into its own graph: it never sees or feeds the demo or another team. The bot posts one welcome there with that team's dashboard link. The public site only shows how many teams are connected; channel picking needs a two-hour setup key that only the installer's redirect carries; and a team's graph can't be reset to demo data (`403`).
-What isn't self-serve yet: a new team's tickets and pull requests (the GitHub and tracker webhooks use one server-wide secret, so the admin sets them up per team), and mapping their chat users to ticket owners. Until then the bot stores and answers about what's said, but can't flag drift. With no sign-in, the org id in the dashboard link is the only key to a team's graph.
+With no sign-in, the org id in the dashboard link is the only key to a team's graph.
+
+## Using it for your own team
+
+A connected team's dashboard (the link in the bot's welcome) opens on **Your setup**, and from there the team gets what the demo company has: real people with roles, their real tickets and PRs, and drift alerts in their threads.
+
+**People and roles** ([`pipeline/identity.py`](../pipeline/identity.py)). The demo company's people are hand-written (`people.json`); a real team's come from its systems:
+- **Slack:** every member of the workspace (`users.list`): name, job title (the profile's *Title* field becomes the role), email, admins, and Slack user groups (they decide who may see restricted documents). New members (`team_join`) and profile changes (`user_change`) update the graph as they happen; every sync re-reads the directory too.
+- **Discord:** a member's display name, their top server role as role, and their roles as groups.
+- **GitHub:** issue and PR authors, assignees and commenters, with their public name and email.
+- **Jira and Linear:** reporters, creators, assignees and commenters (display name and email; Jira hides emails unless the user allows it, so those are matched by full name).
+- **One person per human:** accounts are linked by email, then full name, then handle (GitHub `maya-chen` and Slack `maya.chen`), and the page shows how each was linked. A missed link is fixed with *Merge*, a role or groups set by hand are kept over later syncs, and bots (dependabot, Copilot) are not people. This matters because only a ticket's creator or assignee can change it from chat: Maya's Slack decision counts on the issue Maya opened on GitHub.
+
+**Their work.** Tickets come from whichever tracker the team uses, PRs from GitHub; each source is connected on the setup page and kept in sync ([`connectors/work.py`](../connectors/work.py) is what they share). Every ticket without a feature group becomes a feature of its own, so one-off issues are tracked too (the demo keeps its grouping).
+
+| Source | Tickets | Description history | Comments | Connect with |
+|---|---|---|---|---|
+| **GitHub** ([`github_work.py`](../connectors/github_work.py)) | issues as `GH-<n>` ("#12" anywhere links as `GH-12`), plus every PR | the text at connection, then each later edit (GitHub's REST API keeps no older ones) | issue comments | repo + read-only token (Issues, Pull requests, Metadata); a public repo works without one |
+| **Jira Cloud** ([`jira.py`](../connectors/jira.py)) | one project's issues, `ACME-12` | **all of it**, from the changelog: every version, its author and time | issue comments | site, account email, API token, project key |
+| **Linear** ([`linear.py`](../connectors/linear.py)) | one team's issues, `ENG-12` | the current text dated to its last edit (Linear's history has the time, not the old text), then each later edit | issue comments | personal API key, team key |
+
+PRs come from GitHub whichever tracker is used: "Fixes ENG-12" or "ACME-12" in a PR links it to the Linear or Jira ticket, as "BD-101" does in the demo. Ticket ids are recognised in chat when the key has two to five letters; a longer Jira key (`ACMECORP-12`) still syncs, but isn't linked from a chat message.
+
+**Staying current** ([`pipeline/teamsync.py`](../pipeline/teamsync.py)). A new message reaches the graph at once, with the in-thread alert. Every `TEAM_SYNC_SECONDS` (default 300) a pass per team re-reads the Slack directory and fetches only what changed on GitHub since the previous pass. An issue whose body changed gets its next version, stamped with the time of the change, and the pass re-derives features, requirement versions, `SUPERSEDES`, `IMPLEMENTS` and drift; follow-up tasks, write-backs and dismissals are kept. Edited and deleted Slack and Discord messages are picked up too (an edit is checked like a new message; a deletion removes what it implied at the next pass). Picking channels imports their last 90 days once. *Sync now* runs a pass at once.
+
+**Slack app settings this needs:** bot events `message.channels`, `app_mention`, `user_change`, `team_join`; scopes as requested by *Add to Slack* (including `users:read.email` and `usergroups:read`, used to match people and groups). **Discord:** the Message Content intent; for role changes as they happen, the Server Members intent too and `DISCORD_MEMBERS_INTENT=1`.
+
+**Jira and Linear** are tested end to end against fake APIs in [`tests/test_trackers.py`](../tests/test_trackers.py): a Jira issue's whole description history (each version by its author), its comment as discussion, the reporter matched to their Slack account by name, and the reporter's Slack decision raising drift on `ACME-1`; a Linear issue's text dated to its last edit, the assignee's Slack decision raising drift on `ENG-1`, and the edit in Linear closing it. They have not run against a real Jira site or Linear workspace yet.
+
+**Measured on a real repo:** a full sync of `FalkorDB/falkordb-py` (65 issues, 241 PRs, 11 comments, 35 people) took about two minutes with the LLM extractor and grouped them into 66 features, with 37 PRs linked to the requirement versions they implement; a pass with nothing new took 2 s. Tested end to end with fake Slack and GitHub APIs in [`tests/test_team.py`](../tests/test_team.py): a Slack decision by the issue's creator raises the drift alert, the issue edit on GitHub closes it, and a non-owner's decision is refused.
+
+**Not covered yet:** other trackers (Asana, ClickUp, Shortcut), GitHub and Linear ticket text from before the connection (their APIs keep no old versions; Jira's does), a team's own documents (the Google Drive connector is server-wide), and sign-in (the dashboard link is the key).
 
 ## Deploy (Docker / Render)
 
@@ -203,7 +234,7 @@ The rules agent routes "delay / slip / push back / postpone" questions here and 
 
 ## Tests and CI
 
-`python -m pytest -q` runs 155 tests, none of which need an LLM or API keys. They include:
+`python -m pytest -q` runs 162 tests, none of which need an LLM or API keys. They include:
 - the published numbers in [`docs/RESULTS.md`](RESULTS.md) against the committed result files ([`tests/test_readme_numbers.py`](../tests/test_readme_numbers.py));
 - the fix-it agent: the plan's assignees, owners-only approval, follow-ups that survive a rebuild, the chat-thread commands, read-only tools and the post-generation id check ([`tests/test_work.py`](../tests/test_work.py));
 - human actions surviving rebuilds, and live updates (a write-back survives a live recompute; an unverified candidate never supersedes the owner's decision);
@@ -216,6 +247,8 @@ The rules agent routes "delay / slip / push back / postpone" questions here and 
 - the SQL baseline and the ablation guard;
 - docs kept in sync (only changed chunks re-embedded, MENTIONS edges follow edits, the Google Drive connector against a fake Drive) and access control (the salary question per viewer, tools and API responses never leaking a restricted doc) ([`tests/test_knowledge.py`](../tests/test_knowledge.py));
 - impact analysis: a delay through BLOCKS chains to projects, client deliverables and teams, the agent's answer to the delay question, feature maps, and the per-viewer docs endpoints ([`tests/test_impact.py`](../tests/test_impact.py));
+- Jira and Linear for a team: Jira's full description history and comments, Linear's dated edits, people matched to Slack, the owner's Slack decision raising drift on a Jira and a Linear ticket and the Linear edit closing it, connecting both without showing tokens ([`tests/test_trackers.py`](../tests/test_trackers.py));
+- a real team gets the demo's experience: Slack and GitHub people linked into one person each, GitHub issues and PRs as tickets and PRs, the owner's Slack decision raising drift, an issue edit closing it, message edits and deletes, new titles, merging people, and setup pages only for team graphs ([`tests/test_team.py`](../tests/test_team.py)); connecting Slack and Discord, per-team graphs ([`tests/test_integrations.py`](../tests/test_integrations.py));
 - the graph, API, webhooks, connector contracts and paging.
 
 [`.github/workflows/ci.yml`](../.github/workflows/ci.yml) also runs:

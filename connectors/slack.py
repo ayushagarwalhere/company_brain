@@ -141,3 +141,82 @@ def fetch_history(c: WebClient | None = None) -> list:
                     if x["ts"] != m["ts"] and keep(x, cid, smap):
                         events.append(to_event(x, name, cid, people, smap))
     return events
+
+
+# ---------------------------------------------------------------- a connected team's workspace (not the demo)
+
+
+def _slack_identity(g, u: dict) -> str:
+    """A Slack member -> their Person, with name, job title, email and groups (admins) from their profile."""
+    from pipeline import identity
+
+    p = u.get("profile") or {}
+    groups = ["admins"] if u.get("is_admin") or u.get("is_owner") else []
+    return identity.resolve(
+        g, "slack", f"slack:{u['id']}", u.get("name"), p.get("real_name") or u.get("real_name"), p.get("email"), p.get("title") or None, groups
+    )
+
+
+class TeamPeople:
+    """Slack user id -> Person id for a connected team, through pipeline.identity (who's who), instead of the demo's
+    hand-written people.json. Looks a user up once (users.info) and caches the answer."""
+
+    def __init__(self, c: WebClient):
+        self.c = c
+        self.cache: dict[str, str] = {}
+
+    def __call__(self, user_id: str | None) -> str:
+        from graph.db import get_graph
+
+        if not user_id:
+            return "unknown"
+        if user_id not in self.cache:
+            try:
+                u = self.c.users_info(user=user_id)["user"]
+            except Exception:  # noqa: BLE001 - keep the message, attribute it to the raw id
+                u = {"id": user_id, "name": user_id}
+            self.cache[user_id] = _slack_identity(get_graph(), u)
+        return self.cache[user_id]
+
+    def forget(self, user_id: str) -> None:
+        self.cache.pop(user_id, None)
+
+
+def sync_directory(g, c: WebClient) -> int:
+    """Every human in the workspace -> a Person with their title and groups; Slack user groups become groups too
+    (they decide who may see restricted documents). Returns how many people were read."""
+    n = 0
+    for u in paged(c.users_list, "members", limit=200):
+        if u.get("deleted") or u.get("is_bot") or u.get("id") == "USLACKBOT":
+            continue
+        _slack_identity(g, u)
+        n += 1
+    try:  # needs the usergroups:read scope; without it, people just have no Slack groups
+        for grp in c.usergroups_list(include_users=True).get("usergroups", []):
+            handle = grp.get("handle")
+            for uid in grp.get("users") or []:
+                g.query(
+                    """MATCH (p:Person)-[:HAS_ACCOUNT]->(:Account {id: $a})
+                       SET p.groups = coalesce(p.groups, []) + [x IN [$h] WHERE NOT x IN coalesce(p.groups, [])]""",
+                    {"a": f"slack:{uid}", "h": handle},
+                )
+    except Exception:  # noqa: BLE001
+        pass
+    return n
+
+
+def fetch_channels(c: WebClient, channels: list[dict], people, oldest: float | None = None, limit: int = 2000) -> list:
+    """History (with thread replies) of the given channels [{id, name}], newest `limit` messages at most."""
+    events: list = []
+    for ch in channels:
+        kw = {"channel": ch["id"], "limit": 200, **({"oldest": str(oldest)} if oldest else {})}
+        for m in paged(c.conversations_history, "messages", **kw):
+            if len(events) >= limit:
+                return events
+            if keep(m, ch["id"], {}):
+                events.append(to_event(m, ch["name"], ch["id"], people, {}))
+            if m.get("reply_count"):
+                for x in paged(c.conversations_replies, "messages", channel=ch["id"], ts=m["ts"], limit=200):
+                    if x["ts"] != m["ts"] and keep(x, ch["id"], {}):
+                        events.append(to_event(x, ch["name"], ch["id"], people, {}))
+    return events

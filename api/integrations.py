@@ -33,7 +33,9 @@ from connectors import installs
 
 router = APIRouter()
 
-SLACK_SCOPES = ["channels:read", "channels:history", "channels:join", "chat:write", "users:read", "app_mentions:read"]
+# users:read.email and usergroups:read let a team's people be matched across Slack and GitHub by email, and their Slack
+# user groups decide document access (pipeline/identity.py)
+SLACK_SCOPES = ["channels:read", "channels:history", "channels:join", "chat:write", "users:read", "users:read.email", "usergroups:read", "app_mentions:read"]
 # View Channels, Send Messages, Read Message History, Manage Webhooks (seeding), Send Messages in Threads
 DISCORD_PERMISSIONS = 1024 | 2048 | 65536 | 536870912 | 274877906944
 STATE_MAX_AGE_S = 900
@@ -229,6 +231,10 @@ def slack_watch(body: WatchIn, request: Request):
             failed.append({"id": cid, "error": str(e)[:120]})
     first_time = not inst.get("channels")
     installs.set_slack_channels(body.team, joined)
+    if joined and inst.get("org"):  # the picked channels' recent history, imported once in the background
+        from pipeline import teamsync
+
+        teamsync.in_background(teamsync.import_slack_history, inst["org"], joined)
     if joined and first_time and inst.get("org"):
         try:
             c.chat_postMessage(channel=joined[0]["id"], text=welcome("slack", inst["org"], _base(request)))

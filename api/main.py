@@ -31,10 +31,18 @@ WEB_DIST = Path(__file__).resolve().parent.parent / "web" / "dist"  # React app:
 
 @asynccontextmanager
 async def lifespan(_app):
-    """Receive events published by other processes (bots, CLI) over FalkorDB's Redis pub/sub."""
+    """Receive events published by other processes (bots, CLI) over FalkorDB's Redis pub/sub, and keep every connected
+    team's graph current (pipeline/teamsync.py)."""
+    import threading
+
+    from pipeline import teamsync
+
     stop = bus.start_listener()
+    sync_stop = threading.Event()
+    teamsync.start(sync_stop)
     yield
     stop.set()
+    sync_stop.set()
 
 
 app = FastAPI(
@@ -61,6 +69,10 @@ _cors()
 from api.integrations import router as _integrations  # noqa: E402 - connect Slack and Discord from the website
 
 app.include_router(_integrations)
+
+from api.team import router as _team  # noqa: E402 - a connected team's setup: GitHub, sync, who's who
+
+app.include_router(_team)
 
 
 log = logging.getLogger("api")

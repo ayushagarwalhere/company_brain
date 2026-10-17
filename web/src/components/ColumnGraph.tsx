@@ -61,7 +61,7 @@ function extra(): cytoscape.StylesheetStyle[] {
     { selector: "node[type='Task']", style: { shape: "triangle", width: 14, height: 14 } },
     { selector: ".st-misses, .st-delayed, .st-slips, .st-drift", style: hit },
     { selector: ".st-tight", style: { "border-width": 2, "border-color": amber, "border-style": "dashed", color: amber } },
-    { selector: ".st-unaffected, .st-superseded", style: { opacity: 0.38 } },
+    { selector: ".st-unaffected, .st-superseded", style: { "background-opacity": 0.38, "border-opacity": 0.38, "text-opacity": 0.85 } },
     { selector: "node:selected", style: { "border-color": cssVar("--c-blue"), "border-style": "solid" } },
   ];
 }
