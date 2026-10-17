@@ -153,7 +153,7 @@ On Render: New → Blueprint → this repo ([`render.yaml`](../render.yaml)). It
 
 ## Tests and CI
 
-`python -m pytest -q` runs 120 tests, none of which need an LLM or API keys. They include:
+`python -m pytest -q` runs 121 tests, none of which need an LLM or API keys. They include:
 - the published numbers in [`docs/RESULTS.md`](RESULTS.md) against the committed result files ([`tests/test_readme_numbers.py`](../tests/test_readme_numbers.py));
 - the fix-it agent: the plan's assignees, owners-only approval, follow-ups that survive a rebuild, the chat-thread commands, read-only tools and the post-generation id check ([`tests/test_work.py`](../tests/test_work.py));
 - human actions surviving rebuilds, and live updates (a write-back survives a live recompute; an unverified candidate never supersedes the owner's decision);

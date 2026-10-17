@@ -72,6 +72,8 @@ Following FalkorDB's own advice on graph agents:
 - **Q&A:** with a strong model (gpt-oss-120b), the graph agent scored 0.84 against 0.71 for retrieval feeding the same model. With no LLM at all, plain retrieval that dumps 25 passages beats my rules agent (0.98 vs 0.86) at five times the length.
 - **Real GitHub text is the weak link.** The rules extractor's drift flags were all false on two public repos. A strong model fixed the false positives but still found only 2 of 7 real decisions.
 - **It runs for real.** A decision posted in a real Slack workspace got an in-thread alert within seconds, and a real merged PR on GitHub closed a drift through `IMPLEMENTS`.
+- **A real drift in the wild.** In [golang/go#77441](https://github.com/golang/go/issues/77441) the issue body still proposes `ServeHTTP`, while the version the Go team accepted, amended in a comment, is `HandleRequest(…) error`. The title was updated; the body never was. My extractor saw the change but its own evidence guard threw it away, because the quote sat inside a `//` code comment. One fix later it catches it. That fix came after I'd seen the case, so it isn't a held-out result.
+- **And where it found nothing.** Across 289 comments from FalkorDB's and Excalidraw's repos, every flag checked against its thread turned out not to be drift: in well-run open-source projects, decisions travel inside their PR. That's a useful negative result, and it shaped how I'd pitch this: it's for teams that decide in chat and ship somewhere else.
 
 ## What I learned
 

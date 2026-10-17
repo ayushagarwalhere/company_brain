@@ -6,7 +6,9 @@
 
 [Full results](docs/RESULTS.md) · [Architecture, setup and tests](docs/DETAILS.md) · [Every query](docs/QUERIES.md) · [How it works](docs/EXPLAIN.md)
 
-![Demo: open drift, a live decision raising a new drift, a ticket edit resolving one, the evidence graph](docs/demo.gif)
+![Demo: an open drift, the fix plan read from the graph, a non-owner refused, the owner approving, follow-ups assigned, a multi-hop answer, the graph](docs/demo.gif)
+
+<sub>Frames from the running app, captured with real clicks on a demo copy of the graph; not a screen recording.</sub>
 
 **In a real Slack workspace**, a ticket owner's message got this in-thread alert within seconds:
 
@@ -76,9 +78,9 @@ Honest boundary: with the same extracted facts and version chain, a SQL anti-joi
 
 - **Real Slack:** a decision posted in a real workspace got the in-thread alert above; a rebuild from Slack history found it too ([`docs/REAL_RUN.md`](docs/REAL_RUN.md)).
 - **Real GitHub:** a merged PR, [brightdesk-demo#1](https://github.com/Dakshhhhh-ops/brightdesk-demo/pull/1), read through the GitHub API, closed the BD-103 drift via `IMPLEMENTS`.
-- **Real repos:** 289 real comments from FalkorDB and Excalidraw searched; all 81 flags checked against their GitHub threads: **0 confirmed drift**. The two genuine scope decisions found had already reached a PR ([results §7](docs/RESULTS.md#7-looking-for-real-drift-in-real-repos)).
+- **Real drift in a real repo:** in [golang/go#77441](https://github.com/golang/go/issues/77441) the accepted API (`HandleRequest(…) error`, amended in a comment) differs from the issue body, which still says `ServeHTTP` with no error. The extractor finds the change (after a fix to its evidence guard, so not held-out). Searching 289 FalkorDB and Excalidraw comments found no drift: their 2 real scope decisions had already reached a PR ([results §7](docs/RESULTS.md#7-looking-for-real-drift-in-real-repos)).
 - **Scale:** 100 of 100 planted drifts in a 22,940-node graph, 0 false; drift query p50 39 ms.
-- **Tested:** 120 tests, CI with ruff, mypy, the ablation gate and a query-plan check.
+- **Tested:** 121 tests, CI with ruff, mypy, the ablation gate and a query-plan check.
 
 ## Results at a glance
 
@@ -92,7 +94,7 @@ From [`docs/RESULTS.md`](docs/RESULTS.md). gpt-oss-120b = OpenAI's open-weight m
 | Real GitHub text, rules / gpt-oss-120b | false positives still flagged 25/25 / **2/25**; recall 1/7 / **2/7** |
 | 500 noise messages, rules / qwen3:8b | both real drifts found; 14 / **1** false alerts |
 | Stress test, 22,940 nodes | **100 / 100** planted drifts |
-| Real drift search, FalkorDB + Excalidraw (289 comments) | 81 flags checked by hand, **0 confirmed drift** |
+| Real drift search, FalkorDB + Excalidraw (289 comments) | 81 flags checked against their GitHub threads (AI-written verdicts), **0 confirmed drift** |
 
 ## Known weaknesses
 

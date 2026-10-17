@@ -216,3 +216,20 @@ def test_llm_confidence_given_as_a_string_is_parsed_not_crashed_on():
     assert from_structured({**base, "confidence": "0.8"}, msg)["confidence"] == 0.8
     assert from_structured({**base, "confidence": "high"}, msg)["confidence"] == 0.0
     assert from_structured({**base, "confidence": None}, msg)["confidence"] == 0.0
+
+
+def test_evidence_guard_accepts_a_quote_from_a_code_comment_but_not_an_invented_one():
+    """golang/go#77441: the accepted API change was stated in a `//` doc comment; the model quoted it without the
+    markers and the guard discarded a correct extraction. Markers are now ignored on both sides; words still must match."""
+    from pipeline.extract import evidence_ok
+
+    msg = (
+        "Amending the proposal:\n```go\n// HandleRequest returns a non-nil error if the handler panics.\n"
+        "// It returns [ErrAbortHandler] if the handler panicked with that value.\n"
+        "func (*Server) HandleRequest(ResponseWriter, *Request) error\n```"
+    )
+    assert evidence_ok(
+        "HandleRequest returns a non-nil error if the handler panics.\nIt returns [ErrAbortHandler] if the handler panicked with that value.", msg
+    )
+    assert evidence_ok("> keep the old scope", "> keep the old scope, agreed")
+    assert not evidence_ok("HandleRequest returns the panic value to the caller", msg)

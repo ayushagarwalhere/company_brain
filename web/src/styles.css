@@ -18,7 +18,7 @@
   --planet-core: #cbb8f5; --planet-mid: #e7dcfb; --glow-1: rgba(255, 255, 255, 1); --glow-2: rgba(167, 139, 250, .8); --glow-3: rgba(109, 40, 217, .35);
   --n-feature: #120f1f; --n-ticket: #0369a1; --n-req: #6d28d9; --n-msg: #a16207; --n-pr: #15803d; --n-person: #6b7280; --n-doc: #a21caf;
   --btn-bg: #120f1f; --btn-ink: #ffffff;
-  color-scheme: light;
+  color-scheme: light only;  /* "only": the light theme is designed, so browsers must not auto-darken it */
 }
 
 * { box-sizing: border-box; }

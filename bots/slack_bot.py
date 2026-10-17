@@ -58,12 +58,25 @@ def remember_thread(channel: str, thread_ts: str, requirement: str) -> None:
     get_graph().query("MATCH (a:Alert {id: $a}) SET a.slack_thread = $t", {"a": f"alert:{requirement}", "t": f"{channel}:{thread_ts}"})
 
 
+RECENT_ALERT_S = 30 * 60  # a command posted in the channel right after an alert means that alert
+
+
 def thread_requirement(channel: str, thread_ts: str | None) -> str | None:
-    if not thread_ts:
-        return None
+    """The drift a command is about: the alert whose thread it's in; or, posted in the channel instead of the thread,
+    the most recent alert in this channel within RECENT_ALERT_S. Otherwise None (the command then asks which ticket)."""
+    import time
+
     from graph.db import get_graph
 
-    rows = get_graph().query("MATCH (a:Alert {slack_thread: $t}) RETURN a.id LIMIT 1", {"t": f"{channel}:{thread_ts}"}).result_set
+    g = get_graph()
+    if thread_ts:
+        rows = g.query("MATCH (a:Alert {slack_thread: $t}) RETURN a.id LIMIT 1", {"t": f"{channel}:{thread_ts}"}).result_set
+        if rows:
+            return rows[0][0].removeprefix("alert:")
+    rows = g.query(
+        "MATCH (a:Alert) WHERE a.slack_thread STARTS WITH $c AND a.status = 'open' AND a.at_ms >= $since RETURN a.id ORDER BY a.at_ms DESC LIMIT 1",
+        {"c": f"{channel}:", "since": int((time.time() - RECENT_ALERT_S) * 1000)},
+    ).result_set
     return rows[0][0].removeprefix("alert:") if rows else None
 
 

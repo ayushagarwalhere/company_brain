@@ -1,0 +1,10 @@
+{
+ "is_change": true,
+ "kind": "requirement_change",
+ "old": "HandleRequest did not return an error",
+ "new": "HandleRequest now returns a non-nil error when the handler panics, and returns ErrAbortHandler if the panic value is ErrAbortHandler",
+ "evidence_quote": "HandleRequest returns a non-nil error if the handler panics.\nIt returns [ErrAbortHandler] if the handler panicked with that value.",
+ "feature": null,
+ "ticket": null,
+ "confidence": 0.97
+}

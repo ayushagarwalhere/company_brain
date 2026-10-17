@@ -30,14 +30,14 @@ export function Loader() {
 }
 
 function useTheme() {
-  const initial = new URLSearchParams(location.search).get("theme") || (() => { try { return localStorage.getItem(THEME_KEY); } catch { return null; } })();
-  const [theme, setTheme] = useState<string | null>(initial);
+  // dark is the default; ?theme= or the visitor's own choice (remembered) overrides it
+  const initial = new URLSearchParams(location.search).get("theme") || (() => { try { return localStorage.getItem(THEME_KEY); } catch { return null; } })() || "dark";
+  const [theme, setTheme] = useState<string>(initial);
   useEffect(() => {
-    if (theme) document.documentElement.dataset.theme = theme; else delete document.documentElement.dataset.theme;
+    document.documentElement.dataset.theme = theme;
   }, [theme]);
   const toggle = () => {
-    const dark = getComputedStyle(document.documentElement).colorScheme !== "light";
-    const next = dark ? "light" : "dark";
+    const next = theme === "light" ? "dark" : "light";
     try { localStorage.setItem(THEME_KEY, next); } catch { /* storage blocked */ }
     setTheme(next);
     window.dispatchEvent(new Event("themechange"));

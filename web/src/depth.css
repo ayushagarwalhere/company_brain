@@ -86,3 +86,36 @@
 :root[data-theme="light"] .specdoc { box-shadow: 0 24px 60px -40px rgb(var(--sh, 167 139 250) / .55); }
 :root[data-theme="light"] .sec__bar > span:first-child { color: color-mix(in srgb, var(--sh-c) 45%, var(--ink)); }
 :root[data-theme="light"] .sec__num { -webkit-text-stroke-color: color-mix(in srgb, var(--sh-c) 60%, var(--ink)); opacity: .5; }
+
+/* ---------- light theme, made for light (not a dark design with the colours inverted) ---------- */
+:root[data-theme="light"] {
+  --bg: #fbfbfd; --bg-2: #f3f2f8; --card: #ffffff; --card-2: #f8f7fc;
+  --soft: #34304a; --muted: #57526e; --note: #7b7693;
+  --line: #e2dfec; --line-2: #ecebf3;
+}
+/* 003 stat cards: white cards with a soft tint and a coloured top edge, dark numbers */
+:root[data-theme="light"] .metric-wrap:nth-child(1) .metric { --lt: #7c5fd6; }
+:root[data-theme="light"] .metric-wrap:nth-child(2) .metric { --lt: #4f46e5; }
+:root[data-theme="light"] .metric-wrap:nth-child(3) .metric { --lt: #15803d; }
+:root[data-theme="light"] .metric-wrap:nth-child(4) .metric { --lt: #a21caf; }
+:root[data-theme="light"] .metric-wrap:nth-child(5) .metric { --lt: #e2441f; }
+:root[data-theme="light"] .metric { border: 1px solid var(--line); background: #fff; box-shadow: 0 1px 0 rgba(18, 15, 31, .03), 0 24px 50px -36px color-mix(in srgb, var(--lt) 55%, transparent); }
+:root[data-theme="light"] .metric::before { content: ""; position: absolute; left: -1px; right: -1px; top: -1px; height: 3px; background: var(--lt); }
+:root[data-theme="light"] .metric__bg::before { background: radial-gradient(120% 90% at 85% 0%, color-mix(in srgb, var(--lt) 14%, #fff), #fff 60%); filter: none; }
+:root[data-theme="light"] .metric__bg::after { display: none; }
+:root[data-theme="light"] .metric__row { color: var(--ink); text-shadow: none; }
+:root[data-theme="light"] .metric b { color: color-mix(in srgb, var(--lt) 70%, var(--ink)); }
+:root[data-theme="light"] .metric small { color: color-mix(in srgb, var(--lt) 65%, var(--muted)); }
+:root[data-theme="light"] .metric--hot b { color: var(--accent); }
+:root[data-theme="light"] .ticker { color: var(--muted); }
+:root[data-theme="light"] .ticker__track b { color: var(--violet); }
+:root[data-theme="light"] .stats-head .muted { color: var(--note); }
+/* 002 orbit diagram: visible orbits and labels on a light page */
+:root[data-theme="light"] .orbit__ring { stroke: #c9c3dc; }
+:root[data-theme="light"] .orbit__ring--solid { stroke: var(--violet-2); opacity: .55; filter: none; }
+:root[data-theme="light"] .orbit__label { fill: var(--muted); }
+:root[data-theme="light"] .orbit__node text.sub { fill: var(--muted); }
+:root[data-theme="light"] .orbit__path { filter: none; }
+/* section bars and panels: a touch more contrast */
+:root[data-theme="light"] .sec__bar { color: var(--ink); }
+:root[data-theme="light"] .sec::before { opacity: .25; }

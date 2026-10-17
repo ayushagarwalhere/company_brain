@@ -3,6 +3,16 @@
   <head>
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <!-- the site has its own light and dark designs: stop browsers from auto-darkening the light one -->
+    <meta name="color-scheme" content="dark light" />
+    <script>
+      // dark by default, before first paint (no flash of the light theme); ?theme= or a saved choice overrides it
+      (function () {
+        var t = new URLSearchParams(location.search).get("theme");
+        try { t = t || localStorage.getItem("drift-theme"); } catch (e) {}
+        document.documentElement.dataset.theme = t === "light" ? "light" : "dark";
+      })();
+    </script>
     <meta name="description" content="Drift Monitor: a FalkorDB context graph that catches requirements changed in chat but never shipped." />
     <title>Drift Monitor</title>
     <link rel="preconnect" href="https://fonts.googleapis.com" />

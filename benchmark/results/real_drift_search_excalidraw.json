@@ -1039,14 +1039,5 @@
   }
  ],
  "confirmed_drift": 0,
- "unverified": 0,
- "checked_by": "every flag read by hand against its GitHub thread on 2026-10-17; the two non-routine ones checked against the linked PRs",
- "summary": {
-  "not drift: a real scope decision, already shipped": 1,
-  "not drift: status (superseded / already done)": 8,
-  "not drift: agreement with work in progress": 1,
-  "not drift: the change already shipped": 28,
-  "not drift: a decision not to change": 5,
-  "not drift: status (one bulk 'closing as superseded' message)": 36
- }
+ "unverified": 0
 }

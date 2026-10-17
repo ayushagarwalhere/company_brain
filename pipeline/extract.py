@@ -56,7 +56,11 @@ Return JSON: {"replaces": true|false, "reason": short explanation}"""
 
 
 def _norm(text: str | None) -> str:
-    return re.sub(r"\s+", " ", (text or "").lower().replace("\u2019", "'")).strip(" .\"'`*")
+    """Lower-case, one space between words, and no line-leading comment or quote markers (`//`, `#`, `>`, `*`, `--`):
+    a model quoting a sentence from a code comment or a quoted reply drops those markers. Found on golang/go#77441,
+    where an accepted API change sat in a `//` doc comment and the guard threw the (correct) extraction away."""
+    text = re.sub(r"(?m)^[ \t]*(?://+|#+|>+|\*+|--)[ \t]?", "", text or "")
+    return re.sub(r"\s+", " ", text.lower().replace("\u2019", "'")).strip(" .\"'`*")
 
 
 def evidence_ok(quote: str | None, message: str) -> bool:
