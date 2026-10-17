@@ -33,11 +33,17 @@ def _drift_ids(g, ticket: str) -> set[str]:
 
 
 def recompute_supersession(g, ticket: str, ex=None) -> int:
-    """Rebuild SUPERSEDES among one ticket's requirements (ticket versions + chat changes)."""
+    """Rebuild SUPERSEDES among one ticket's requirements (ticket versions + chat changes).
+
+    Same boundary as the batch build (resolve.build_supersession): unverified candidates (status set) never
+    enter the chain, so a non-owner's message can't supersede the owner's decision. Human write-backs are
+    re-attached afterwards (human.relink), otherwise this delete would undo a "Write to ticket"."""
+    from pipeline.human import relink
+
     ex = ex or _extractor()
     chain = Q.rows(
         g,
-        """MATCH (q:Requirement {ticket: $t})
+        """MATCH (q:Requirement {ticket: $t}) WHERE q.status IS NULL
                          RETURN q.id AS id, q.text AS text, q.origin AS origin, q.at AS at, q.at_ms AS at_ms,
                                 q.confidence AS confidence
                          ORDER BY q.at_ms, q.id""",
@@ -50,6 +56,7 @@ def recompute_supersession(g, ticket: str, ex=None) -> int:
                MERGE (n)-[:SUPERSEDES]->(o)""",
         {"ps": pairs},
     )
+    relink(g)
     return len(pairs)
 
 
