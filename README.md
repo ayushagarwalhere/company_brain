@@ -162,6 +162,3 @@ Add the relevant bot credentials to `.env` and follow [`docs/REAL_RUN.md`](docs/
 
 For architecture, setup details, query explanations, and complete results, see [`docs/DETAILS.md`](docs/DETAILS.md), [`docs/EXPLAIN.md`](docs/EXPLAIN.md), [`docs/QUERIES.md`](docs/QUERIES.md), and [`docs/RESULTS.md`](docs/RESULTS.md).
 
-## AI assistant disclosure
-
-Built with help from an AI coding assistant (Claude Code), as the hackathon rules allow. The idea, the scenario and the graph model come from our project plan, and we can explain every part ([`docs/EXPLAIN.md`](docs/EXPLAIN.md)). The real-data labels were made by the assistant and are marked as such.
