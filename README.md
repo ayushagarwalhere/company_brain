@@ -8,7 +8,7 @@ hands the current decision to whoever is about to build: a person, or an AI agen
 
 **▶ [Live demo](https://13-63-197-94.sslip.io/demo)**: straight into the guided tour of the demo company. No sign-up, no setup.
 
-**▶ [Video](https://VIDEO_URL)** · **[Try it on your own GitHub repo](https://13-63-197-94.sslip.io/try/FalkorDB/FalkorDB)** · **[Give Claude Code the current spec (MCP)](examples/mcp-demo)**
+**▶ [Video](https://youtu.be/3tvJNerfj64)** · **[Try it on your own GitHub repo](https://13-63-197-94.sslip.io/try/FalkorDB/FalkorDB)** · **[Give Claude Code the current spec (MCP)](examples/mcp-demo)**
 
 | Proof | What it shows |
 |---|---|
