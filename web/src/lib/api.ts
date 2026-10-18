@@ -1,4 +1,5 @@
 // Typed client for the FastAPI backend (api/main.py). Shapes mirror the JSON it returns.
+import { sandboxFor } from "./routes";
 
 export type Count = { label?: string; type?: string; n: number };
 export type Stats = {
@@ -155,8 +156,9 @@ export type TeamPerson = {
 export type WhoAmI = { viewer: string | null; grants: string[] };
 export type LiveEvent = { type: "drift" | "message" | "resolved" | "ticket" | "pr" | "doc" | "rebuild" | "project"; at: number; [k: string]: unknown };
 
-/** Multi-tenancy: ?org=acme in the page URL scopes every request to that org's graph. */
-export const ORG = typeof window !== "undefined" ? new URLSearchParams(window.location.search).get("org") : null;
+/** Multi-tenancy: ?org=acme in the page URL scopes every request to that org's graph; ?org=demo is this browser's
+    own sandbox of the demo company. */
+export const ORG = typeof window !== "undefined" ? sandboxFor(new URLSearchParams(window.location.search).get("org")) : null;
 
 /** Write token: when the server sets INGEST_TOKEN, actions (resolve, dismiss, simulate) need it. Opening the page
     once with ?token=... keeps it for this tab. */

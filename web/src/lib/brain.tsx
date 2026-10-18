@@ -1,10 +1,10 @@
 import { createContext, useCallback, useContext, useEffect, useMemo, useRef, useState, type ReactNode } from "react";
 import { scrollToEl } from "./fx";
-import { DEMO_ORG, tourOn } from "./routes";
+import { isSandboxOrg, tourOn } from "./routes";
 import { api, holdRequests, ORG, type Coverage, type Drift, type Feature, type LiveEvent, type SpecResult, type Sprint, type Stats } from "./api";
 
-/** Sandboxes are built from the demo data: ?org=demo (the demo) and ?org=tour (older tour links). */
-const SANDBOX = ORG === DEMO_ORG || ORG === "tour";
+/** Sandboxes are built from the demo data: ?org=demo (this browser's own sandbox) and ?org=tour (older tour links). */
+const SANDBOX = isSandboxOrg(ORG);
 /** One sandbox build per page load, however often the mount effect runs (StrictMode runs it twice in dev). */
 let sandboxBuild: Promise<unknown> | null = null;
 /** The tour always starts on a fresh sandbox: hold every section's first requests from the very start (before any

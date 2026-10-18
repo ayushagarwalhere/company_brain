@@ -1,7 +1,7 @@
 import { useRef, useState } from "react";
 import { api, ORG } from "../lib/api";
 import { useBrain } from "../lib/brain";
-import { DEMO_ORG, isRepoOrg, repoName } from "../lib/routes";
+import { isRepoOrg, isSandboxOrg, repoName } from "../lib/routes";
 import { gsap, moving, revealHeading, useGSAP } from "../lib/gsap";
 import { CountUp } from "./Motion";
 import { TOUR_HREF } from "./Tour";
@@ -18,12 +18,12 @@ export function AppHeader() {
     gsap.from(el.querySelectorAll(".eyebrow, .lede, .apphead__actions, .hero__stats > div"), { opacity: 0, y: 18, stagger: 0.05, delay: 0.25 });
   }, { scope: ref });
   const n = (l: string) => stats?.nodes.find((x) => x.label === l)?.n ?? 0;
-  const demo = ORG === DEMO_ORG;
+  const demo = isSandboxOrg(ORG);
   const team = !!ORG && /^(slack|discord)-/.test(ORG);  // a connected team's own graph
   const repo = isRepoOrg(ORG);  // a public repo's graph, from "Try it on your repo"
   const reset = async () => {
     setBusy(true);
-    try { if (demo) await api.bootstrap(DEMO_ORG); else await api.resetDemo(); await refresh(); } finally { setBusy(false); }
+    try { if (demo) await api.bootstrap(ORG!); else await api.resetDemo(); await refresh(); } finally { setBusy(false); }
   };
   const figures: [string, number, boolean?][] = [
     ["Messages", n("Message")], ["Tickets", n("Ticket")], ["Pull requests", n("PullRequest")], ["Docs", n("Document")], ["Open drift", drift.length, true],

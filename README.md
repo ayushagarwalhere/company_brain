@@ -6,9 +6,9 @@ hands the current decision to whoever is about to build: a person, or an AI agen
 
 ![The site: the overview, open drift with its graph path, a cross-tool answer with its sources, a real repo's graph, and the MCP server](docs/demo.gif)
 
-**▶ [Live demo](https://LIVE_URL/demo)**: straight into the guided tour, on a private sandbox. No sign-up, no setup.
+**▶ [Live demo](https://13-60-62-24.sslip.io/demo)**: straight into the guided tour of the demo company. No sign-up, no setup.
 
-**▶ [Video](https://VIDEO_URL)** · **[Try it on your own GitHub repo](https://LIVE_URL/try/FalkorDB/FalkorDB)** · **[Give Claude Code the current spec (MCP)](examples/mcp-demo)**
+**▶ [Video](https://VIDEO_URL)** · **[Try it on your own GitHub repo](https://13-60-62-24.sslip.io/try/FalkorDB/FalkorDB)** · **[Give Claude Code the current spec (MCP)](examples/mcp-demo)**
 
 | Proof | What it shows |
 |---|---|
@@ -60,7 +60,7 @@ The same graph, as six read-only MCP tools any coding agent can call: `current_s
 locally it also runs over stdio.
 
 ```bash
-claude mcp add --transport http company-brain https://LIVE_URL/mcp
+claude mcp add --transport http company-brain https://13-60-62-24.sslip.io/mcp
 ```
 
 Asked to "implement BD-101", Claude Code without it built what the ticket says: the last 30 days, five columns. With it,

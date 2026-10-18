@@ -60,4 +60,6 @@ python, falkordb, cypher, fastapi, server-sent-events, deepseek, react, typescri
 ## Links
 - Code: https://github.com/ayushagarwalhere/company_brain
 - Demo video: _add link_
-- Live demo: _add link, or point to the README's local setup_
+- Live demo: https://13-60-62-24.sslip.io/demo
+- Try it on a GitHub repo: https://13-60-62-24.sslip.io/try/FalkorDB/FalkorDB
+- MCP server for coding agents: https://13-60-62-24.sslip.io/mcp

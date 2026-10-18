@@ -4,7 +4,7 @@ import { api, ORG, type Drift } from "../lib/api";
 import { useBrain } from "../lib/brain";
 import { scrollToEl } from "../lib/fx";
 import { cleanAnswer } from "../lib/ui";
-import { DEMO_HREF, DEMO_ORG, tourOn } from "../lib/routes";
+import { DEMO_HREF, isSandboxOrg, tourOn } from "../lib/routes";
 import { ACTIVE_Q } from "./Stream";
 
 /** The product tour: a guided walk through every feature on a fresh private sandbox of the demo company, where each
@@ -13,7 +13,7 @@ import { ACTIVE_Q } from "./Stream";
     starts it at that section's step, and folding it away leaves a small pill, never in the way of the page.
     Each step leads with one instruction, big and in the step's colour, and the section it is about carries a label. */
 export const TOUR_HREF = DEMO_HREF;
-export const tourActive = () => tourOn() || ORG === DEMO_ORG || ORG === "tour";
+export const tourActive = () => tourOn() || isSandboxOrg(ORG);
 
 /** Per-tab memory of where the tour was (step, folded), so coming back to the demo picks it up. */
 function remember(k: string, v?: string): string | null {
